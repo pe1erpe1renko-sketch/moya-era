@@ -1,287 +1,120 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Section } from "./Section";
+import { backend, type CreditPack, type Plan } from "@/lib/backend";
+import { DEFAULT_CREDIT_PACKS, DEFAULT_PLANS, formatRub, monthlyEquivalent, yearDiscountPercent } from "@/lib/plansDefault";
+import { track } from "@/components/analytics/track";
 
+/**
+ * ТАРИФЫ. Единица — профиль человека, кредиты — только на наставника.
+ * Цены приходят из базы (таблица plans), здесь только вёрстка.
+ * Никаких зачёркнутых цен, таймеров и «осталось 3 места».
+ */
 
-type Plan = {
-  id: string;
-  title: string;
-  lead: string;
-  price?: string;
-  note?: string;
-  priceMonth?: string;
-  priceYear?: string;
-  noteMonth?: string;
-  noteYear?: string;
-  features: string[];
-  warning?: string;
-  action: string;
-  primary: boolean;
-};
+export function usePlans() {
+  const [plans, setPlans] = useState<Plan[]>(DEFAULT_PLANS);
+  const [packs, setPacks] = useState<CreditPack[]>(DEFAULT_CREDIT_PACKS);
+  useEffect(() => {
+    let alive = true;
+    Promise.all([backend.billing.plans(), backend.billing.creditPacks()]).then(([p, c]) => {
+      if (!alive) return;
+      if (p.length) setPlans(p);
+      if (c.length) setPacks(c);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return { plans, packs };
+}
 
-const PLANS: Plan[] = [
-  {
-    id: "free",
-    title: "Знакомство",
-    lead: "Если хочется просто посмотреть и ничего пока не решать",
-    price: "0 ₽",
-    note: "Навсегда",
-    features: [
-      "Центральный аркан по дате рождения",
-      "Короткий разбор: что это за число и о чём оно",
-      "Без регистрации и без карты",
-    ],
-    action: "Посмотреть свой аркан",
-    primary: false,
-  },
-  {
-    id: "trial",
-    title: "Пробный доступ",
-    lead: "Если уже интересно, но платить сразу за месяц не хочется",
-    price: "249 ₽",
-    note: "Три дня полного доступа",
-    features: [
-      "Все шесть систем, полные разборы",
-      "Своё небо на минуту рождения",
-      "Дневник наблюдений",
-      "Отменить можно в первый же день",
-    ],
-    warning: "Через три дня — 690 ₽ в месяц, если не отменить",
-    action: "Открыть на три дня",
-    primary: false,
-  },
-  {
-    id: "sub",
-    title: "Подписка",
-    lead: "Если хочется разбираться в себе не один вечер, а спокойно и подолгу",
-    priceMonth: "690 ₽",
-    priceYear: "4 900 ₽",
-    noteMonth: "В месяц",
-    noteYear: "В год — это 408 ₽ в месяц",
-    features: [
-      "Всё из пробного, без ограничения по времени",
-      "Профили близких: партнёр, ребёнок, коллега",
-      "Совместимость между любыми двумя профилями",
-      "Карта дня утром в Telegram",
-      "Разборы обновляются вместе с транзитами",
-      "Отмена в один шаг, без звонков и писем",
-    ],
-    action: "Оформить подписку",
-    primary: true,
-  },
-];
+export function PlansGrid({ compact = false }: { compact?: boolean }) {
+  const { plans } = usePlans();
+  const [period, setPeriod] = useState<"month" | "year">("month");
 
-const MOBILE_ORDER: Record<string, string> = {
-  sub: "order-1 md:order-none",
-  trial: "order-2 md:order-none",
-  free: "order-3 md:order-none",
-};
-
-function Price({ value }: { value: string }) {
-  const number = value.split(" ₽")[0];
   return (
-    <div
-      className="font-mono text-text-primary"
-      style={{ fontSize: "clamp(32px, 2.9vw, 50px)", marginTop: 22, lineHeight: 1.05 }}
-    >
-      <span>{number}</span>
-      <span
-        style={{
-          fontSize: "62%",
-          color: "var(--text-primary)",
-          opacity: 0.7,
-          marginLeft: 6,
-          verticalAlign: "baseline",
-        }}
-      >
-        ₽
-      </span>
+    <div>
+      <div className="mx-auto flex w-fit items-center gap-1 rounded-full border border-border p-1" role="tablist" aria-label="Период оплаты">
+        {(["month", "year"] as const).map((p) => (
+          <button key={p} type="button" role="tab" aria-selected={period === p} onClick={() => setPeriod(p)} className={`rounded-full px-4 py-2 text-[14px] transition-colors ${period === p ? "bg-accent text-primary-foreground" : "text-text-secondary"}`}>
+            {p === "month" ? "Помесячно" : "За год"}
+          </button>
+        ))}
+      </div>
+
+      <div className={`mt-8 grid gap-4 ${compact ? "md:grid-cols-3" : "md:grid-cols-3"}`}>
+        {plans.map((plan, i) => {
+          const primary = i === 1;
+          const price = period === "year" ? monthlyEquivalent(plan) : plan.price_month;
+          const discount = yearDiscountPercent(plan);
+          return (
+            <div key={plan.id} className={`relative flex flex-col rounded-[20px] border p-6 md:p-7 ${primary ? "border-text-accent/70 bg-depth/25" : "border-border/60 bg-surface-1/40"}`}>
+              {primary && <div className="absolute -top-3 left-6 rounded-full bg-accent px-3 py-1 text-[12px] text-primary-foreground">Чаще выбирают</div>}
+              <div className="font-display text-[clamp(24px,2.4vw,32px)] text-text-primary">{plan.title}</div>
+              <p className="mt-1 text-[14px] text-text-secondary">{plan.subtitle}</p>
+              <div className="mt-5 flex items-baseline gap-2">
+                <span className="font-display text-[clamp(32px,3vw,44px)] leading-none text-text-primary">{formatRub(price)}</span>
+                <span className="text-[14px] text-text-secondary">/ мес</span>
+              </div>
+              <p className="mt-1 text-[13px] text-text-secondary">
+                {period === "year" ? `${formatRub(plan.price_year)} за год${discount > 0 ? ` · экономия ${discount}%` : ""}` : "Списание раз в месяц, отменить можно в любой день"}
+              </p>
+              <div className="mt-4 text-[14px] text-text-secondary">
+                {plan.max_people === null ? "Людей без ограничений" : plan.max_people === 1 ? "Один человек — вы" : `До ${plan.max_people} человек`} · {plan.monthly_credits} сообщений наставнику в месяц
+              </div>
+              <ul className="mt-4 flex-1 space-y-2 text-[15px] text-text-secondary">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex gap-2">
+                    <span className="text-text-accent" aria-hidden="true">·</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={`/checkout?plan=${plan.id}&period=${period}`}
+                onClick={() => track("checkout_open", { plan: plan.id, period })}
+                className={`mt-6 inline-flex h-12 items-center justify-center rounded-[12px] text-[16px] font-medium transition-opacity hover:opacity-90 ${primary ? "bg-accent text-primary-foreground" : "border border-text-accent/50 text-text-primary"}`}
+              >
+                Выбрать
+              </Link>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mx-auto mt-6 max-w-[760px] text-center text-[14px] text-text-secondary">
+        Бесплатно и без регистрации: центральный аркан, схема матрицы и первый вопрос в каждой из двенадцати сфер. Чтение оплаченного не ограничено — кредиты тратятся только на сообщения наставнику.
+      </p>
     </div>
   );
 }
 
-export function Pricing() {
-  const [period, setPeriod] = useState<"month" | "year">("year");
-
+export function CreditPacks() {
+  const { packs } = usePlans();
   return (
-    <Section
-      id="pricing"
-      title="Тарифы"
-      subtitle="Один тариф открывает всё. Никаких докупок внутри"
-    >
-      <div className="pricing-wide">
-        {/* Period switch */}
-        <div className="mt-7 flex justify-center">
-          <div
-            className="flex items-center rounded-full bg-surface-1 p-1"
-            style={{ border: "1px solid var(--border)" }}
-            role="group"
-            aria-label="Период оплаты"
-          >
-            {(["month", "year"] as const).map((p) => {
-              const active = period === p;
-              return (
-                <button
-                  key={p}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setPeriod(p)}
-                  className="pricing-period"
-                  data-active={active}
-                >
-                  {p === "month" ? "Месяц" : "Год"}
-                  {p === "year" && (
-                    <span className="ml-2 text-text-accent" style={{ fontSize: 12 }}>
-                      −41%
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+    <div id="credits" className="scroll-mt-24">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {packs.map((p) => (
+          <Link key={p.id} href={`/checkout?pack=${p.id}`} onClick={() => track("checkout_open", { pack: p.id })} className="rounded-[16px] border border-border/60 bg-surface-1/40 p-5 transition-colors hover:border-text-accent/60">
+            <div className="font-display text-[28px] text-text-primary">{p.credits}</div>
+            <div className="text-[13px] text-text-secondary">сообщений наставнику</div>
+            <div className="mt-3 text-[18px] text-text-primary">{formatRub(p.price)}</div>
+            <div className="text-[12px] text-text-secondary">{(p.price / p.credits).toFixed(1)} ₽ за сообщение</div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-        {/* Cards */}
-        <div className="pricing-grid mt-10">
-          {PLANS.map((plan) => {
-            const price =
-              plan.id === "sub"
-                ? period === "year"
-                  ? plan.priceYear
-                  : plan.priceMonth
-                : plan.price;
-            const note =
-              plan.id === "sub"
-                ? period === "year"
-                  ? plan.noteYear
-                  : plan.noteMonth
-                : plan.note;
-
-            return (
-              <div
-                key={plan.id}
-                className={`pricing-card ${MOBILE_ORDER[plan.id]}`}
-                data-primary={plan.primary}
-              >
-                {plan.primary && <span className="pricing-card-glow" aria-hidden="true" />}
-
-                <div className="relative flex h-full flex-col">
-                  <h3
-                    className="font-display text-text-primary"
-                    style={{
-                      fontSize: "clamp(20px, 1.6vw, 28px)",
-                      fontWeight: 400,
-                      lineHeight: 1.15,
-                      display: "flex",
-                      alignItems: "baseline",
-                      justifyContent: "space-between",
-                      gap: 16,
-                    }}
-                  >
-                    <span>{plan.title}</span>
-                    {plan.primary && (
-                      <span
-                        style={{
-                          fontFamily: "var(--font-sans)",
-                          fontSize: 12,
-                          color: "var(--text-accent)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        Основной
-                      </span>
-                    )}
-                  </h3>
-
-                  <p
-                    className="text-text-secondary"
-                    style={{ fontSize: "clamp(13px, 1.05vw, 16px)", lineHeight: 1.45, marginTop: 8 }}
-                  >
-                    {plan.lead}
-                  </p>
-
-                  {price && <Price value={price} />}
-
-                  <div
-                    className="text-text-secondary"
-                    style={{ fontSize: "clamp(13px, 1vw, 15px)", marginTop: 6 }}
-                  >
-                    {note}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 22,
-                      height: 1,
-                      background: "var(--border)",
-                      opacity: 0.35,
-                    }}
-                  />
-
-                  <ul className="flex flex-col" style={{ marginTop: 20, gap: 12 }}>
-                    {plan.features.map((f) => (
-                      <li
-                        key={f}
-                        className="flex text-text-secondary"
-                        style={{ fontSize: "clamp(13px, 1.05vw, 16px)", lineHeight: 1.5 }}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="text-text-accent"
-                          style={{ marginRight: 10 }}
-                        >
-                          ·
-                        </span>
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {plan.warning && (
-                    <p
-                      className="text-text-secondary"
-                      style={{ fontSize: 12, opacity: 0.75, marginTop: 16 }}
-                    >
-                      {plan.warning}
-                    </p>
-                  )}
-
-                  <div className="mt-auto pt-7">
-                    {plan.id === "free" ? (
-                      <Link
-                        href="/#quick-calc"
-                        className={plan.primary ? "pricing-btn-solid" : "pricing-btn-outline"}
-                      >
-                        {plan.action}
-                      </Link>
-                    ) : (
-                      <Link
-                        href={`/checkout?plan=${plan.id === "trial" ? "trial" : "sub"}&period=${
-                          plan.id === "trial" ? "3d" : period === "year" ? "12m" : "1m"
-                        }`}
-                        className={plan.primary ? "pricing-btn-solid" : "pricing-btn-outline"}
-                      >
-                        {plan.action}
-                      </Link>
-                    )}
-                  </div>
-
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <p
-          className="mx-auto mt-8 text-center text-text-secondary"
-          style={{ fontSize: "clamp(14px, 1.1vw, 17px)" }}
-        >
-          Подписка отменяется в один шаг в личном кабинете. Без звонков и писем в поддержку
-        </p>
+/** Секция тарифов на главной и страницах направлений. */
+export function Pricing() {
+  return (
+    <Section id="pricing" title="Тарифы" subtitle="Единица — человек. Подписка открывает все шесть систем и все типы разбора по датам ваших людей.">
+      <div className="mt-10">
+        <PlansGrid compact />
       </div>
     </Section>
   );

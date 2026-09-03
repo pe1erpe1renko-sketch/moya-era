@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import CabinetPage from "./CabinetPage";
 
 export const metadata: Metadata = {
@@ -12,5 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <CabinetPage />;
+  return (
+    <Suspense fallback={<div className="min-h-screen w-full bg-bg-page" aria-busy="true" />}>
+      <CabinetPage />
+    </Suspense>
+  );
 }

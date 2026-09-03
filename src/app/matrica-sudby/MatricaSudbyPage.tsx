@@ -230,7 +230,7 @@ function MatrixResultContent({ result }: ResultCtx<MatrixResult>) {
         className="text-text-secondary"
         style={{ marginTop: 4, fontSize: "clamp(15px, 1.15vw, 18px)" }}
       >
-        Дальше — в полном разборе
+        Дальше — двенадцать сфер и девяносто два вопроса по этой дате. Бесплатно открыт первый вопрос в каждой сфере
       </p>
 
       <FullReadingButton
@@ -238,6 +238,7 @@ function MatrixResultContent({ result }: ResultCtx<MatrixResult>) {
           date: toIsoDate(result.date.day, result.date.month, result.date.year),
           direction: "matrix",
         }}
+        label="Открыть всю матрицу"
       />
     </>
   );

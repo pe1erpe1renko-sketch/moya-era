@@ -6,364 +6,155 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { useAuth } from "@/lib/useAuth";
-import {
-  CHECKOUT_PLANS,
-  formatRub,
-  nextChargeDate,
-  type PlanId,
-} from "@/lib/plans";
+import { usePlans } from "@/components/landing/Pricing";
+import { formatRub, monthlyEquivalent, yearDiscountPercent } from "@/lib/plansDefault";
+import { DEMO_MODE } from "@/lib/env";
+import { localDemo } from "@/lib/backend.local";
+import { track } from "@/components/analytics/track";
 
-type Search = { plan: PlanId; period: string };
-
-function parseSearch(search: URLSearchParams): Search {
-  const plan: PlanId = search.get("plan") === "trial" ? "trial" : "sub";
-  const raw = search.get("period");
-  const period = raw && raw.length > 0 ? raw : CHECKOUT_PLANS[plan].periods[0]!.id;
-  return { plan, period };
-}
-
-const PAY_METHODS = ["VISA", "Mastercard", "МИР", "СБП", "Google Pay", "ЮMoney"];
-
+/**
+ * ОФОРМЛЕНИЕ. Сумма считается на сервере из базы — здесь только показ.
+ * Пока эквайринг не подключён, кнопка честно говорит об этом.
+ * В демо-режиме подписка включается сразу, чтобы пройти воронку целиком.
+ */
 export default function CheckoutPage() {
-  const searchParams = useSearchParams();
+  const search = useSearchParams();
   const router = useRouter();
-  const { plan: initialPlan, period } = parseSearch(searchParams);
-  const navigate = ({ search }: { search: Search; replace?: boolean }) =>
-    router.replace(`/checkout?plan=${search.plan}&period=${encodeURIComponent(search.period)}`);
-  const { email: authEmail } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
+  const { plans, packs } = usePlans();
 
-  const [planId, setPlanId] = useState<PlanId>(initialPlan);
-  const plan = CHECKOUT_PLANS[planId];
-
-  const [periodId, setPeriodId] = useState(period);
-
-  function choosePlan(next: PlanId) {
-    setPlanId(next);
-    const first = CHECKOUT_PLANS[next].periods[0]!.id;
-    setPeriodId(first);
-    void navigate({ search: { plan: next, period: first }, replace: true });
-  }
-
-  const [email, setEmail] = useState("");
-  const [promo, setPromo] = useState("");
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [gift, setGift] = useState(false);
-  const [accepted, setAccepted] = useState(false);
+  const planId = search.get("plan");
+  const packId = search.get("pack");
+  const [period, setPeriod] = useState<"month" | "year">(search.get("period") === "year" ? "year" : "month");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [agree, setAgree] = useState(false);
+
+  const plan = useMemo(() => plans.find((p) => p.id === planId) ?? null, [plans, planId]);
+  const pack = useMemo(() => packs.find((p) => p.id === packId) ?? null, [packs, packId]);
 
   useEffect(() => {
-    if (authEmail) setEmail((prev) => prev || authEmail);
-  }, [authEmail]);
-
-  const selected = useMemo(
-    () => plan.periods.find((p) => p.id === periodId) ?? plan.periods[0]!,
-    [plan, periodId],
-  );
-
-  const total = promoApplied ? Math.round(selected.price * 0.9) : selected.price;
-
-  const canPay = accepted && /\S+@\S+\.\S+/.test(email);
-
-  function handlePay() {
-    if (!canPay) {
-      setError(
-        !/\S+@\S+\.\S+/.test(email)
-          ? "Укажите почту для чека"
-          : "Нужно принять условия",
-      );
-      return;
+    if (!loading && !isAuthenticated) {
+      const back = `/checkout?${search.toString()}`;
+      router.replace(`/register?next=${encodeURIComponent(back)}`);
     }
-    setError("Оплата пока недоступна: приём платежей подключается.");
+  }, [loading, isAuthenticated, router, search]);
+
+  const total = plan ? (period === "year" ? plan.price_year : plan.price_month) : pack ? pack.price : 0;
+
+  async function pay() {
+    if (busy || !user) return;
+    setError(null);
+    setBusy(true);
+    track("checkout_pay", { plan: planId ?? undefined, pack: packId ?? undefined, period });
+    try {
+      if (DEMO_MODE) {
+        if (plan) localDemo.activate(user.id, plan.id, period);
+        if (pack) localDemo.addCredits(user.id, pack.credits, "pack_purchase");
+        router.push("/cabinet");
+        return;
+      }
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(plan ? { kind: "plan", planId: plan.id, period } : { kind: "pack", packId: pack?.id }),
+      });
+      const data = (await res.json()) as { redirectUrl?: string; error?: string };
+      if (res.status === 503 || data.error === "payments_not_configured") {
+        setError("Оплата пока недоступна: приём платежей подключается. Мы напишем, как только можно будет оформить.");
+        return;
+      }
+      if (!res.ok || !data.redirectUrl) {
+        setError("Не удалось создать платёж. Попробуйте ещё раз или напишите в поддержку.");
+        return;
+      }
+      window.location.href = data.redirectUrl;
+    } catch {
+      setError("Сеть недоступна. Попробуйте ещё раз.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!plan && !pack) {
+    return (
+      <Shell>
+        <p className="text-[16px] text-text-secondary">Не выбран тариф или пакет.</p>
+        <Link href="/tarify" className="mt-4 inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">К тарифам</Link>
+      </Shell>
+    );
   }
 
   return (
-    <main className="relative min-h-screen w-full bg-bg-page">
-      <div className="relative h-[110px] w-full">
-        <Header />
-      </div>
+    <Shell>
+      <div className="checkout-grid">
+        <section className="checkout-card">
+          <div className="text-[13px] uppercase tracking-[0.08em] text-text-secondary">{plan ? "Тариф" : "Пакет кредитов"}</div>
+          <h2 className="mt-2 font-display text-[clamp(24px,2.6vw,34px)] text-text-primary">{plan ? plan.title : `${pack!.credits} сообщений наставнику`}</h2>
+          <p className="mt-2 text-[15px] text-text-secondary">{plan ? plan.subtitle : "Кредиты не сгорают и не зависят от подписки."}</p>
 
-      <div
-        className="mx-auto w-full max-w-[1100px] px-[clamp(20px,5vw,40px)]"
-        style={{ paddingTop: "clamp(40px, 6vh, 80px)", paddingBottom: "clamp(60px, 9vh, 120px)" }}
-      >
-        <div>
-          <div
-            className="text-text-secondary"
-            style={{ fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase" }}
-          >
-            Чекаут
-          </div>
-          <h1
-            className="font-display text-text-primary"
-            style={{ fontSize: "clamp(28px, 3.4vw, 46px)", lineHeight: 1.1, marginTop: 10 }}
-          >
-            Оформление подписки
-          </h1>
-        </div>
-
-        <div className="checkout-grid" style={{ marginTop: 34 }}>
-          {/* Left: plan summary */}
-          <section className="checkout-card">
-            <div className="text-text-secondary" style={{ fontSize: 14 }}>
-              Ваш план
-            </div>
-            <div
-              className="font-display text-text-primary"
-              style={{ fontSize: "clamp(26px, 2.4vw, 38px)", lineHeight: 1.1, marginTop: 6 }}
-            >
-              {plan.title}
-            </div>
-
-            <dl style={{ marginTop: 22, display: "grid", gap: 12 }}>
-              <Row label="Аккаунт" value={authEmail ?? "—"} />
-              <Row label="Что входит" value={plan.account} />
-              <Row label="Период" value={selected.label} />
-            </dl>
-
-            <div style={{ marginTop: 22, height: 1, background: "var(--border)", opacity: 0.35 }} />
-
-            <div className="text-text-secondary" style={{ fontSize: 14, marginTop: 20 }}>
-              К оплате
-            </div>
-            <div
-              className="font-mono text-text-primary"
-              style={{ fontSize: "clamp(30px, 3vw, 46px)", marginTop: 6, lineHeight: 1.05 }}
-            >
-              {formatRub(total)}
-            </div>
-            <div className="text-text-secondary" style={{ fontSize: 13, marginTop: 8 }}>
-              Следующее списание: {nextChargeDate(selected.months)} · {formatRub(selected.price)}
-            </div>
-
-            <div className="text-text-secondary" style={{ fontSize: 14, marginTop: 24 }}>
-              Промокод
-            </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-              <input
-                className="checkout-input"
-                placeholder="Введите промокод"
-                value={promo}
-                onChange={(e) => {
-                  setPromo(e.target.value);
-                  setPromoApplied(false);
-                }}
-                aria-label="Промокод"
-              />
-              <button
-                type="button"
-                className="checkout-btn-ghost"
-                onClick={() => setPromoApplied(promo.trim().length > 0)}
-              >
-                Применить
-              </button>
-            </div>
-            {promoApplied && (
-              <p className="text-text-accent" style={{ fontSize: 13, marginTop: 8 }}>
-                Промокод применён: −10%
-              </p>
-            )}
-
-            <div style={{ marginTop: 24, height: 1, background: "var(--border)", opacity: 0.35 }} />
-
-            <label className="checkout-gift">
-              <span aria-hidden="true" className="checkout-gift-icon">
-                ✦
-              </span>
-              <span style={{ flex: 1 }}>
-                <span className="text-text-primary" style={{ fontSize: 15 }}>
-                  Подарить подписку другу
-                </span>
-                <span
-                  className="text-text-secondary"
-                  style={{ display: "block", fontSize: 13, marginTop: 4, lineHeight: 1.45 }}
-                >
-                  После оплаты вы получите ссылку — отправьте её другу в любой мессенджер
-                </span>
-              </span>
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={gift}
-                onChange={(e) => setGift(e.target.checked)}
-              />
-              <span className="checkout-switch" data-on={gift} aria-hidden="true">
-                <span className="checkout-switch-knob" />
-              </span>
-            </label>
-          </section>
-
-          {/* Right: payment */}
-          <section className="checkout-card">
-            <div className="text-text-primary" style={{ fontSize: 15, fontWeight: 500 }}>
-              Тариф
-            </div>
-            <div
-              role="radiogroup"
-              aria-label="Тариф"
-              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}
-            >
-              {(Object.keys(CHECKOUT_PLANS) as PlanId[]).map((id) => {
-                const p = CHECKOUT_PLANS[id];
-                const active = id === planId;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => choosePlan(id)}
-                    className="checkout-period"
-                    data-active={active}
-                    style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}
-                  >
-                    <span style={{ fontSize: 15 }}>{p.title}</span>
-                    <span className="text-text-secondary" style={{ fontSize: 13 }}>
-                      {id === "trial" ? "3 дня · 249 ₽" : "от 690 ₽ в месяц"}
+          {plan && (
+            <>
+              <div className="mt-6 text-[13px] uppercase tracking-[0.08em] text-text-secondary">Период оплаты</div>
+              <div role="radiogroup" aria-label="Период оплаты" className="mt-3 grid gap-3">
+                {(["month", "year"] as const).map((p) => (
+                  <button key={p} type="button" role="radio" aria-checked={period === p} onClick={() => setPeriod(p)} className={`flex items-center justify-between rounded-[14px] border px-4 py-3 text-left ${period === p ? "border-text-accent bg-accent/15" : "border-border"}`}>
+                    <span className="text-[16px] text-text-primary">{p === "month" ? "Месяц" : "Год"}</span>
+                    <span className="text-[15px] text-text-secondary">
+                      {p === "month" ? formatRub(plan.price_month) : `${formatRub(plan.price_year)} · ${formatRub(monthlyEquivalent(plan))}/мес${yearDiscountPercent(plan) > 0 ? ` · −${yearDiscountPercent(plan)}%` : ""}`}
                     </span>
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+              <ul className="mt-6 space-y-2 text-[15px] text-text-secondary">
+                {plan.features.map((f) => (
+                  <li key={f}>· {f}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
 
-            <div className="text-text-primary" style={{ fontSize: 15, fontWeight: 500, marginTop: 24 }}>
-              Период оплаты
-            </div>
+        <section className="checkout-card">
+          <div className="text-[13px] uppercase tracking-[0.08em] text-text-secondary">К оплате</div>
+          <div className="mt-2 font-display text-[clamp(32px,3vw,44px)] text-text-primary">{formatRub(total)}</div>
+          <p className="mt-1 text-[14px] text-text-secondary">
+            {plan ? (period === "month" ? "Списание раз в месяц. Отменить можно в любой день в кабинете." : "Списание раз в год. Отменить можно в любой день в кабинете.") : "Разовый платёж."}
+          </p>
+          <p className="mt-3 text-[14px] text-text-secondary">Чек придёт на {user?.email ?? "вашу почту"}.</p>
 
-            <div role="radiogroup" aria-label="Период оплаты" style={{ display: "grid", gap: 12, marginTop: 14 }}>
-              {plan.periods.map((p) => {
-                const active = p.id === selected.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => {
-                      setPeriodId(p.id);
-                      void navigate({ search: { plan: planId, period: p.id }, replace: true });
-                    }}
-                    className="checkout-period"
-                    data-active={active}
-                  >
+          <label className="mt-6 flex items-start gap-3 text-[14px] text-text-secondary">
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1" />
+            <span>
+              Принимаю <Link href="/offer" className="underline underline-offset-4">оферту</Link>, <Link href="/subscription-terms" className="underline underline-offset-4">условия подписки</Link> и{" "}
+              <Link href="/privacy" className="underline underline-offset-4">политику данных</Link>
+            </span>
+          </label>
 
-                    <span className="checkout-radio" data-active={active} aria-hidden="true" />
-                    <span style={{ flex: 1, textAlign: "left" }}>{p.label}</span>
-                    {p.discount && <span className="checkout-badge">−{p.discount}%</span>}
-                    <span className="font-mono">{formatRub(p.price)}</span>
-                  </button>
-                );
-              })}
-            </div>
+          {error && <p className="mt-4 rounded-[10px] bg-surface-1 p-3 text-[14px] text-text-danger">{error}</p>}
 
-            <p className="text-text-secondary" style={{ fontSize: 13, marginTop: 12, lineHeight: 1.5 }}>
-              {plan.hint}
-            </p>
-
-            <div className="text-text-primary" style={{ fontSize: 15, fontWeight: 500, marginTop: 24 }}>
-              Email для чека
-            </div>
-            <p className="text-text-secondary" style={{ fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>
-              Отправим на него электронный чек об оплате. Адрес сохранится в профиле.
-            </p>
-            <input
-              type="email"
-              className="checkout-input"
-              style={{ width: "100%", marginTop: 12 }}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError(null);
-              }}
-              aria-label="Email для чека"
-            />
-
-            <label style={{ display: "flex", gap: 12, marginTop: 20, alignItems: "flex-start" }}>
-              <input
-                type="checkbox"
-                checked={accepted}
-                onChange={(e) => {
-                  setAccepted(e.target.checked);
-                  setError(null);
-                }}
-                className="checkout-checkbox"
-              />
-              <span className="text-text-secondary" style={{ fontSize: 13, lineHeight: 1.55 }}>
-                Я принимаю{" "}
-                <Link href="/offer" className="text-text-secondary underline">
-                  Публичную оферту
-                </Link>
-                ,{" "}
-                <Link href="/subscription-terms" className="text-text-secondary underline">
-                  Условия подписки
-                </Link>{" "}
-                и{" "}
-                <Link href="/privacy" className="text-text-secondary underline">
-                  Политику обработки персональных данных
-                </Link>{" "}
-                и разрешаю списывать {formatRub(selected.price)} раз в выбранный период с привязанной
-                карты. Отменить автопродление можно в любой момент в личном кабинете.
-              </span>
-            </label>
-
-            <button
-              type="button"
-              onClick={handlePay}
-              className="checkout-pay"
-              data-disabled={!canPay}
-            >
-              Оплатить {formatRub(total)}
-            </button>
-
-            {error && (
-              <p className="text-text-accent" style={{ fontSize: 13, marginTop: 10 }} role="alert">
-                {error}
-              </p>
-            )}
-
-            <div className="checkout-methods">
-              {PAY_METHODS.map((m) => (
-                <span key={m} className="checkout-method">
-                  {m}
-                </span>
-              ))}
-            </div>
-
-            <p
-              className="text-text-secondary"
-              style={{ fontSize: 12, marginTop: 12, textAlign: "center", lineHeight: 1.5 }}
-            >
-              Способ оплаты выберете на защищённой странице платёжного провайдера · Возврат в течение
-              3 дней
-            </p>
-          </section>
-        </div>
-
-        <div style={{ marginTop: 28, textAlign: "center" }}>
-          <Link
-            href="/#pricing"
-            className="text-text-secondary hover:text-text-primary"
-            style={{ fontSize: 14 }}
-          >
-            ← Вернуться к тарифам
-          </Link>
-        </div>
+          <button type="button" onClick={pay} disabled={busy || !agree} className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-[12px] bg-accent text-[16px] font-medium text-primary-foreground disabled:opacity-40">
+            {busy ? "…" : DEMO_MODE ? "Включить (демо)" : `Оплатить ${formatRub(total)}`}
+          </button>
+          <p className="mt-3 text-[12px] text-text-secondary/80">Способ оплаты выберете на защищённой странице ЮKassa: карта, СБП, SberPay.</p>
+          <Link href="/tarify" className="mt-4 inline-block text-[14px] text-text-accent underline-offset-4 hover:underline">← Другие тарифы</Link>
+        </section>
       </div>
-
-      <Footer />
-    </main>
+    </Shell>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-      <dt className="text-text-secondary" style={{ fontSize: 14 }}>
-        {label}
-      </dt>
-      <dd className="text-text-primary" style={{ fontSize: 14, textAlign: "right" }}>
-        {value}
-      </dd>
-    </div>
+    <main className="relative min-h-screen w-full bg-bg-page">
+      <div className="relative h-[90px] w-full md:h-[110px]">
+        <Header />
+      </div>
+      <div className="mx-auto w-[min(1100px,92vw)] pb-20 pt-6 md:pt-10">
+        <h1 className="font-display text-text-primary" style={{ fontSize: "clamp(30px, 3vw, 48px)", lineHeight: 1.08 }}>Оформление</h1>
+        <div className="mt-8">{children}</div>
+      </div>
+      <Footer />
+    </main>
   );
 }

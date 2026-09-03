@@ -1,55 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
-import { Pricing } from "@/components/landing/Pricing";
-import { DateSelects, type DateParts } from "@/components/direction/DateCalculator";
 import { directions } from "@/lib/directions";
-import { formatBirthDate, takeProfileSaveError, toIsoDate } from "@/lib/pendingBirth";
-import { arcana, centralArcanum, isValidDate, MONTHS } from "@/lib/arcana";
-import { lifePath, lifePathNumber } from "@/lib/numerology";
-import { sunSign } from "@/lib/natal";
-import { backend } from "@/lib/backend";
-import { dayArcanum, todayIso } from "@/lib/dayCard";
+import { formatBirthDate, takeProfileSaveError } from "@/lib/pendingBirth";
+import { backend, RELATION_LABELS, type Person, type Plan, type Relation, type Subscription, type ReadingRow } from "@/lib/backend";
 import { useAuth } from "@/lib/useAuth";
-import { referralLink } from "@/lib/referral";
-import { TarotFlipCard } from "@/components/tarot/TarotFlipCard";
+import { DEMO_MODE } from "@/lib/env";
+import { peopleLeft, isSubscriptionActive } from "@/lib/access";
+import { formatRub } from "@/lib/plansDefault";
+import { calculateMatrix, dayArcana, arcanaName, arcanaLine, readingPath, formatDateDots, urlDateToIso, CALC_TYPES, FORECAST_VIEW } from "@/lib/matrix";
+import { ArcanaCard } from "@/components/reading/Spheres";
+import { DateField } from "@/components/reading/DateField";
+import { useGoToReading } from "@/components/reading/CalcTheater";
+import { track } from "@/components/analytics/track";
+import { ProfileCard, InviteBlock, DirectionTile, parseDate, cardStyle, capStyle, type Profile } from "./cabinetParts";
 
-type Profile = {
-  id: string;
-  name: string;
-  birth_date: string | null;
-  birth_time: string | null;
-  birth_place: string | null;
-  referral_code: string | null;
-};
-
-const cardStyle = {
-  background: "var(--surface-1)",
-  border: "1px solid var(--border)",
-  borderRadius: "20px",
-  padding: "28px",
-} as const;
-
-const capStyle = {
-  fontSize: "12px",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-} as const;
-
-function parseDate(iso: string | null) {
-  if (!iso) return null;
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return null;
-  return { day: d, month: m, year: y };
-}
+/* ────────────────────────────────────────────────────────────────── */
 
 export default function CabinetPage() {
-  const { user } = useAuth();
+  const { user, email } = useAuth();
+  const search = useSearchParams();
   const [saveError, setSaveError] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [sub, setSub] = useState<Subscription | null>(null);
+  const [credits, setCredits] = useState(0);
+  const [readings, setReadings] = useState<ReadingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -58,20 +40,51 @@ export default function CabinetPage() {
     if (takeProfileSaveError()) setSaveError(true);
   }, []);
 
-  useEffect(() => {
+  const reload = useCallback(async () => {
     if (!user) return;
-    let alive = true;
-    backend.profiles.getOwner(user.id).then(({ data }) => {
-      if (!alive) return;
-      setProfile(data ?? null);
-      setLoading(false);
-    });
-    return () => {
-      alive = false;
-    };
+    const [prof, ppl, s, allPlans, bal, rds] = await Promise.all([
+      backend.profiles.getOwner(user.id),
+      backend.people.list(user.id),
+      backend.billing.subscription(user.id),
+      backend.billing.plans(),
+      backend.billing.creditBalance(user.id),
+      backend.readings.list(user.id),
+    ]);
+    const p = prof.data ?? null;
+    let list = ppl.data ?? [];
+
+    // «Я» создаётся из даты профиля один раз
+    if (p?.birth_date && !list.some((x) => x.relation === "self")) {
+      const created = await backend.people.insert(user.id, {
+        name: p.name && p.name !== "Мой профиль" ? p.name : "Я",
+        relation: "self",
+        birth_date: p.birth_date,
+        birth_time: p.birth_time,
+        birth_place: p.birth_place,
+        sex: null,
+      });
+      if (created.data) list = [created.data, ...list];
+    }
+
+    setProfile(p);
+    setPeople(list);
+    setSub(s);
+    setPlans(allPlans);
+    setPlan(s ? allPlans.find((x) => x.id === s.plan_id) ?? null : null);
+    setCredits(bal);
+    setReadings(rds);
+    setLoading(false);
   }, [user]);
 
-  const birth = parseDate(profile?.birth_date ?? null);
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const self = people.find((p) => p.relation === "self") ?? null;
+  const birth = parseDate(self?.birth_date ?? profile?.birth_date ?? null);
+  const active = isSubscriptionActive(sub);
+  const left = peopleLeft({ plan, subscription: sub, people });
+  const addDate = search.get("add") ? urlDateToIso(search.get("add") as string) : null;
 
   function startEditing() {
     setEditing(true);
@@ -80,155 +93,126 @@ export default function CabinetPage() {
 
   return (
     <main className="relative min-h-screen w-full bg-bg-page">
-      <div className="relative h-[110px] w-full">
+      <div className="relative h-[90px] w-full md:h-[110px]">
         <Header />
       </div>
 
-      <div
-        className="mx-auto w-[min(1320px,92vw)]"
-        style={{
-          paddingTop: "clamp(60px, 8vh, 110px)",
-          paddingBottom: "clamp(60px, 8vh, 110px)",
-        }}
-      >
-        <h1
-          className="font-display text-text-primary"
-          style={{ fontSize: "clamp(30px, 3vw, 48px)", lineHeight: 1.08 }}
-        >
-          Мой кабинет
-        </h1>
-        <p
-          className="mt-[10px] text-text-secondary"
-          style={{ fontSize: "clamp(14px, 1.1vw, 17px)" }}
-        >
-          {profile?.birth_date
-            ? formatBirthDate(profile.birth_date)
-            : "Дата рождения не заполнена"}
-        </p>
+      <div className="mx-auto w-[min(1320px,92vw)]" style={{ paddingTop: "clamp(32px, 6vh, 90px)", paddingBottom: "clamp(60px, 8vh, 110px)" }}>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-text-primary" style={{ fontSize: "clamp(30px, 3vw, 48px)", lineHeight: 1.08 }}>
+              Мой кабинет
+            </h1>
+            <p className="mt-[10px] text-text-secondary" style={{ fontSize: "clamp(14px, 1.1vw, 17px)" }}>
+              {self?.birth_date ? formatBirthDate(self.birth_date) : "Дата рождения не заполнена"}
+              {email ? ` · ${email}` : ""}
+            </p>
+          </div>
+          <PlanBadge plan={plan} active={active} credits={credits} />
+        </div>
 
         {saveError && (
-          <p
-            className="mt-6 text-[14px]"
-            style={{
-              background: "var(--surface-1)",
-              borderRadius: "10px",
-              padding: "14px",
-              color: "var(--text-danger)",
-            }}
-          >
-            Не удалось сохранить дату рождения. Заполни её в профиле
-          </p>
+          <p className="mt-6 rounded-[10px] bg-surface-1 p-[14px] text-[14px] text-text-danger">Не удалось сохранить дату рождения. Заполни её в профиле</p>
         )}
+        {DEMO_MODE && <p className="mt-4 text-[13px] text-text-danger">Демо-режим: база не подключена, данные живут в этом браузере.</p>}
 
-        {/* Первый ряд */}
-        <div className="mt-10 flex flex-col gap-6 md:flex-row">
-          <div className="md:w-[42%]" ref={profileRef}>
-            <ProfileCard
-              profile={profile}
-              loading={loading}
-              editing={editing}
-              onEdit={startEditing}
-              onCancel={() => setEditing(false)}
-              onSaved={(next) => {
-                setProfile(next);
-                setEditing(false);
-              }}
-            />
-          </div>
-          <div className="md:w-[54%]">
-            <DayCard userId={user?.id ?? ""} />
-          </div>
+        {/* Сегодня */}
+        <div className="mt-8">
+          {self ? <TodayBlock person={self} /> : <NeedDate loading={loading} onFill={startEditing} />}
         </div>
 
-        {/* Второй ряд */}
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {directions.map((d) => (
-            <DirectionTile key={d.id} id={d.id} title={d.title} birth={birth} onFill={startEditing} />
-          ))}
-        </div>
-
-        {/* Третий ряд */}
-        <div
-          className="mt-10"
-          style={{
-            background: "var(--surface-1)",
-            border: "1px solid var(--border)",
-            borderRadius: "18px",
-            padding: "24px",
-          }}
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-text-secondary" style={capStyle}>
-                Твой тариф
-              </div>
-              <div
-                className="mt-1 font-display text-text-primary"
-                style={{ fontSize: "clamp(18px, 1.4vw, 24px)" }}
-              >
-                Бесплатный
-              </div>
-            </div>
-            <Link
-              href="/checkout?plan=trial&period=3d"
-              className="inline-flex h-[54px] items-center justify-center px-7 text-[16px] transition-opacity hover:opacity-90"
-              style={{
-                background: "var(--accent)",
-                color: "var(--accent-foreground, #12100e)",
-                borderRadius: "12px",
-              }}
-            >
-              Открыть пробный доступ
-            </Link>
-          </div>
-
-          <div
-            aria-hidden="true"
-            style={{
-              height: 1,
-              background: "var(--border)",
-              opacity: 0.35,
-              marginTop: 20,
-              marginBottom: 20,
+        {/* Люди */}
+        <div className="mt-8">
+          <PeopleBlock
+            people={people}
+            self={self}
+            left={left}
+            planTitle={plan?.title ?? null}
+            active={active}
+            prefillDate={addDate}
+            onAdd={async (row) => {
+              if (!user) return "Нет пользователя";
+              const res = await backend.people.insert(user.id, row);
+              if (res.error) return res.error.message;
+              track("person_add", { relation: row.relation });
+              await reload();
+              return null;
+            }}
+            onRemove={async (id) => {
+              await backend.people.remove(id);
+              await reload();
             }}
           />
+        </div>
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-text-secondary" style={capStyle}>
-                Способ оплаты
-              </div>
-              <div
-                className="mt-1 text-text-secondary"
-                style={{ fontSize: "clamp(15px, 1.2vw, 18px)" }}
-              >
-                Не привязан
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {}}
-              className="inline-flex h-[50px] items-center justify-center px-6 text-[16px] text-text-accent transition-opacity hover:opacity-80"
-              style={{
-                background: "transparent",
-                border: "1px solid color-mix(in srgb, var(--text-accent) 50%, transparent)",
-                borderRadius: "12px",
-              }}
-            >
-              Привязать карту
-            </button>
+        {/* Шесть систем */}
+        <div className="mt-8">
+          <div className="text-text-secondary" style={capStyle}>Шесть систем</div>
+          <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {directions.map((d) =>
+              d.id === "matrix" && self ? (
+                <Link key={d.id} href={readingPath("matrica", [self.birth_date])} className="group relative block w-full text-left transition-all duration-300 hover:-translate-y-1" style={{ ...cardStyle, padding: 24, borderRadius: 18 }}>
+                  <div className="font-display text-text-primary" style={{ fontSize: "clamp(18px, 1.4vw, 24px)" }}>{d.title}</div>
+                  <div className="mt-3 text-text-accent" style={{ fontSize: "clamp(20px, 1.7vw, 28px)", fontFamily: "var(--font-mono)" }}>
+                    {calculateMatrix(self.birth_date).core.C} · {arcanaName(calculateMatrix(self.birth_date).core.C)}
+                  </div>
+                  <div className="mt-2 text-[13px] text-text-secondary">12 сфер · 92 вопроса · постоянная ссылка</div>
+                  <span aria-hidden="true" className="absolute bottom-4 right-5 text-text-accent opacity-0 transition-opacity duration-300 group-hover:opacity-100">→</span>
+                </Link>
+              ) : d.id === "synastry" && self ? (
+                <Link key={d.id} href="#people" className="group relative block w-full text-left transition-all duration-300 hover:-translate-y-1" style={{ ...cardStyle, padding: 24, borderRadius: 18 }}>
+                  <div className="font-display text-text-primary" style={{ fontSize: "clamp(18px, 1.4vw, 24px)" }}>{d.title}</div>
+                  <div className="mt-3 text-[15px] text-text-secondary">Считается с любым человеком из списка</div>
+                </Link>
+              ) : (
+                <DirectionTile key={d.id} id={d.id} title={d.title} birth={birth} onFill={startEditing} />
+              ),
+            )}
           </div>
+        </div>
 
-          <p className="text-text-secondary" style={{ fontSize: 12, opacity: 0.7, marginTop: 12 }}>
-            Понадобится для пробного доступа и подписки. Списаний без твоего согласия не будет
-          </p>
+        {/* Разборы */}
+        {readings.length > 0 && (
+          <div className="mt-8">
+            <div className="text-text-secondary" style={capStyle}>Недавние разборы</div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {readings.slice(0, 12).map((r) => {
+                const t = [...CALC_TYPES, FORECAST_VIEW].find((x) => x.slug === r.calc_type);
+                return (
+                  <Link key={r.id} href={readingPath(r.calc_type, r.dates)} className="rounded-full border border-border px-4 py-2 text-[14px] text-text-secondary transition-colors hover:border-text-accent/60 hover:text-text-primary">
+                    {t?.title ?? r.calc_type} · {r.dates.map(formatDateDots).join(" + ")}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Подписка и кредиты */}
+        <div className="mt-10">
+          <PlanBlock plan={plan} plans={plans} sub={sub} active={active} credits={credits} />
+        </div>
+
+        {/* Данные рождения — для натальной карты и дизайна человека */}
+        <div className="mt-8 md:w-[60%]" ref={profileRef}>
+          <ProfileCard
+            profile={profile}
+            loading={loading}
+            editing={editing}
+            onEdit={startEditing}
+            onCancel={() => setEditing(false)}
+            onSaved={async (next) => {
+              setProfile(next);
+              setEditing(false);
+              if (self && next.birth_date && next.birth_date !== self.birth_date) {
+                await backend.people.update(self.id, { birth_date: next.birth_date, birth_time: next.birth_time, birth_place: next.birth_place });
+              }
+              await reload();
+            }}
+          />
         </div>
 
         <InviteBlock code={profile?.referral_code ?? null} userId={user?.id ?? ""} />
-
-        <div className="mt-8">
-          <Pricing />
-        </div>
       </div>
 
       <Footer />
@@ -236,487 +220,331 @@ export default function CabinetPage() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div
-      className="flex items-baseline justify-between gap-4"
-      style={{ fontSize: "clamp(14px, 1.05vw, 16px)" }}
-    >
-      <span className="text-text-secondary">{label}</span>
-      {value ? (
-        <span className="text-text-primary">{value}</span>
-      ) : (
-        <span className="text-text-secondary opacity-50">не указано</span>
-      )}
-    </div>
-  );
-}
+/* ─── Сегодня ────────────────────────────────────────────────────── */
 
-function ProfileCard({
-  profile,
-  loading,
-  editing,
-  onEdit,
-  onCancel,
-  onSaved,
-}: {
-  profile: Profile | null;
-  loading: boolean;
-  editing: boolean;
-  onEdit: () => void;
-  onCancel: () => void;
-  onSaved: (next: Profile) => void;
-}) {
-  const [name, setName] = useState(profile?.name ?? "Мой профиль");
-  const [place, setPlace] = useState(profile?.birth_place ?? "");
-  const parsed = parseDate(profile?.birth_date ?? null);
-  const [date, setDate] = useState<DateParts>({
-    day: parsed ? String(parsed.day) : "",
-    month: parsed ? String(parsed.month) : "",
-    year: parsed ? String(parsed.year) : "",
-  });
-  const time = (profile?.birth_time ?? "").slice(0, 5).split(":");
-  const [hour, setHour] = useState(time[0] ?? "");
-  const [minute, setMinute] = useState(time[1] ?? "");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function TodayBlock({ person }: { person: Person }) {
+  const matrix = useMemo(() => calculateMatrix(person.birth_date, new Date()), [person.birth_date]);
+  const t = matrix.today;
+  const [text, setText] = useState<string | null>(null);
+  const [calendar, setCalendar] = useState(false);
 
   useEffect(() => {
-    if (!editing) return;
-    setName(profile?.name ?? "Мой профиль");
-    setPlace(profile?.birth_place ?? "");
-    const p = parseDate(profile?.birth_date ?? null);
-    setDate({
-      day: p ? String(p.day) : "",
-      month: p ? String(p.month) : "",
-      year: p ? String(p.year) : "",
-    });
-    const t = (profile?.birth_time ?? "").slice(0, 5).split(":");
-    setHour(t[0] ?? "");
-    setMinute(t[1] ?? "");
-    setError(null);
-  }, [editing, profile]);
-
-  async function save() {
-    if (!profile) return;
-    const d = Number(date.day);
-    const m = Number(date.month);
-    const y = Number(date.year);
-    const hasDate = date.day !== "" && date.month !== "" && date.year !== "";
-    if (hasDate && !isValidDate(d, m, y)) {
-      setError("Такой даты не существует");
-      return;
-    }
-    setBusy(true);
-    const next = {
-      name: name.trim() || "Мой профиль",
-      birth_date: hasDate ? toIsoDate(d, m, y) : null,
-      birth_time: hour !== "" && minute !== "" ? `${hour}:${minute}` : null,
-      birth_place: place.trim() || null,
-    };
-    const { error: updateError } = await backend.profiles.update(profile.id, next);
-    setBusy(false);
-    if (updateError) {
-      setError("Не удалось сохранить. Попробуй ещё раз");
-      return;
-    }
-    onSaved({ ...profile, ...next });
-  }
-
-  const timeSelect =
-    "qc-focus h-14 w-full appearance-none rounded-[12px] border border-border bg-surface-1 px-4 text-[17px] text-text-primary transition-colors focus:border-text-accent";
-  const inputClass =
-    "qc-focus h-14 w-full rounded-[12px] border border-border bg-surface-1 px-4 text-[17px] text-text-primary transition-colors focus:border-text-accent";
-
-  return (
-    <div style={cardStyle} className="h-full">
-      <div className="text-text-secondary" style={capStyle}>
-        Профиль
-      </div>
-
-      {editing && profile ? (
-        <div className="mt-4 flex flex-col gap-3">
-          <input
-            className={inputClass}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            aria-label="Имя профиля"
-            maxLength={60}
-          />
-          <DateSelects idPrefix="cab-date" value={date} onChange={setDate} />
-          <div className="flex gap-3">
-            <select
-              className={timeSelect}
-              value={hour}
-              onChange={(e) => setHour(e.target.value)}
-              aria-label="Часы"
-            >
-              <option value="">Часы</option>
-              {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => (
-                <option key={h} value={h}>
-                  {h}
-                </option>
-              ))}
-            </select>
-            <select
-              className={timeSelect}
-              value={minute}
-              onChange={(e) => setMinute(e.target.value)}
-              aria-label="Минуты"
-            >
-              <option value="">Минуты</option>
-              {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-          <input
-            className={inputClass}
-            value={place}
-            onChange={(e) => setPlace(e.target.value)}
-            placeholder="Место рождения"
-            aria-label="Место рождения"
-            maxLength={120}
-          />
-          {error && <p className="text-[13px]" style={{ color: "var(--text-danger)" }}>{error}</p>}
-          <div className="mt-2 flex items-center gap-4">
-            <button
-              type="button"
-              onClick={save}
-              disabled={busy}
-              className="inline-flex h-[50px] items-center justify-center px-6 text-[16px] transition-opacity hover:opacity-90 disabled:opacity-60"
-              style={{
-                background: "var(--accent)",
-                color: "var(--accent-foreground, #12100e)",
-                borderRadius: "12px",
-              }}
-            >
-              Сохранить
-            </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="text-[15px] text-text-secondary hover:text-text-primary"
-            >
-              Отмена
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div
-            className="mt-[10px] font-display text-text-primary"
-            style={{ fontSize: "clamp(20px, 1.6vw, 26px)" }}
-          >
-            {loading ? "…" : (profile?.name ?? "Мой профиль")}
-          </div>
-
-          <div className="mt-4 flex flex-col" style={{ gap: 10 }}>
-            <Row
-              label="Дата"
-              value={profile?.birth_date ? formatBirthDate(profile.birth_date) : null}
-            />
-            <Row label="Время" value={profile?.birth_time?.slice(0, 5) ?? null} />
-            <Row label="Место" value={profile?.birth_place ?? null} />
-          </div>
-
-          <button
-            type="button"
-            onClick={onEdit}
-            className="mt-[18px] block text-[15px] text-text-accent hover:opacity-80"
-          >
-            Изменить
-          </button>
-
-          {(!profile?.birth_time || !profile?.birth_place) && (
-            <p className="mt-2 text-[13px] text-text-secondary">
-              Добавь время и место — откроются натальная карта и дизайн человека
-            </p>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function DayCard({ userId }: { userId: string }) {
-  const iso = useMemo(() => todayIso(), []);
-  const n = useMemo(() => (userId ? dayArcanum(userId, iso) : 1), [userId, iso]);
-  const card = arcana.find((a) => a.n === n);
-  const [y, m, d] = iso.split("-").map(Number);
-  const dateWords = `${d} ${MONTHS[(m ?? 1) - 1]} ${y}`;
-  const storageKey = `dayCard:${userId}:${iso}`;
-
-  const [flipped, setFlipped] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (!userId) return;
-    let saved = false;
-    try {
-      saved = localStorage.getItem(storageKey) === "1";
-    } catch {
-      saved = false;
-    }
-    setFlipped(saved);
-    setReady(true);
-  }, [storageKey, userId]);
-
-  function handleFlip(next: boolean) {
-    setFlipped(next);
-    if (!next) return;
-    try {
-      localStorage.setItem(storageKey, "1");
-    } catch {
-      /* хранилище недоступно */
-    }
-  }
-
-  return (
-    <div style={cardStyle} className="h-full">
-      <div className="flex flex-col items-center gap-7 sm:flex-row">
-        <div className="w-[min(30%,200px)] [&_.tarot-hit]:w-full max-sm:w-[min(60%,200px)]">
-          {ready && (
-            <TarotFlipCard
-              n={n}
-              name={card?.name ?? ""}
-              drawKey={0}
-              initialFlipped={flipped}
-              oneWay
-              hint={false}
-              width="100%"
-              onFlip={handleFlip}
-            />
-          )}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-3 text-text-secondary" style={capStyle}>
-            <span>Карта дня</span>
-            <span style={{ textTransform: "none", letterSpacing: 0 }}>{dateWords}</span>
-          </div>
-
-          {flipped ? (
-            <>
-              <div
-                className="mt-2 font-display text-text-primary"
-                style={{ fontSize: "clamp(22px, 1.8vw, 30px)" }}
-              >
-                {n} · {card?.name}
-              </div>
-              <p
-                className="text-text-secondary"
-                style={{ fontSize: "clamp(14px, 1.1vw, 17px)", marginTop: 12 }}
-              >
-                {card?.draw}
-              </p>
-              <Link
-                href="/cabinet/tarot"
-                className="mt-3 inline-block text-[15px] text-text-accent hover:opacity-80"
-              >
-                Открыть целиком
-              </Link>
-            </>
-          ) : (
-            <>
-              <div
-                className="mt-2 font-display text-text-primary"
-                style={{ fontSize: "clamp(22px, 1.8vw, 30px)" }}
-              >
-                Сегодняшняя карта ждёт
-              </div>
-              <p
-                className="text-text-secondary"
-                style={{ fontSize: "clamp(14px, 1.1vw, 17px)", marginTop: 10 }}
-              >
-                Переверни её, когда будешь готов. Одна карта в сутки, следующая — завтра
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type Birth = { day: number; month: number; year: number } | null;
-
-function tileResult(id: string, birth: Birth): { value: string; mono?: boolean } | { status: string } {
-  if (id === "tarot") return { status: "Расклад доступен" };
-  if (id === "humandesign") return { status: "Нужен полный расчёт" };
-  if (!birth) return { status: "Заполни дату рождения" };
-
-  if (id === "matrix") {
-    const n = centralArcanum(birth.day, birth.month, birth.year);
-    const card = arcana.find((a) => a.n === n);
-    return { value: `${n} · ${card?.name ?? ""}`, mono: true };
-  }
-  if (id === "numerology") {
-    const n = lifePathNumber(birth.day, birth.month, birth.year);
-    const item = lifePath.find((l) => l.n === n);
-    return { value: `${n} · ${item?.title ?? ""}`, mono: true };
-  }
-  if (id === "natal") {
-    const { sign } = sunSign(birth.day, birth.month);
-    return { value: sign.name };
-  }
-  return { status: "Добавь профиль близкого" };
-}
-
-function DirectionTile({
-  id,
-  title,
-  birth,
-  onFill,
-}: {
-  id: string;
-  title: string;
-  birth: Birth;
-  onFill: () => void;
-}) {
-  const res = tileResult(id, birth);
-  const needsDate = !birth && id !== "tarot";
-
-  const body = (
-    <>
-      <div className="font-display text-text-primary" style={{ fontSize: "clamp(18px, 1.4vw, 24px)" }}>
-        {title}
-      </div>
-      <div className="mt-3">
-        {"value" in res ? (
-          <span
-            className="text-text-accent"
-            style={{
-              fontSize: "clamp(20px, 1.7vw, 28px)",
-              fontFamily: res.mono ? "var(--font-mono)" : undefined,
-            }}
-          >
-            {res.value}
-          </span>
-        ) : (
-          <span
-            className="text-text-secondary"
-            style={{ fontSize: "clamp(14px, 1.05vw, 16px)" }}
-          >
-            {res.status}
-          </span>
-        )}
-      </div>
-      <span
-        aria-hidden="true"
-        className="absolute bottom-4 right-5 text-text-accent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-      >
-        →
-      </span>
-    </>
-  );
-
-  const className =
-    "group relative block w-full text-left transition-all duration-300 hover:-translate-y-1";
-  const style = {
-    background: "var(--surface-1)",
-    border: "1px solid var(--border)",
-    borderRadius: "18px",
-    padding: "24px",
-  } as const;
-
-  if (needsDate) {
-    return (
-      <button type="button" onClick={onFill} className={`${className} cab-tile`} style={style}>
-        {body}
-      </button>
-    );
-  }
-
-  return (
-    <Link href={`/cabinet/${id}`} className={`${className} cab-tile`} style={style}>
-      {body}
-    </Link>
-  );
-}
-
-function InviteBlock({ code, userId }: { code: string | null; userId: string }) {
-  const [invited, setInvited] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const link = code ? referralLink(code) : "";
-
-  useEffect(() => {
-    if (!userId) return;
     let alive = true;
-    backend.profiles.myReferralCount(userId).then((n) => {
-      if (alive) setInvited(n);
-    });
+    fetch("/api/content/text", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "prognoz", dates: [formatUrl(person.birth_date)], slots: ["day_energy"] }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { answers?: Array<{ slotId: string; locked: boolean; text?: string }> } | null) => {
+        if (!alive) return;
+        const a = d?.answers?.find((x) => x.slotId === "day_energy");
+        if (a && !a.locked && a.text) setText(a.text);
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
-  }, [userId]);
+  }, [person.birth_date]);
 
-  async function copy() {
-    if (!link) return;
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      /* буфер недоступен */
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
+  const yearChange = useMemo(() => {
+    const [, m, d] = person.birth_date.split("-").map(Number);
+    const now = new Date();
+    let next = new Date(now.getFullYear(), m - 1, d);
+    if (next <= now) next = new Date(now.getFullYear() + 1, m - 1, d);
+    return Math.ceil((next.getTime() - now.getTime()) / 86400000);
+  }, [person.birth_date]);
 
   return (
-    <div
-      className="mt-6"
-      style={{
-        background: "var(--surface-1)",
-        border: "1px solid color-mix(in srgb, var(--text-accent) 40%, transparent)",
-        borderRadius: "20px",
-        padding: "clamp(24px, 2.4vw, 36px)",
-      }}
-    >
-      <div className="font-display text-text-primary" style={{ fontSize: "clamp(20px, 1.6vw, 27px)" }}>
-        Пригласить друга
-      </div>
-      <p
-        className="text-text-secondary"
-        style={{ fontSize: "clamp(14px, 1.1vw, 17px)", marginTop: 10, maxWidth: 620 }}
-      >
-        Друг регистрируется по твоей ссылке — вы оба получаете семь дней полного доступа.
-        Считается после того, как он заполнит дату рождения
-      </p>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center" style={{ marginTop: 20 }}>
-        <input
-          readOnly
-          value={link}
-          aria-label="Ссылка-приглашение"
-          className="min-w-0 flex-1 text-text-primary"
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "clamp(13px, 1.05vw, 15px)",
-            background: "var(--bg-page)",
-            border: "1px solid var(--border)",
-            borderRadius: "10px",
-            padding: "14px",
-          }}
-        />
-        <button
-          type="button"
-          onClick={copy}
-          className="inline-flex h-[50px] shrink-0 items-center justify-center px-6 text-[16px] text-text-accent transition-opacity hover:opacity-80"
-          style={{
-            background: "transparent",
-            border: "1px solid color-mix(in srgb, var(--text-accent) 50%, transparent)",
-            borderRadius: "12px",
-          }}
-        >
-          {copied ? "Скопировано" : "Скопировать"}
+    <div style={cardStyle} className="!p-5 md:!p-7">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="text-text-secondary" style={capStyle}>
+          Сегодня · {formatDateDots(t.date)}
+          {person.name !== "Я" ? ` · ${person.name}` : ""}
+        </div>
+        <button type="button" onClick={() => setCalendar((c) => !c)} className="text-[14px] text-text-accent underline-offset-4 hover:underline" aria-expanded={calendar}>
+          {calendar ? "Скрыть календарь" : "Календарь месяца"}
         </button>
       </div>
 
-      <p className="text-text-secondary" style={{ fontSize: 13, marginTop: 16 }}>
-        Приглашено: {invited}
-      </p>
+      <div className="mt-4 grid gap-5 md:grid-cols-[auto_1fr_auto] md:items-start">
+        <ArcanaCard n={t.dayArcana} size={96} />
+        <div className="min-w-0">
+          <div className="font-display text-text-primary" style={{ fontSize: "clamp(26px, 2.6vw, 40px)", lineHeight: 1.05 }}>
+            {t.dayArcana} · {arcanaName(t.dayArcana)}
+          </div>
+          <p className="mt-2 text-[16px] leading-[1.65] text-text-secondary">{text ?? arcanaLine(t.dayArcana)}</p>
+          <p className="mt-3 text-[14px] text-text-secondary/80">
+            Завтра — аркан {t.tomorrowArcana}, {arcanaName(t.tomorrowArcana)}.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:w-[260px] md:grid-cols-1">
+          <Stat label={`Период ${t.from}–${t.to} лет`} value={`${t.arcana} · ${arcanaName(t.arcana)}`} sub={`смена через ${t.yearsToChange.toFixed(1)} г.`} />
+          <Stat label={`Личный год ${t.year}`} value={`${t.yearArcana} · ${arcanaName(t.yearArcana)}`} sub={`новый через ${yearChange} дн.`} />
+        </div>
+      </div>
+
+      {calendar && <MonthCalendar periodArcana={t.arcana} today={t.date} />}
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        <Link href={readingPath("prognoz", [person.birth_date])} className="rounded-full border border-text-accent/50 px-4 py-2 text-[14px] text-text-primary hover:bg-accent/10">Прогноз и личный год</Link>
+        <Link href="/nastavnik" className="rounded-full border border-border px-4 py-2 text-[14px] text-text-secondary hover:border-text-accent/60 hover:text-text-primary">Спросить наставника</Link>
+      </div>
     </div>
   );
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-[14px] border border-border/60 bg-bg-page/40 p-3">
+      <div className="text-[11px] uppercase tracking-[0.08em] text-text-secondary">{label}</div>
+      <div className="mt-1 text-[15px] text-text-primary">{value}</div>
+      <div className="mt-0.5 text-[12px] text-text-secondary/80">{sub}</div>
+    </div>
+  );
+}
+
+function MonthCalendar({ periodArcana, today }: { periodArcana: number; today: string }) {
+  const [y, m] = today.split("-").map(Number);
+  const first = new Date(y, m - 1, 1);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const offset = (first.getDay() + 6) % 7; // понедельник — первый
+  const cells: Array<{ day: number; iso: string; arcana: number } | null> = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    cells.push({ day: d, iso, arcana: dayArcana(iso, periodArcana) });
+  }
+  const MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+  return (
+    <div className="mt-5 rounded-[16px] border border-border/60 p-4">
+      <div className="text-[14px] text-text-secondary">{MONTHS[m - 1]} {y} · аркан каждого дня</div>
+      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] text-text-secondary">
+        {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
+          <div key={d} className="py-1">{d}</div>
+        ))}
+        {cells.map((c, i) =>
+          c ? (
+            <div key={c.iso} title={`${c.day}: аркан ${c.arcana} — ${arcanaName(c.arcana)}`} className={`rounded-[8px] border py-1.5 ${c.iso === today ? "border-text-accent bg-accent/20 text-text-primary" : "border-border/40 text-text-secondary"}`}>
+              <div className="text-[11px]">{c.day}</div>
+              <div className="text-[13px] font-medium text-text-primary">{c.arcana}</div>
+            </div>
+          ) : (
+            <div key={`e${i}`} />
+          ),
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NeedDate({ loading, onFill }: { loading: boolean; onFill: () => void }) {
+  return (
+    <div style={cardStyle}>
+      <div className="text-text-secondary" style={capStyle}>Сегодня</div>
+      <p className="mt-3 text-[16px] text-text-secondary">{loading ? "Загружаю…" : "Заполните дату рождения — и здесь появится аркан дня, период жизни и личный год."}</p>
+      {!loading && (
+        <button type="button" onClick={onFill} className="mt-4 inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">
+          Заполнить дату
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ─── Люди ───────────────────────────────────────────────────────── */
+
+const RELATIONS: Relation[] = ["partner", "child", "mother", "father", "friend", "colleague", "other"];
+
+function PeopleBlock({
+  people,
+  self,
+  left,
+  planTitle,
+  active,
+  prefillDate,
+  onAdd,
+  onRemove,
+}: {
+  people: Person[];
+  self: Person | null;
+  left: number | null;
+  planTitle: string | null;
+  active: boolean;
+  prefillDate: string | null;
+  onAdd: (row: { name: string; relation: Relation; birth_date: string; birth_time: null; birth_place: null; sex: null }) => Promise<string | null>;
+  onRemove: (id: string) => Promise<void>;
+}) {
+  const [adding, setAdding] = useState(Boolean(prefillDate));
+  const [name, setName] = useState("");
+  const [relation, setRelation] = useState<Relation>("partner");
+  const [date, setDate] = useState<string | null>(prefillDate);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const go = useGoToReading();
+
+  const canAdd = active && (left === null || left > 0);
+
+  async function submit() {
+    if (!date) {
+      setError("Укажите дату рождения");
+      return;
+    }
+    setBusy(true);
+    const err = await onAdd({ name: name.trim() || RELATION_LABELS[relation], relation, birth_date: date, birth_time: null, birth_place: null, sex: null });
+    setBusy(false);
+    if (err) setError(err);
+    else {
+      setAdding(false);
+      setName("");
+      setDate(null);
+      setError(null);
+    }
+  }
+
+  return (
+    <div id="people" style={cardStyle} className="scroll-mt-24 !p-5 md:!p-7">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-text-secondary" style={capStyle}>Мои люди</div>
+          <p className="mt-1 text-[14px] text-text-secondary">
+            {active
+              ? left === null
+                ? `Тариф «${planTitle}»: без ограничений`
+                : `Тариф «${planTitle}»: можно добавить ещё ${left}`
+              : "По подписке открываются полные разборы людей из этого списка и совместимости между ними"}
+          </p>
+        </div>
+        {canAdd ? (
+          <button type="button" onClick={() => setAdding((a) => !a)} className="inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">
+            {adding ? "Отмена" : "Добавить человека"}
+          </button>
+        ) : (
+          <Link href="/tarify" className="inline-flex h-11 items-center rounded-[12px] border border-text-accent/50 px-5 text-[15px] text-text-primary hover:bg-accent/10">
+            {active ? "Расширить тариф" : "Выбрать тариф"}
+          </Link>
+        )}
+      </div>
+
+      {adding && canAdd && (
+        <div className="mt-5 rounded-[16px] border border-border/60 bg-bg-page/40 p-4 md:p-5">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-[13px] text-text-secondary">Имя</span>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Как называть" className="qc-focus h-12 w-full rounded-[12px] border border-border bg-surface-1 px-4 text-[16px] text-text-primary focus:border-text-accent" />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[13px] text-text-secondary">Кто это</span>
+              <select value={relation} onChange={(e) => setRelation(e.target.value as Relation)} className="qc-focus h-12 w-full appearance-none rounded-[12px] border border-border bg-surface-1 px-4 text-[16px] text-text-primary focus:border-text-accent">
+                {RELATIONS.map((r) => (
+                  <option key={r} value={r}>{RELATION_LABELS[r]}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="mt-3">
+            {date ? (
+              <p className="text-[15px] text-text-primary">
+                Дата рождения: {formatDateDots(date)}{" "}
+                <button type="button" onClick={() => setDate(null)} className="ml-2 text-[13px] text-text-accent underline-offset-4 hover:underline">изменить</button>
+              </p>
+            ) : (
+              <DateField label="Дата рождения" submitLabel="Выбрать" onSubmit={(iso) => setDate(iso)} />
+            )}
+          </div>
+          {error && <p className="mt-3 text-[14px] text-text-danger">{error}</p>}
+          <button type="button" onClick={submit} disabled={busy || !date} className="mt-4 inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground disabled:opacity-40">
+            {busy ? "Сохраняю…" : "Сохранить"}
+          </button>
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {people.map((p) => {
+          const c = calculateMatrix(p.birth_date).core.C;
+          return (
+            <div key={p.id} className="rounded-[16px] border border-border/60 bg-bg-page/40 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-[16px] text-text-primary">{p.name}</div>
+                  <div className="text-[13px] text-text-secondary">{RELATION_LABELS[p.relation]} · {formatDateDots(p.birth_date)}</div>
+                </div>
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-text-accent/50 font-display text-[16px] text-text-accent" title={`Центральный аркан ${c} — ${arcanaName(c)}`}>{c}</div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => go(readingPath("matrica", [p.birth_date]))} className="rounded-full border border-border px-3 py-1 text-[13px] text-text-secondary hover:border-text-accent/60 hover:text-text-primary">Матрица</button>
+                {p.relation === "child" && (
+                  <button type="button" onClick={() => go(readingPath("detskaya", [p.birth_date]))} className="rounded-full border border-border px-3 py-1 text-[13px] text-text-secondary hover:border-text-accent/60 hover:text-text-primary">Детская</button>
+                )}
+                {self && p.relation !== "self" && (
+                  <button type="button" onClick={() => go(readingPath(p.relation === "colleague" ? "biznes" : p.relation === "child" ? "mama-rebenok" : "sovmestimost", [self.birth_date, p.birth_date]))} className="rounded-full border border-border px-3 py-1 text-[13px] text-text-secondary hover:border-text-accent/60 hover:text-text-primary">
+                    {p.relation === "colleague" ? "Бизнес" : p.relation === "child" ? "Мама и ребёнок" : "Совместимость"}
+                  </button>
+                )}
+                {p.relation !== "self" && (
+                  <button type="button" onClick={() => onRemove(p.id)} className="rounded-full px-2 py-1 text-[13px] text-text-secondary/70 hover:text-text-danger" aria-label={`Удалить ${p.name}`}>
+                    удалить
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {people.length === 0 && <p className="text-[15px] text-text-secondary">Пока никого. Заполните свою дату — появится «Я».</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Тариф ──────────────────────────────────────────────────────── */
+
+function PlanBadge({ plan, active, credits }: { plan: Plan | null; active: boolean; credits: number }) {
+  return (
+    <div className="flex items-center gap-2 text-[14px]">
+      <span className={`rounded-full border px-3 py-1 ${active ? "border-text-accent/60 text-text-primary" : "border-border text-text-secondary"}`}>
+        {active && plan ? plan.title : "Без подписки"}
+      </span>
+      <span className="rounded-full border border-border px-3 py-1 text-text-secondary">{credits} кредитов</span>
+    </div>
+  );
+}
+
+function PlanBlock({ plan, plans, sub, active, credits }: { plan: Plan | null; plans: Plan[]; sub: Subscription | null; active: boolean; credits: number }) {
+  const end = sub ? new Date(sub.current_period_end) : null;
+  return (
+    <div style={cardStyle} className="!p-5 md:!p-7">
+      <div className="grid gap-6 md:grid-cols-2">
+        <div>
+          <div className="text-text-secondary" style={capStyle}>Подписка</div>
+          <div className="mt-1 font-display text-text-primary" style={{ fontSize: "clamp(20px, 1.6vw, 28px)" }}>
+            {active && plan ? plan.title : "Не оформлена"}
+          </div>
+          <p className="mt-2 text-[14px] text-text-secondary">
+            {active && end
+              ? `Действует до ${end.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}. Отменить можно в любой день.`
+              : plans.length
+                ? `От ${formatRub(Math.min(...plans.map((p) => p.price_month)))} в месяц. Открывает все системы, все типы разбора и аркан дня.`
+                : ""}
+          </p>
+          <Link href="/tarify" className="mt-4 inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">
+            {active ? "Сменить тариф" : "Выбрать тариф"}
+          </Link>
+        </div>
+        <div>
+          <div className="text-text-secondary" style={capStyle}>Кредиты наставника</div>
+          <div className="mt-1 font-display text-text-primary" style={{ fontSize: "clamp(20px, 1.6vw, 28px)" }}>{credits}</div>
+          <p className="mt-2 text-[14px] text-text-secondary">Один кредит — одно сообщение наставнику. Чтение разборов кредитов не тратит.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/nastavnik" className="inline-flex h-11 items-center rounded-[12px] border border-text-accent/50 px-5 text-[15px] text-text-primary hover:bg-accent/10">Открыть чат</Link>
+            <Link href="/tarify#credits" className="inline-flex h-11 items-center rounded-[12px] border border-border px-5 text-[15px] text-text-secondary hover:text-text-primary">Докупить</Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatUrl(iso: string) {
+  const [y, m, d] = iso.split("-");
+  return `${d}-${m}-${y}`;
 }

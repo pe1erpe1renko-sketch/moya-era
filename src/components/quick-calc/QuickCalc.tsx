@@ -236,11 +236,12 @@ export function QuickCalc({
                   date: toIsoDate(Number(day), Number(month), Number(year)),
                   direction: "matrix",
                 }}
+                label="Открыть всю матрицу"
                 className="qc-focus h-14 rounded-[12px] bg-accent px-10 text-[17px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
                 style={{}}
               />
               <p className="mt-3 text-[14px] text-text-secondary">
-                Для полного разбора понадобятся ещё время и место рождения
+                Двенадцать сфер и 92 вопроса по этой дате. Первый вопрос в каждой сфере — бесплатно, без регистрации
               </p>
               <button
                 type="button"

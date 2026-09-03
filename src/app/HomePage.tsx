@@ -10,7 +10,6 @@ import { ExampleScheme } from "@/components/landing/ExampleScheme";
 import { DirectionsGrid } from "@/components/landing/DirectionsGrid";
 import { NotFortuneTelling } from "@/components/landing/NotFortuneTelling";
 import { WhatsNext } from "@/components/landing/WhatsNext";
-import { Reviews } from "@/components/landing/Reviews";
 import { Pricing } from "@/components/landing/Pricing";
 import { Faq } from "@/components/landing/Faq";
 import { Footer } from "@/components/landing/Footer";
@@ -50,7 +49,9 @@ export default function HomePage() {
       <DirectionsGrid />
       <NotFortuneTelling />
       <WhatsNext />
-      <Reviews />
+      {/* Блок отзывов убран до появления настоящих: шесть выдуманных отзывов с
+          сгенерированными портретами — риск по закону о рекламе. Компонент
+          сохранён в components/landing/Reviews.tsx. */}
       <Pricing />
       <Faq />
       <QuickCalc

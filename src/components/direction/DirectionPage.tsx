@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
-import { Reviews } from "@/components/landing/Reviews";
 import { Pricing } from "@/components/landing/Pricing";
 import { OtherDirections } from "@/components/landing/OtherDirections";
 import { QuickCalc } from "@/components/quick-calc/QuickCalc";
@@ -281,7 +280,9 @@ export function DirectionPage<R>({
 
       <DirectionFaq title={faqTitle} items={faq} />
 
-      <Reviews directionId={id} />
+      {/* Блок отзывов убран до появления настоящих: шесть выдуманных отзывов с
+          сгенерированными портретами — риск по закону о рекламе. Компонент
+          сохранён в components/landing/Reviews.tsx. */}
 
       <Pricing />
 

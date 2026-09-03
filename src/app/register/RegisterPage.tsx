@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { nextPath } from "@/lib/nextPath";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { backend } from "@/lib/backend";
@@ -62,6 +63,10 @@ export default function RegisterPage() {
 
     if (error) {
       const msg = (error.message || "").toLowerCase();
+      if (msg === "confirm_email") {
+        setFormError("Мы отправили письмо — подтвердите почту и войдите");
+        return;
+      }
       if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
         setEmailError("Такая почта уже зарегистрирована");
       } else if (msg.includes("email") && msg.includes("invalid")) {
@@ -82,7 +87,7 @@ export default function RegisterPage() {
       setProfileSaveError();
     }
 
-    router.push("/cabinet");
+    router.push(nextPath());
   }
 
   return (

@@ -10,7 +10,7 @@ const logoAsset = "/images/logo.svg";
 
 const LINKS = [
   { label: "Как это работает", href: "/#how" },
-  { label: "Тарифы", href: "/#pricing" },
+  { label: "Тарифы", href: "/tarify" },
 ];
 
 /** Есть ли у авторизованного пользователя дата рождения в профиле. */
@@ -361,6 +361,13 @@ export function Header() {
               >
                 Мой кабинет
               </Link>
+              <Link
+                href="/nastavnik"
+                onClick={() => setOpen(false)}
+                className="text-text-primary text-[20px]"
+              >
+                Наставник
+              </Link>
               <button
                 type="button"
                 onClick={() => {
@@ -458,6 +465,17 @@ function AccountBlock({ email }: { email: string | null }) {
             className="block w-full px-4 py-3 text-left text-[15px] text-text-primary hover:text-text-accent"
           >
             Мой кабинет
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setMenuOpen(false);
+              router.push("/nastavnik");
+            }}
+            className="block w-full px-4 py-3 text-left text-[15px] text-text-primary hover:text-text-accent"
+          >
+            Наставник
           </button>
           <button
             type="button"

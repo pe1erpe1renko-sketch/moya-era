@@ -1,14 +1,14 @@
 /**
- * Слой данных: авторизация и профили.
+ * Слой данных: авторизация, профили, люди, тарифы, подписки, кредиты, чат.
  *
- * Сейчас это ЛОКАЛЬНАЯ ЗАГЛУШКА на localStorage — чтобы воронку
- * (регистрация → кабинет → оформление) можно было пройти без сервера.
- * Пароли и профили живут только в браузере пользователя.
+ * Интерфейс один, реализации две:
+ *   backend.supabase.ts — боевая, включается при наличии NEXT_PUBLIC_SUPABASE_URL
+ *   backend.local.ts    — демо на localStorage, чтобы смотреть продукт без базы
  *
- * Для боевой версии этот файл заменяется адаптером к Supabase
- * (схема таблицы profiles — в `supabase/migrations`). Интерфейс `Backend`
- * остаётся тем же, остальной код трогать не нужно.
+ * Остальной код работает через `backend` и не знает, какая реализация внизу.
  */
+
+import { HAS_SUPABASE } from "@/lib/env";
 
 export type User = { id: string; email: string };
 export type Session = { user: User };
@@ -29,11 +29,86 @@ export type Profile = {
 export type ProfileInsert = Omit<Profile, "id" | "created_at" | "referral_code"> & {
   referral_code?: string | null;
 };
-export type ProfilePatch = Partial<
-  Pick<Profile, "name" | "birth_date" | "birth_time" | "birth_place">
->;
+export type ProfilePatch = Partial<Pick<Profile, "name" | "birth_date" | "birth_time" | "birth_place">>;
 
-type Result<T> = { data: T; error: null } | { data: null; error: { message: string } };
+export type Relation = "self" | "partner" | "child" | "mother" | "father" | "friend" | "colleague" | "other";
+
+export const RELATION_LABELS: Record<Relation, string> = {
+  self: "Я",
+  partner: "Партнёр",
+  child: "Ребёнок",
+  mother: "Мама",
+  father: "Папа",
+  friend: "Друг",
+  colleague: "Деловой партнёр",
+  other: "Другой человек",
+};
+
+export type Person = {
+  id: string;
+  user_id: string;
+  name: string;
+  relation: Relation;
+  birth_date: string; // YYYY-MM-DD
+  birth_time: string | null;
+  birth_place: string | null;
+  sex: "м" | "ж" | null;
+  created_at: string;
+};
+
+export type PersonInsert = Omit<Person, "id" | "created_at" | "user_id">;
+export type PersonPatch = Partial<Pick<Person, "name" | "relation" | "birth_date" | "birth_time" | "birth_place" | "sex">>;
+
+export type Plan = {
+  id: string;
+  title: string;
+  subtitle: string;
+  max_people: number | null; // null — без ограничений
+  monthly_credits: number;
+  price_month: number;
+  price_year: number;
+  features: string[];
+  sort: number;
+};
+
+export type CreditPack = { id: string; credits: number; price: number; sort: number };
+
+export type Subscription = {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: "trial" | "active" | "past_due" | "canceled" | "expired";
+  period: "month" | "year";
+  started_at: string;
+  current_period_end: string;
+  canceled_at: string | null;
+};
+
+export type ChatThread = {
+  id: string;
+  user_id: string;
+  person_id: string | null;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ChatMessageRow = {
+  id: string;
+  thread_id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+};
+
+export type ReadingRow = {
+  id: string;
+  calc_type: string;
+  dates: string[];
+  last_opened_at: string;
+};
+
+export type Result<T> = { data: T; error: null } | { data: null; error: { message: string } };
 
 export interface Backend {
   auth: {
@@ -49,160 +124,40 @@ export interface Backend {
     update(id: string, patch: ProfilePatch): Promise<Result<Profile>>;
     myReferralCount(userId: string): Promise<number>;
   };
+  people: {
+    list(userId: string): Promise<Result<Person[]>>;
+    insert(userId: string, row: PersonInsert): Promise<Result<Person>>;
+    update(id: string, patch: PersonPatch): Promise<Result<Person>>;
+    remove(id: string): Promise<Result<null>>;
+  };
+  billing: {
+    plans(): Promise<Plan[]>;
+    creditPacks(): Promise<CreditPack[]>;
+    subscription(userId: string): Promise<Subscription | null>;
+    creditBalance(userId: string): Promise<number>;
+  };
+  chat: {
+    threads(userId: string): Promise<ChatThread[]>;
+    messages(threadId: string): Promise<ChatMessageRow[]>;
+    createThread(userId: string, personId: string | null, title: string | null): Promise<Result<ChatThread>>;
+  };
+  readings: {
+    list(userId: string): Promise<ReadingRow[]>;
+    touch(userId: string, calcType: string, dates: string[]): Promise<void>;
+  };
 }
 
-/* ────────────────────────────────────────────────────────────────────── */
-/* Локальная реализация                                                    */
-/* ────────────────────────────────────────────────────────────────────── */
-
-const USERS_KEY = "moyaera.local.users";
-const PROFILES_KEY = "moyaera.local.profiles";
-const SESSION_KEY = "moyaera.local.session";
-
-type StoredUser = User & { password: string };
-
-const listeners = new Set<(s: Session | null) => void>();
-const isBrowser = () => typeof window !== "undefined";
-
-function read<T>(key: string, fallback: T): T {
-  if (!isBrowser()) return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function write(key: string, value: unknown) {
-  if (!isBrowser()) return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* хранилище недоступно */
-  }
-}
-
-function uid() {
-  if (isBrowser() && "randomUUID" in crypto) return crypto.randomUUID();
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-function referralCode(existing: Profile[]) {
-  for (;;) {
-    let code = "";
-    for (let i = 0; i < 8; i++) code += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
-    if (!existing.some((p) => p.referral_code === code)) return code;
-  }
-}
-
-function emit(session: Session | null) {
-  listeners.forEach((cb) => cb(session));
-}
-
-function currentSession(): Session | null {
-  return read<Session | null>(SESSION_KEY, null);
-}
-
-function ok<T>(data: T): Result<T> {
+export function ok<T>(data: T): Result<T> {
   return { data, error: null };
 }
-function fail<T>(message: string): Result<T> {
+export function fail<T>(message: string): Result<T> {
   return { data: null, error: { message } };
 }
 
-// Небольшая задержка — чтобы интерфейс вёл себя как с настоящей сетью.
-const delay = (ms = 250) => new Promise((r) => setTimeout(r, ms));
+/* Выбор реализации. Импорты — динамические по условию нельзя сделать
+ * синхронно, поэтому обе реализации импортируются статически, а выбор
+ * идёт по env. Supabase-модуль ничего не делает, пока его не вызовут. */
+import { localBackend } from "./backend.local";
+import { supabaseBackend } from "./backend.supabase";
 
-export const backend: Backend = {
-  auth: {
-    async getSession() {
-      return currentSession();
-    },
-
-    onAuthStateChange(cb) {
-      listeners.add(cb);
-      const onStorage = (e: StorageEvent) => {
-        if (e.key === SESSION_KEY) cb(currentSession());
-      };
-      if (isBrowser()) window.addEventListener("storage", onStorage);
-      return () => {
-        listeners.delete(cb);
-        if (isBrowser()) window.removeEventListener("storage", onStorage);
-      };
-    },
-
-    async signIn({ email, password }) {
-      await delay();
-      const users = read<StoredUser[]>(USERS_KEY, []);
-      const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase());
-      if (!u || u.password !== password) return fail("invalid credentials");
-      const session: Session = { user: { id: u.id, email: u.email } };
-      write(SESSION_KEY, session);
-      emit(session);
-      return ok(session);
-    },
-
-    async signUp({ email, password }) {
-      await delay();
-      const users = read<StoredUser[]>(USERS_KEY, []);
-      if (users.some((x) => x.email.toLowerCase() === email.toLowerCase())) {
-        return fail("user already registered");
-      }
-      const u: StoredUser = { id: uid(), email, password };
-      write(USERS_KEY, [...users, u]);
-      const session: Session = { user: { id: u.id, email: u.email } };
-      write(SESSION_KEY, session);
-      emit(session);
-      return ok(session);
-    },
-
-    async signOut() {
-      if (isBrowser()) window.localStorage.removeItem(SESSION_KEY);
-      emit(null);
-    },
-  },
-
-  profiles: {
-    async getOwner(userId) {
-      const all = read<Profile[]>(PROFILES_KEY, []);
-      const own = all
-        .filter((p) => p.user_id === userId && p.is_owner)
-        .sort((a, b) => a.created_at.localeCompare(b.created_at));
-      return ok(own[0] ?? null);
-    },
-
-    async insert(row) {
-      await delay(150);
-      const all = read<Profile[]>(PROFILES_KEY, []);
-      const profile: Profile = {
-        ...row,
-        id: uid(),
-        created_at: new Date().toISOString(),
-        referral_code: row.is_owner ? (row.referral_code ?? referralCode(all)) : null,
-      };
-      write(PROFILES_KEY, [...all, profile]);
-      return ok(profile);
-    },
-
-    async update(id, patch) {
-      await delay(150);
-      const all = read<Profile[]>(PROFILES_KEY, []);
-      const idx = all.findIndex((p) => p.id === id);
-      if (idx < 0) return fail("profile not found");
-      const next = { ...all[idx], ...patch };
-      all[idx] = next;
-      write(PROFILES_KEY, all);
-      return ok(next);
-    },
-
-    async myReferralCount(userId) {
-      const all = read<Profile[]>(PROFILES_KEY, []);
-      const codes = new Set(
-        all.filter((p) => p.user_id === userId && p.is_owner && p.referral_code).map((p) => p.referral_code),
-      );
-      return all.filter((p) => p.referred_by && codes.has(p.referred_by)).length;
-    },
-  },
-};
+export const backend: Backend = HAS_SUPABASE ? supabaseBackend : localBackend;

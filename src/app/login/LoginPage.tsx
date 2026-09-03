@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { nextPath } from "@/lib/nextPath";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { backend } from "@/lib/backend";
@@ -39,7 +40,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/cabinet");
+    router.push(nextPath());
   }
 
   return (

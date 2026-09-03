@@ -17,6 +17,7 @@ import { SYNASTRY_LINES } from "@/lib/directionLines";
 
 type SynastryResult = {
   yourDate: { day: number; month: number; year: number };
+  partnerDate: { day: number; month: number; year: number };
   you: number;
   partner: number;
   sum: number;
@@ -93,6 +94,7 @@ function SynastryCalculator({ stage, submit }: CalculatorApi<SynastryResult>) {
     const sum = a + b;
     submit({
       yourDate: { day: Number(you.day), month: Number(you.month), year: Number(you.year) },
+      partnerDate: { day: Number(partner.day), month: Number(partner.month), year: Number(partner.year) },
       you: a,
       partner: b,
       sum,
@@ -193,6 +195,8 @@ function SynastryResultContent({ result }: ResultCtx<SynastryResult>) {
           date: toIsoDate(result.yourDate.day, result.yourDate.month, result.yourDate.year),
           direction: "synastry",
         }}
+        partnerDate={toIsoDate(result.partnerDate.day, result.partnerDate.month, result.partnerDate.year)}
+        label="Открыть разбор пары"
       />
     </>
   );

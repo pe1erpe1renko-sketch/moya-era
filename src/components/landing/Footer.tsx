@@ -4,7 +4,7 @@ import { directions } from "@/lib/directions";
 const SERVICE = [
   { label: "О сервисе", to: "/about" as const },
   { label: "Как это работает", hash: "/#how" },
-  { label: "Тарифы", hash: "/#pricing" },
+  { label: "Тарифы", hash: "/tarify" },
   { label: "Вопросы", hash: "/#faq" },
 ];
 

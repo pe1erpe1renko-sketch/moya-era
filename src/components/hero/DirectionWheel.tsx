@@ -15,7 +15,7 @@ function computeMetrics(): Metrics {
   const vh = typeof window === "undefined" ? 900 : window.innerHeight;
   const mobile = vw < 768;
   const r = mobile ? 0.85 * vw : 0.62 * vh;
-  const apexY = mobile ? 0.26 * vh : 0.44 * vh;
+  const apexY = mobile ? 0.285 * vh : 0.44 * vh;
   return {
     r,
     centerX: (mobile ? 0.5 : 0.3) * vw,
@@ -143,7 +143,7 @@ export function DirectionWheel() {
   })();
 
   const { centerX, centerY, r, mobile } = metrics;
-  const side = mobile ? "min(62vw, 36vh)" : "var(--hero-card)";
+  const side = mobile ? "min(56vw, 32vh)" : "var(--hero-card)";
 
   return (
     <div
@@ -231,7 +231,9 @@ export function DirectionWheel() {
               filter: isActive ? "none" : "blur(2px)",
               transition: `left ${duration}ms ease-out, top ${duration}ms ease-out, transform 400ms ease-out, opacity 400ms ease-out, filter 400ms ease-out`,
               width: side,
-              height: side,
+              // На телефоне карточка выше, чем шире: иначе заголовок и описание
+              // ложатся на иллюстрацию (проверено на 390×844).
+              height: mobile ? `calc(${side} * 1.45)` : side,
             }}
           >
 
@@ -255,17 +257,19 @@ export function DirectionWheel() {
                 className="pointer-events-none absolute inset-0"
                 style={{
                   background:
-                    "linear-gradient(to bottom, rgba(3, 25, 30, 0) 40%, rgba(3, 25, 30, 0.55) 60%, rgba(3, 25, 30, 0.88) 78%, rgba(3, 25, 30, 0.97) 100%)",
+                    mobile
+                      ? "linear-gradient(to bottom, rgba(3, 25, 30, 0) 30%, rgba(3, 25, 30, 0.6) 50%, rgba(3, 25, 30, 0.92) 68%, rgba(3, 25, 30, 0.98) 100%)"
+                      : "linear-gradient(to bottom, rgba(3, 25, 30, 0) 40%, rgba(3, 25, 30, 0.55) 60%, rgba(3, 25, 30, 0.88) 78%, rgba(3, 25, 30, 0.97) 100%)",
                 }}
               />
 
               <div
                 className="absolute bottom-0 left-0 right-0 flex flex-col justify-end text-left"
-                style={{ padding: 32 }}
+                style={{ padding: mobile ? 18 : 32 }}
               >
                 <h2
                   className="font-display text-text-primary leading-tight"
-                  style={{ fontSize: "clamp(24px, 2.1vw, 40px)", letterSpacing: "0.01em", fontWeight: 400 }}
+                  style={{ fontSize: mobile ? 22 : "clamp(24px, 2.1vw, 40px)", letterSpacing: "0.01em", fontWeight: 400 }}
                 >
                   {d.title}
                 </h2>
@@ -273,14 +277,14 @@ export function DirectionWheel() {
                   <>
                     <p
                       className="text-text-secondary leading-snug"
-                      style={{ fontSize: "clamp(14px, 1.1vw, 19px)", marginTop: 8 }}
+                      style={{ fontSize: mobile ? 14 : "clamp(14px, 1.1vw, 19px)", marginTop: mobile ? 4 : 8 }}
                     >
                       {d.desc}
                     </p>
                     <button
                       type="button"
                       className="text-text-accent self-start bg-transparent hover:underline"
-                      style={{ fontSize: "clamp(14px, 1.1vw, 19px)", marginTop: 16 }}
+                      style={{ fontSize: mobile ? 14 : "clamp(14px, 1.1vw, 19px)", marginTop: mobile ? 10 : 16 }}
                     >
                       Открыть
                     </button>
