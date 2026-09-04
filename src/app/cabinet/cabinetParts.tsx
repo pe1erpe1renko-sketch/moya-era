@@ -270,8 +270,13 @@ export function ProfileCard({
 
 function tileResult(id: string, birth: Birth): { value: string; mono?: boolean } | { status: string } {
   if (id === "tarot") return { status: "Расклад доступен" };
-  if (id === "humandesign") return { status: "Нужен полный расчёт" };
   if (!birth) return { status: "Заполни дату рождения" };
+
+  if (id === "humandesign") {
+    // Тип зависит от времени рождения, поэтому здесь только приглашение
+    // открыть разбор: сам расчёт идёт по данным профиля на своей странице.
+    return { status: "Схема и тип посчитаны" };
+  }
 
   if (id === "matrix") {
     const n = centralArcanum(birth.day, birth.month, birth.year);

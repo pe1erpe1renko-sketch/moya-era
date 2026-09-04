@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DirectionPage,
+  type CalculatorApi,
   type FaqItem,
+  type ResultCtx,
 } from "@/components/direction/DirectionPage";
 const hdAsset = "/images/humandesign2.png";
 import { HUMANDESIGN_LINES } from "@/lib/directionLines";
+import { BirthForm, type BirthValue } from "@/components/natal/BirthForm";
+import { Bodygraph } from "@/components/humandesign/Bodygraph";
+import { HdReading, chartFromBirth } from "@/components/humandesign/HdReading";
 
 const ABOUT_PARAGRAPHS = [
   "Дизайн человека появился в конце восьмидесятых и соединил четыре старые системы: астрологию, китайскую Книгу перемен, каббалу и учение о чакрах. Из них собрана одна схема — бодиграф, где девять центров соединены каналами.",
@@ -26,12 +30,16 @@ const SAMPLE_PARAGRAPHS = [
 
 const FAQ: FaqItem[] = [
   {
-    q: "Почему расчёт не бесплатный",
-    a: "Бодиграф считается по двум картам сразу: на момент рождения и на точку примерно за 88 дней до него. Обе требуют астрономических эфемерид, и в браузере такой расчёт не делается. Это единственное из шести направлений с таким ограничением, и мы предпочли сказать об этом прямо, а не показывать приблизительный результат.",
+    q: "Обязательно ли знать время рождения",
+    a: "Для настоящего результата — да. Луна проходит одни ворота примерно за десять часов, а от неё может зависеть целый канал и, значит, тип. Без времени мы посчитаем на полдень и честно напишем, что это прикидка. Время часто есть в выписке из роддома или его помнят родные.",
   },
   {
-    q: "Обязательно ли знать время рождения",
-    a: "Да. Тип и авторитет зависят от положения планет в конкретный час, и без времени расчёт даст неверный результат. Время часто есть в выписке из роддома или его помнят родные.",
+    q: "Насколько точен расчёт",
+    a: "Положения планет сверены с NASA JPL и со Swiss Ephemeris, а весь бодиграф целиком — с открытым калькулятором на двадцати контрольных датах: ворота и линии всех двадцати шести активаций, полные каналы, определённые центры, тип, авторитет, профиль и определение совпали полностью.",
+  },
+  {
+    q: "Почему две карты и почему не ровно 88 дней",
+    a: "Вторая карта строится на момент, когда Солнце стояло на 88 градусов долготы раньше. Солнце идёт по эклиптике неравномерно, поэтому в сутках это от 87 до 92 дней. Сервисы, которые просто отнимают 88 дней, ошибаются на несколько ворот.",
   },
   {
     q: "Чем дизайн человека отличается от натальной карты",
@@ -47,102 +55,13 @@ const FAQ: FaqItem[] = [
   },
 ];
 
-const CENTERS: { points: string; label: string }[] = [
-  { points: "35,26 65,26 50,8", label: "Голова" },
-  { points: "35,34 65,34 50,52", label: "Аджна" },
-  { points: "38,60 62,60 62,80 38,80", label: "Горло" },
-  { points: "50,84 64,98 50,112 36,98", label: "Самость" },
-  { points: "68,90 80,90 74,100", label: "Воля" },
-  { points: "38,120 62,120 62,138 38,138", label: "Сакральный" },
-  { points: "14,108 32,116 14,124", label: "Селезёнка" },
-  { points: "86,108 68,116 86,124", label: "Солнечное сплетение" },
-  { points: "38,148 62,148 62,166 38,166", label: "Корневой" },
-];
-
-const HUB = {
-  head: [50, 26] as const,
-  ajna: [50, 34] as const,
-  throatTop: [50, 60] as const,
-  throatBottom: [50, 80] as const,
-  throatRight: [62, 70] as const,
-  throatLeft: [38, 70] as const,
-  selfTop: [50, 84] as const,
-  selfBottom: [50, 112] as const,
-  selfLeft: [36, 98] as const,
-  selfRight: [64, 98] as const,
-  willLeft: [68, 95] as const,
-  sacralTop: [50, 120] as const,
-  sacralBottom: [50, 138] as const,
-  sacralLeft: [38, 129] as const,
-  sacralRight: [62, 129] as const,
-  spleen: [26, 116] as const,
-  solar: [74, 116] as const,
-  rootTop: [50, 148] as const,
-  rootLeft: [38, 152] as const,
-  rootRight: [62, 152] as const,
-};
-
-const CHANNELS: readonly [readonly [number, number], readonly [number, number]][] = [
-  [HUB.head, HUB.ajna],
-  [HUB.ajna, HUB.throatTop],
-  [HUB.throatBottom, HUB.selfTop],
-  [HUB.throatRight, HUB.willLeft],
-  [HUB.throatLeft, HUB.spleen],
-  [HUB.throatRight, HUB.solar],
-  [HUB.selfBottom, HUB.sacralTop],
-  [HUB.selfLeft, HUB.spleen],
-  [HUB.selfRight, HUB.willLeft],
-  [HUB.sacralBottom, HUB.rootTop],
-  [HUB.spleen, HUB.rootLeft],
-  [HUB.solar, HUB.rootRight],
-  [HUB.sacralLeft, HUB.spleen],
-  [HUB.sacralRight, HUB.solar],
-];
-
-/** Пустой бодиграф: девять контурных центров и каналы. */
+/** Пустой бодиграф: девять контурных центров и все тридцать шесть каналов. */
 function EmptyBodygraph() {
   return (
     <div className="flex w-full flex-col items-center">
-      <div
-        className="aspect-square"
-        style={{ width: "min(30vw, 46vh)", minWidth: 260, maxWidth: "100%" }}
-      >
-        <svg
-          viewBox="0 0 100 170"
-          role="img"
-          aria-label="Пустой бодиграф: девять центров без заполнения"
-          className="h-full w-full"
-          preserveAspectRatio="xMidYMid meet"
-        >
-          {CHANNELS.map(([a, b], i) => (
-            <line
-              key={i}
-              x1={a[0]}
-              y1={a[1]}
-              x2={b[0]}
-              y2={b[1]}
-              stroke="var(--border)"
-              strokeOpacity={0.3}
-              strokeWidth={1}
-            />
-          ))}
-          {CENTERS.map((c) => (
-            <polygon
-              key={c.label}
-              points={c.points}
-              fill="none"
-              stroke="var(--border)"
-              strokeOpacity={0.55}
-              strokeWidth={1}
-            />
-          ))}
-        </svg>
-      </div>
-      <p
-        className="text-center text-text-secondary"
-        style={{ marginTop: 18, fontSize: 13, lineHeight: 1.5 }}
-      >
-        Девять центров. У каждого человека часть из них закрашена, часть пуста
+      <Bodygraph chart={null} className="w-full max-w-[340px]" />
+      <p className="text-center text-text-secondary" style={{ marginTop: 18, fontSize: 13, lineHeight: 1.5 }}>
+        Девять центров и тридцать шесть каналов. У каждого человека часть из них закрашена, часть пуста
       </p>
     </div>
   );
@@ -220,90 +139,6 @@ const HD_CENTERS = [
 ];
 
 /** Каналы (по индексам CHANNELS), ведущие к каждому центру. */
-const CENTER_CHANNELS: Record<string, number[]> = {
-  head: [0],
-  ajna: [0, 1],
-  throat: [1, 2, 3, 4, 5],
-  g: [2, 6, 7, 8],
-  heart: [3, 8],
-  sacral: [6, 9, 12, 13],
-  spleen: [4, 7, 10, 12],
-  solar: [5, 11, 13],
-  root: [9, 10, 11],
-};
-
-/** Интерактивный бодиграф: центры подсвечиваются, каналы к активному центру загораются. */
-function InteractiveBodygraph({
-  active,
-  onActivate,
-}: {
-  active: string;
-  onActivate: (id: string) => void;
-}) {
-  const lit = new Set(CENTER_CHANNELS[active] ?? []);
-  return (
-    <div
-      className="mx-auto w-[80vw] md:w-[min(34vw,50vh)]"
-      style={{ minWidth: 300, maxWidth: "100%" }}
-    >
-      <svg
-        viewBox="0 0 100 170"
-        role="group"
-        aria-label="Схема девяти центров бодиграфа"
-        className="h-auto w-full"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        {CHANNELS.map(([a, b], i) => (
-          <line
-            key={i}
-            x1={a[0]}
-            y1={a[1]}
-            x2={b[0]}
-            y2={b[1]}
-            stroke={lit.has(i) ? "var(--text-accent)" : "var(--border)"}
-            strokeOpacity={lit.has(i) ? 0.5 : 0.3}
-            strokeWidth={lit.has(i) ? 1.5 : 1}
-            style={{ transition: "stroke 250ms, stroke-opacity 250ms" }}
-          />
-        ))}
-        {CENTERS.map((c, i) => {
-          const id = HD_CENTERS[i]!.id;
-          const isActive = id === active;
-          return (
-            <polygon
-              key={id}
-              points={c.points}
-              role="button"
-              tabIndex={0}
-              aria-label={HD_CENTERS[i]!.title}
-              aria-pressed={isActive}
-              onMouseEnter={() => onActivate(id)}
-              onClick={() => onActivate(id)}
-              onFocus={() => onActivate(id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onActivate(id);
-                }
-              }}
-              fill={isActive ? "rgba(122, 93, 168, 0.14)" : "transparent"}
-              stroke={isActive ? "var(--text-accent)" : "var(--border)"}
-              strokeOpacity={isActive ? 1 : 0.55}
-              strokeWidth={isActive ? 1.5 : 1}
-              style={{
-                cursor: "pointer",
-                outline: "none",
-                transition: "fill 250ms, stroke 250ms, stroke-opacity 250ms, filter 250ms",
-                filter: isActive ? "drop-shadow(0 0 6px rgba(122, 93, 168, 0.35))" : "none",
-              }}
-            />
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
 /** Блок «Как устроен дизайн человека»: четыре типа + интерактивная схема девяти центров. */
 function HdStructureBlock() {
   const [active, setActive] = useState("throat");
@@ -419,7 +254,16 @@ function HdStructureBlock() {
           style={{ gap: "clamp(32px, 4vw, 72px)", marginTop: 28 }}
         >
           <div className="w-full md:w-[46%]">
-            <InteractiveBodygraph active={active} onActivate={activate} />
+            <Bodygraph
+              chart={null}
+              active={`center:${active === "g" ? "self" : active}`}
+              onActivate={(id) => {
+                if (!id?.startsWith("center:")) return;
+                const center = id.slice("center:".length);
+                activate(center === "self" ? "g" : center);
+              }}
+              className="mx-auto w-full max-w-[320px]"
+            />
           </div>
           <div className="w-full md:w-[48%]">
             <div key={current.id} className="animate-[fade-in_200ms_ease-out]" style={{ minHeight: 220 }}>
@@ -443,33 +287,63 @@ function HdStructureBlock() {
   );
 }
 
-/** Первый экран: объяснение + прямой переход на пробный доступ. */
-function HdHeroCta() {
+/** Первый экран: настоящий расчёт по дате, времени и месту. */
+function HdCalculator({ stage, submit }: CalculatorApi<BirthValue>) {
+  return <BirthForm busy={stage === "loading"} submitLabel="Построить бодиграф" onSubmit={(v) => submit(v)} />;
+}
+
+/** Схема в правой колонке: до расчёта пустая, после — с определёнными центрами. */
+function HdStage({ result }: ResultCtx<BirthValue>) {
+  const chart = useMemo(() => chartFromBirth(result), [result]);
   return (
-    <div style={{ marginTop: 32 }}>
-      <Link
-        href="/register"
-        className="qc-focus inline-flex items-center justify-center rounded-[12px] bg-accent text-[17px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
-        style={{ height: 54, paddingInline: 40 }}
-      >
-        Открыть пробный доступ
-      </Link>
-
-      <div className="mt-4">
-        <a
-          href="#about"
-          className="text-text-accent transition-opacity hover:opacity-80"
-          style={{ fontSize: "clamp(15px, 1.15vw, 18px)" }}
-        >
-          Сначала разобраться, что это
-        </a>
-      </div>
-
-      <p className="text-text-secondary" style={{ marginTop: 20, fontSize: 13, lineHeight: 1.5 }}>
-        Бодиграф считается по двум картам и требует точного времени рождения. Входит в пробный доступ
-        на три дня
+    <div className="flex w-full flex-col items-center">
+      <Bodygraph chart={chart} className="mx-auto w-full max-w-[300px]" />
+      <p className="mt-4 text-center text-text-secondary" style={{ fontSize: 13, lineHeight: 1.5 }}>
+        Закрашены центры, которые у вас определены: {chart.definedCenters.length} из девяти
       </p>
     </div>
+  );
+}
+
+function HdResultContent({ result }: ResultCtx<BirthValue>) {
+  const chart = useMemo(() => chartFromBirth(result), [result]);
+  return (
+    <>
+      <div className="font-display text-text-primary" style={{ fontSize: "clamp(28px, 2.6vw, 46px)", lineHeight: 1.1 }}>
+        {chart.type.name}
+      </div>
+      <div className="mt-2 text-text-secondary" style={{ fontSize: "clamp(15px, 1.15vw, 18px)" }}>
+        Стратегия: {chart.type.strategy.toLowerCase()}
+      </div>
+      <p className="mt-4 text-text-primary" style={{ fontSize: "clamp(15px, 1.15vw, 18px)", lineHeight: 1.6 }}>
+        {chart.type.strategyLine}
+      </p>
+      <p className="mt-4 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
+        Разбор — ниже. Тип и стратегия читаются бесплатно, авторитет, профиль, каналы и ворота открывает подписка
+      </p>
+    </>
+  );
+}
+
+/** До расчёта — объяснение системы, после — сам разбор. */
+function HdExplain({ ctx }: { ctx: ResultCtx<BirthValue> | null }) {
+  if (ctx) {
+    return (
+      <section
+        className="relative w-full"
+        style={{ paddingTop: "clamp(48px, 6vh, 90px)", paddingBottom: "clamp(64px, 8vh, 120px)" }}
+      >
+        <div className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
+          <HdReading birth={ctx.result} variant="questions" />
+        </div>
+      </section>
+    );
+  }
+  return (
+    <>
+      <HdStructureBlock />
+      <TwoChartsBlock />
+    </>
   );
 }
 
@@ -559,17 +433,17 @@ function TwoChartsBlock() {
 
 export default function HumanDesignPage() {
   return (
-    <DirectionPage<unknown>
+    <DirectionPage<BirthValue>
       id="humandesign"
       h1="Дизайн человека: тип, стратегия и авторитет"
-      heroDescription="Схема из девяти центров, рассчитанная по положению планет. Разбираем, что это такое и как читается"
+      heroDescription="Схема из девяти центров по реальному положению планет. Дата обязательна, время и место — если знаете"
       heroImage={hdAsset}
       heroImageAlt="Дизайн человека — расчёт бодиграфа"
       aboutTitle="Что показывает дизайн человека"
       aboutParagraphs={ABOUT_PARAGRAPHS}
-      resultLabel="Почему нужен расчёт"
+      resultLabel="Ваш тип"
       linesTitle="Что входит в разбор"
-      linesSubtitle="Полный бодиграф: девять центров, каналы и ворота"
+      linesSubtitle="Полный бодиграф: девять центров, тридцать шесть каналов и шестьдесят четыре ворот"
       lines={LINES}
       exampleTitle="Как выглядит разбор"
       exampleSubtitle="Фрагмент настоящего текста. Проектор, эмоциональный авторитет"
@@ -579,57 +453,13 @@ export default function HumanDesignPage() {
       faq={FAQ}
       otherTitle="Эти пять считают тебя иначе"
       otherSubtitle="Дизайн человека описывает обмен энергией. Остальные пять смотрят с других сторон и складываются с ним в один профиль"
-      finalTitle="Рассчитать свой бодиграф"
-      finalSubtitle="Тип, стратегия и авторитет входят в пробный доступ на три дня"
-      finalBlock={
-        <section
-          id="start"
-          className="qc-plate relative w-full overflow-hidden z-[2]"
-          style={{
-            paddingTop: "clamp(120px, 14vh, 220px)",
-            paddingBottom: "clamp(120px, 14vh, 220px)",
-          }}
-        >
-          <div
-            className="relative z-[4] mx-auto flex w-full max-w-[1600px] flex-col items-center text-center"
-            style={{ paddingLeft: "clamp(24px, 6vw, 120px)", paddingRight: "clamp(24px, 6vw, 120px)" }}
-          >
-            <h2
-              className="font-display text-text-primary"
-              style={{
-                fontSize: "clamp(32px, 3.4vw, 64px)",
-                letterSpacing: "0.01em",
-                lineHeight: 1.08,
-              }}
-            >
-              Рассчитать свой бодиграф
-            </h2>
-            <p
-              className="mt-4 max-w-[520px] text-text-secondary"
-              style={{ fontSize: "clamp(16px, 1.2vw, 20px)" }}
-            >
-              Тип, стратегия и авторитет входят в пробный доступ на три дня
-            </p>
-            <Link
-              href="/register"
-              className="qc-focus mt-8 inline-flex items-center justify-center rounded-[12px] bg-accent text-[17px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
-              style={{ height: 54, paddingInline: 40 }}
-            >
-              Открыть пробный доступ
-            </Link>
-          </div>
-        </section>
-      }
-      calculator={() => <HdHeroCta />}
+      finalTitle="Построить свой бодиграф"
+      finalSubtitle="Бесплатно: схема с определёнными центрами, тип и стратегия"
+      calculator={(api) => <HdCalculator {...api} />}
       placeholderVisual={<EmptyBodygraph />}
-      resultVisual={() => <EmptyBodygraph />}
-      resultContent={() => null}
-      explainBlock={
-        <>
-          <HdStructureBlock />
-          <TwoChartsBlock />
-        </>
-      }
+      resultVisual={(ctx) => <HdStage {...ctx} />}
+      resultContent={(ctx) => <HdResultContent {...ctx} />}
+      explainBlock={(ctx) => <HdExplain ctx={ctx} />}
     />
   );
 }

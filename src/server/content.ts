@@ -3,6 +3,7 @@ import "server-only";
 import { SEED_TEXTS, buildPlaceholder } from "@/lib/matrix/seedTexts";
 import { buildRequest, PROMPT_VERSION, type RequestCtx } from "@/lib/matrix/prompts";
 import { buildNatalRequest, isNatalCtx, NATAL_PROMPT_VERSION, type NatalCtx } from "@/lib/natal/prompts";
+import { buildHdRequest, isHdCtx, HD_PROMPT_VERSION, type HdCtx } from "@/lib/humandesign/prompts";
 import { supabaseService } from "@/server/supabase";
 import { complete, LLM_ENABLED, MODEL_TEXTS } from "@/server/llm";
 
@@ -20,7 +21,7 @@ import { complete, LLM_ENABLED, MODEL_TEXTS } from "@/server/llm";
 export type TextSource = "cache" | "seed" | "generated" | "placeholder";
 export type TextResult = { key: string; text: string; source: TextSource; error?: string };
 
-export type SlotContext = (RequestCtx | NatalCtx) & {
+export type SlotContext = (RequestCtx | NatalCtx | HdCtx) & {
   key: string;
   slotLabel?: string;
   sectionTitle?: string;
@@ -32,11 +33,15 @@ export type SlotContext = (RequestCtx | NatalCtx) & {
  * не должна перегенерировать другие.
  */
 function requestFor(ctx: SlotContext) {
-  return isNatalCtx(ctx) ? buildNatalRequest(ctx) : buildRequest(ctx);
+  if (isNatalCtx(ctx)) return buildNatalRequest(ctx);
+  if (isHdCtx(ctx)) return buildHdRequest(ctx);
+  return buildRequest(ctx);
 }
 
 function versionFor(ctx: SlotContext): number {
-  return isNatalCtx(ctx) ? NATAL_PROMPT_VERSION : PROMPT_VERSION;
+  if (isNatalCtx(ctx)) return NATAL_PROMPT_VERSION;
+  if (isHdCtx(ctx)) return HD_PROMPT_VERSION;
+  return PROMPT_VERSION;
 }
 
 /* ─── хранилище ─────────────────────────────────────────────────── */
@@ -88,8 +93,8 @@ async function generate(ctx: SlotContext): Promise<string> {
 }
 
 function placeholder(ctx: SlotContext): string {
-  if (isNatalCtx(ctx)) {
-    return `${ctx.slotLabel}\n\nЗдесь будет разбор этой позиции вашей карты. Текст пишется по реальному положению планет в момент вашего рождения.`;
+  if (isNatalCtx(ctx) || isHdCtx(ctx)) {
+    return `${ctx.slotLabel}\n\nЗдесь будет разбор этой позиции. Текст пишется по реальному положению планет в момент вашего рождения.`;
   }
   return buildPlaceholder({
     slotLabel: ctx.slotLabel ?? "Разбор",

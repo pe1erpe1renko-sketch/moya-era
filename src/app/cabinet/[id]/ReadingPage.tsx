@@ -15,6 +15,7 @@ import { dayArcanum, todayIso } from "@/lib/dayCard";
 import { backend } from "@/lib/backend";
 import { useAuth } from "@/lib/useAuth";
 import { NatalReading } from "@/components/natal/NatalReading";
+import { HdReading } from "@/components/humandesign/HdReading";
 import { placeFromFields } from "@/lib/geo/birthPlace";
 
 
@@ -136,8 +137,8 @@ export default function ReadingPage() {
   }, [user]);
 
   const birth = parseDate(profile?.birth_date ?? null);
-  const natalBirth =
-    direction.id === "natal" && profile?.birth_date
+  const chartBirth =
+    (direction.id === "natal" || direction.id === "humandesign") && profile?.birth_date
       ? {
           date: profile.birth_date,
           time: profile.birth_time?.slice(0, 5) ?? null,
@@ -145,6 +146,8 @@ export default function ReadingPage() {
           placeText: profile.birth_place ?? "",
         }
       : null;
+  const natalBirth = direction.id === "natal" ? chartBirth : null;
+  const hdBirth = direction.id === "humandesign" ? chartBirth : null;
 
   const reading = useMemo(
     () => (birth ? buildReading(direction.id, birth, user?.id ?? "") : null),
@@ -242,6 +245,12 @@ export default function ReadingPage() {
               </div>
             )}
 
+            {hdBirth && (
+              <div className="mt-8">
+                <HdReading birth={hdBirth} />
+              </div>
+            )}
+
             {openSection && (
               <section>
                 <h2
@@ -264,7 +273,7 @@ export default function ReadingPage() {
             )}
 
             <div className="flex flex-col" style={{ marginTop: 32, gap: 14 }}>
-              {(natalBirth ? [] : lockedSections).map((l) => (
+              {(chartBirth ? [] : lockedSections).map((l) => (
                 <div
                   key={l.n}
                   style={{
@@ -323,8 +332,8 @@ export default function ReadingPage() {
                 className="text-text-secondary"
                 style={{ marginTop: 12, fontSize: "clamp(15px, 1.15vw, 18px)", lineHeight: 1.6 }}
               >
-                {natalBirth
-                  ? "Все позиции карты, дома и аспекты — и полные разборы по остальным пяти системам"
+                {chartBirth
+                  ? "Все позиции разбора — и полные разборы по остальным пяти системам"
                   : `Ещё ${numWord(lockedSections.length)} ${sectionWord(lockedSections.length)} по этому направлению и полные разборы по остальным пяти системам`}
               </p>
               <div className="flex items-baseline gap-3" style={{ marginTop: 20 }}>
