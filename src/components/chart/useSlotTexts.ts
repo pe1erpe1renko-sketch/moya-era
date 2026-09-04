@@ -8,6 +8,11 @@ export type LockReason = "no_subscription" | "person_not_added" | "not_logged_in
 
 export type BirthKey = { date: string; time: string | null; placeId: number | null };
 
+/** Подпись данных рождения: по ней различаются наборы текстов. */
+export function birthSignature(input: BirthKey): string {
+  return `${input.date}|${input.time ?? ""}|${input.placeId ?? ""}`;
+}
+
 /**
  * Загрузка текстов разбора пачками. Одна на натальную карту и на дизайн
  * человека: отличается только адрес API.
@@ -25,14 +30,19 @@ type Store = { sig: string; texts: Record<string, SlotText> };
 /** Одна и та же пустая карта, чтобы её ссылка не менялась от рендера к рендеру. */
 const NOTHING: Record<string, SlotText> = {};
 
-const signatureOf = (input: BirthKey) => `${input.date}|${input.time ?? ""}|${input.placeId ?? ""}`;
-
-export function useSlotTexts(endpoint: string, input: BirthKey) {
-  const signature = signatureOf(input);
+/**
+ * @param input     тело запроса без списка вопросов
+ * @param signature что именно считается: при её смене прежние тексты
+ *                  отбрасываются, а ответ на прежний запрос игнорируется
+ */
+export function useSlotTexts(endpoint: string, input: Record<string, unknown>, signature: string) {
   const [state, setState] = useState<Store>({ sig: signature, texts: {} });
   const [busy, setBusy] = useState<Set<string>>(new Set());
   const [unlocked, setUnlocked] = useState(false);
   const [reason, setReason] = useState<LockReason | null>(null);
+  // Приходит только от разбора пары: сколько людей ещё влезает в тариф.
+  const [peopleLeft, setPeopleLeft] = useState<number | null | undefined>(undefined);
+  const [loggedIn, setLoggedIn] = useState(false);
   // Ключи запросов в полёте, вместе с подписью: `1990-07-26||524901:natal_brief_sun`.
   const pending = useRef<Set<string>>(new Set());
 
@@ -59,11 +69,15 @@ export function useSlotTexts(endpoint: string, input: BirthKey) {
         const data = (await res.json()) as {
           unlocked: boolean;
           reason: LockReason | null;
+          peopleLeft?: number | null;
+          loggedIn?: boolean;
           answers: Array<{ slotId: string; locked: boolean; text?: string; source?: string }>;
         };
         // Подписка и причина замка от карты не зависят — их принимаем всегда.
         setUnlocked(data.unlocked);
         setReason(data.reason);
+        if (data.peopleLeft !== undefined) setPeopleLeft(data.peopleLeft);
+        if (data.loggedIn !== undefined) setLoggedIn(data.loggedIn);
         setState((prev) => {
           if (prev.sig !== sig) return prev; // ответ на прежнюю карту — выбрасываем
           const next = { ...prev.texts };
@@ -97,5 +111,5 @@ export function useSlotTexts(endpoint: string, input: BirthKey) {
     [],
   );
 
-  return { texts, busy, unlocked, reason, load, reset };
+  return { texts, busy, unlocked, reason, peopleLeft, loggedIn, load, reset };
 }

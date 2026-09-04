@@ -4,6 +4,7 @@ import { SEED_TEXTS, buildPlaceholder } from "@/lib/matrix/seedTexts";
 import { buildRequest, PROMPT_VERSION, type RequestCtx } from "@/lib/matrix/prompts";
 import { buildNatalRequest, isNatalCtx, NATAL_PROMPT_VERSION, type NatalCtx } from "@/lib/natal/prompts";
 import { buildHdRequest, isHdCtx, HD_PROMPT_VERSION, type HdCtx } from "@/lib/humandesign/prompts";
+import { buildPairRequest, isPairCtx, PAIR_PROMPT_VERSION, type PairCtx } from "@/lib/pair/prompts";
 import { supabaseService } from "@/server/supabase";
 import { complete, LLM_ENABLED, MODEL_TEXTS } from "@/server/llm";
 
@@ -21,7 +22,7 @@ import { complete, LLM_ENABLED, MODEL_TEXTS } from "@/server/llm";
 export type TextSource = "cache" | "seed" | "generated" | "placeholder";
 export type TextResult = { key: string; text: string; source: TextSource; error?: string };
 
-export type SlotContext = (RequestCtx | NatalCtx | HdCtx) & {
+export type SlotContext = (RequestCtx | NatalCtx | HdCtx | PairCtx) & {
   key: string;
   slotLabel?: string;
   sectionTitle?: string;
@@ -35,12 +36,14 @@ export type SlotContext = (RequestCtx | NatalCtx | HdCtx) & {
 function requestFor(ctx: SlotContext) {
   if (isNatalCtx(ctx)) return buildNatalRequest(ctx);
   if (isHdCtx(ctx)) return buildHdRequest(ctx);
+  if (isPairCtx(ctx)) return buildPairRequest(ctx);
   return buildRequest(ctx);
 }
 
 function versionFor(ctx: SlotContext): number {
   if (isNatalCtx(ctx)) return NATAL_PROMPT_VERSION;
   if (isHdCtx(ctx)) return HD_PROMPT_VERSION;
+  if (isPairCtx(ctx)) return PAIR_PROMPT_VERSION;
   return PROMPT_VERSION;
 }
 
@@ -93,7 +96,7 @@ async function generate(ctx: SlotContext): Promise<string> {
 }
 
 function placeholder(ctx: SlotContext): string {
-  if (isNatalCtx(ctx) || isHdCtx(ctx)) {
+  if (isNatalCtx(ctx) || isHdCtx(ctx) || isPairCtx(ctx)) {
     return `${ctx.slotLabel}\n\nЗдесь будет разбор этой позиции. Текст пишется по реальному положению планет в момент вашего рождения.`;
   }
   return buildPlaceholder({

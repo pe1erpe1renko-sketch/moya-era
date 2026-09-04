@@ -14,5 +14,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // отдельных файлах: /natalnaya-karta/sitemap/0.xml и /dizayn-cheloveka/…
   // Все файлы собраны в /sitemap-index.xml, на него и указывает robots.txt.
   // Разборы матрицы по датам пока индексируются по внутренним ссылкам.
+  // Пары (/sovmestimost/дата/дата) в карту сайта не кладём вовсе:
+  // комбинаций дат порядка миллиарда. Их индексируют ссылки, которыми
+  // делятся со вторым человеком, — ровно так ими и пользуются.
   return base;
 }

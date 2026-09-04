@@ -259,6 +259,19 @@ function definitionGroups(definedCenters: CenterId[], channels: Channel[]): Cent
   return groups;
 }
 
+/**
+ * Определение по набору центров и каналов: единое, раздвоенное и так далее.
+ * Вынесено отдельно, потому что то же самое считается для композита пары.
+ */
+export function definitionOf(definedCenters: CenterId[], channels: Channel[]): DefinitionId {
+  const groups = definitionGroups(definedCenters, channels);
+  if (groups.length === 0) return "none";
+  if (groups.length === 1) return "single";
+  if (groups.length === 2) return "split";
+  if (groups.length === 3) return "triple_split";
+  return "quadruple_split";
+}
+
 export function determineType(definedCenters: CenterId[], channels: Channel[]): HdType {
   if (definedCenters.length === 0) return HD_TYPES.reflector;
 
@@ -321,17 +334,7 @@ export function buildHumanDesignChart(input: HdChartInput): HumanDesignChart {
   const profileLines: [number, number] = [personalitySun.line, designSun.line];
   const profile = `${profileLines[0]}/${profileLines[1]}`;
 
-  const groups = definitionGroups(definedCenters, channels);
-  const definition: DefinitionId =
-    groups.length === 0
-      ? "none"
-      : groups.length === 1
-        ? "single"
-        : groups.length === 2
-          ? "split"
-          : groups.length === 3
-            ? "triple_split"
-            : "quadruple_split";
+  const definition = definitionOf(definedCenters, channels);
 
   const angle = crossAngle(profile);
 

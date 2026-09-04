@@ -9,6 +9,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildPairQuery,
+  parsePairQuery,
   CHART_SYSTEMS,
   FIRST_CHART_DATE,
   allChartDates,
@@ -79,6 +81,36 @@ describe("время и место в параметрах запроса", () =
     assert.equal(hasChartQuery({ time: null, placeId: null }), false);
     assert.equal(hasChartQuery({ time: "09:40", placeId: null }), true);
     assert.equal(hasChartQuery({ time: null, placeId: 524901 }), true);
+  });
+});
+
+describe("уточнение для пары", () => {
+  it("у первого t1/g1, у второго t2/g2", () => {
+    const [a, b] = parsePairQuery({ t1: "0940", g1: "524901", t2: "1430", g2: "1496747" });
+    assert.deepEqual(a, { time: "09:40", placeId: 524901 });
+    assert.deepEqual(b, { time: "14:30", placeId: 1496747 });
+  });
+
+  it("уточнён может быть один из двоих", () => {
+    const [a, b] = parsePairQuery({ t2: "1430" });
+    assert.deepEqual(a, { time: null, placeId: null });
+    assert.deepEqual(b, { time: "14:30", placeId: null });
+  });
+
+  it("собирается обратно тем же видом", () => {
+    assert.equal(
+      buildPairQuery({ time: "09:40", placeId: 524901 }, { time: "14:30", placeId: 1496747 }),
+      "?t1=0940&g1=524901&t2=1430&g2=1496747",
+    );
+    assert.equal(buildPairQuery({ time: null, placeId: null }, { time: "14:30", placeId: null }), "?t2=1430");
+    assert.equal(buildPairQuery({ time: null, placeId: null }, { time: null, placeId: null }), "");
+  });
+
+  it("мусор игнорируется", () => {
+    assert.deepEqual(parsePairQuery({ t1: "2599", g1: "0", t2: "abc", g2: "-5" }), [
+      { time: null, placeId: null },
+      { time: null, placeId: null },
+    ]);
   });
 });
 

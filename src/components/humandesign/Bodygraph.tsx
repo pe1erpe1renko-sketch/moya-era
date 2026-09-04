@@ -97,8 +97,14 @@ function layoutChannels(): DrawnChannel[] {
 
 const DRAWN = layoutChannels();
 
+/**
+ * Схеме нужны только ворота, центры и каналы — а не вся карта. Благодаря
+ * этому тот же бодиграф рисует и композит пары, где карты как таковой нет.
+ */
+export type BodygraphChart = Pick<HumanDesignChart, "gates" | "definedCenters" | "channels">;
+
 export type BodygraphProps = {
-  chart: HumanDesignChart | null;
+  chart: BodygraphChart | null;
   /** подсветить центр или канал */
   active?: string | null;
   onActivate?: (id: string | null) => void;

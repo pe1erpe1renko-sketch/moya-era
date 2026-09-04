@@ -7,17 +7,18 @@ import {
   type CalculatorApi,
   type ResultCtx,
 } from "@/components/direction/DirectionPage";
-import { DateSelects, type DateParts } from "@/components/direction/DateCalculator";
 import { FullReadingButton } from "@/components/direction/FullReadingButton";
-import { toIsoDate } from "@/lib/pendingBirth";
-import { arcana, centralArcanum, reduceTo22, isValidDate } from "@/lib/arcana";
+import { PairForm } from "@/components/pair/PairForm";
+import { arcana, centralArcanum, reduceTo22 } from "@/lib/arcana";
 const synastryAsset = "/images/synastry2.png";
 import { SYNASTRY_LINES } from "@/lib/directionLines";
 
 
 type SynastryResult = {
-  yourDate: { day: number; month: number; year: number };
-  partnerDate: { day: number; month: number; year: number };
+  /** YYYY-MM-DD обоих */
+  iso: [string, string];
+  /** уточнение времени и места в адресе: '?t1=0940&g1=524901' */
+  query: string;
   you: number;
   partner: number;
   sum: number;
@@ -25,6 +26,7 @@ type SynastryResult = {
 };
 
 const ABOUT_PARAGRAPHS = [
+  "Пару мы смотрим тремя способами сразу, по одним и тем же двум датам: совместимость по матрице судьбы, синастрия по натальным картам и композит по дизайну человека. Это три разных взгляда на одну связь, и они отвечают на разные вопросы.",
   "Совместимость по матрице считается не процентом, а третьим арканом. У каждого из двоих есть свой центральный аркан, а у пары появляется собственный: он складывается из обоих и описывает не людей, а то, что между ними происходит.",
   "Это важное отличие. Аркан пары не оценивает, подходите вы друг другу или нет. Он называет задачу, которая возникает именно в этом сочетании и не возникла бы ни с кем другим.",
   "Поэтому пар с плохой совместимостью в этом методе не бывает. Бывают пары, где задача лёгкая, и пары, где она требует работы — и вторые нередко оказываются прочнее.",
@@ -58,85 +60,36 @@ const FAQ = [
   },
   {
     q: "Нужно ли время рождения обоих",
-    a: "Для аркана пары — нет, хватит двух дат. Время понадобится, если захотите сравнить натальные карты: это уже другой расчёт.",
+    a: "Для матрицы — нет, хватит двух дат, она считается полностью. Синастрия и композит без времени неполны: без него не считаются асцендент, дома и часть связей. Мы покажем то, что можно посчитать, и прямо напишем, чего не хватает — а время и место можно добавить прямо в разборе, ничего не вводя заново.",
+  },
+  {
+    q: "Чем синастрия отличается от композита",
+    a: "Синастрия сравнивает две натальные карты: планета одного и планета другого, кто кого поддерживает и кто задевает. Композит из дизайна человека складывает двоих в одну схему и показывает каналы, которых нет ни у кого поодиночке. Первое про притяжение и трение, второе про то, чем вы становитесь вместе.",
   },
 ];
 
-const EMPTY: DateParts = { day: "", month: "", year: "" };
-
-const blockLabel = "text-text-secondary uppercase";
-const blockLabelStyle = { fontSize: 13, letterSpacing: "0.08em" } as const;
-
-function filled(d: DateParts) {
-  return (
-    d.day !== "" &&
-    d.month !== "" &&
-    d.year !== "" &&
-    isValidDate(Number(d.day), Number(d.month), Number(d.year))
-  );
-}
-
+/**
+ * Одна форма на три взгляда: две даты, у каждого по желанию время и место.
+ * Аркан пары считается тут же и показывается сразу, а кнопка ведёт на
+ * постоянный адрес, где живут все три взгляда.
+ */
 function SynastryCalculator({ stage, submit }: CalculatorApi<SynastryResult>) {
-  const [you, setYou] = useState<DateParts>(EMPTY);
-  const [partner, setPartner] = useState<DateParts>(EMPTY);
-
-  const ready = filled(you) && filled(partner);
-  const disabled = !ready || stage === "loading";
-
-  const handleSubmit = () => {
-    if (disabled) return;
-    const a = centralArcanum(Number(you.day), Number(you.month), Number(you.year));
-    const b = centralArcanum(
-      Number(partner.day),
-      Number(partner.month),
-      Number(partner.year),
-    );
-    const sum = a + b;
-    submit({
-      yourDate: { day: Number(you.day), month: Number(you.month), year: Number(you.year) },
-      partnerDate: { day: Number(partner.day), month: Number(partner.month), year: Number(partner.year) },
-      you: a,
-      partner: b,
-      sum,
-      pair: reduceTo22(sum),
-    });
-  };
-
   return (
-    <>
-      <div style={{ marginTop: 32 }}>
-        <p className={blockLabel} style={blockLabelStyle}>
-          Ты
-        </p>
-        <div style={{ marginTop: 10 }}>
-          <DateSelects idPrefix="syn-you" value={you} onChange={setYou} gap={10} />
-        </div>
-      </div>
-
-      <div style={{ marginTop: 20 }}>
-        <p className={blockLabel} style={blockLabelStyle}>
-          Партнёр
-        </p>
-        <div style={{ marginTop: 10 }}>
-          <DateSelects
-            idPrefix="syn-partner"
-            value={partner}
-            onChange={setPartner}
-            gap={10}
-          />
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={disabled}
-        className="qc-focus rounded-[12px] bg-accent text-[17px] font-medium text-primary-foreground transition-opacity"
-        style={{ marginTop: 24, height: 54, paddingInline: 40, opacity: disabled ? 0.4 : 1 }}
-      >
-        {stage === "loading" ? "Считаем" : stage === "result" ? "Пересчитать" : "Рассчитать"}
-      </button>
-    </>
+    <div style={{ marginTop: 32 }}>
+      <PairForm
+        submitLabel={stage === "loading" ? "Считаем" : stage === "result" ? "Пересчитать" : "Рассчитать"}
+        onSubmit={({ iso, query }) => {
+          const part = (d: string) => {
+            const [y, m, day] = d.split("-").map(Number);
+            return centralArcanum(day, m, y);
+          };
+          const a = part(iso[0]);
+          const b = part(iso[1]);
+          const sum = a + b;
+          submit({ iso, query, you: a, partner: b, sum, pair: reduceTo22(sum) });
+        }}
+      />
+    </div>
   );
 }
 
@@ -191,11 +144,9 @@ function SynastryResultContent({ result }: ResultCtx<SynastryResult>) {
       </p>
 
       <FullReadingButton
-        pending={{
-          date: toIsoDate(result.yourDate.day, result.yourDate.month, result.yourDate.year),
-          direction: "synastry",
-        }}
-        partnerDate={toIsoDate(result.partnerDate.day, result.partnerDate.month, result.partnerDate.year)}
+        pending={{ date: result.iso[0], direction: "synastry" }}
+        partnerDate={result.iso[1]}
+        query={result.query}
         label="Открыть разбор пары"
       />
     </>
@@ -312,23 +263,23 @@ export default function SovmestimostPage() {
       id="synastry"
       h1={<>Совместимость<br />по дате рождения</>}
       heroTextWidth="min(54%, 760px)"
-      heroDescription="Два расчёта и общий аркан пары. Бесплатно, без регистрации"
+      heroDescription="Три взгляда на одну пару: матрица, синастрия и композит. Бесплатно, без регистрации"
       heroImage={synastryAsset}
       heroImageAlt="Совместимость по дате рождения — аркан пары"
-      aboutTitle="Что показывает совместимость"
+      aboutTitle="Что показывает разбор пары"
       aboutParagraphs={ABOUT_PARAGRAPHS}
       resultLabel="Аркан вашей пары"
       linesTitle="Что входит в разбор"
-      linesSubtitle="Аркан пары — только начало. В полном разборе шесть линий"
+      linesSubtitle="Аркан пары — только начало. Дальше синастрия по натальным картам и композит по дизайну человека"
       lines={LINES}
       exampleTitle="Как выглядит разбор"
       exampleSubtitle="Фрагмент настоящего текста. Арканы 5 и 10, аркан пары 15"
       exampleParagraphs={SAMPLE_PARAGRAPHS}
-      exampleFooter="Полный разбор — шесть линий и связь с натальными картами обоих"
+      exampleFooter="Полный разбор — три взгляда на одну пару: матрица, синастрия и композит"
       faqTitle="Вопросы о совместимости"
       faq={FAQ}
       finalTitle="Посчитайте свою пару"
-      finalSubtitle="Аркан пары бесплатно, прямо сейчас"
+      finalSubtitle="Схема пары и главное о связи — бесплатно, по всем трём взглядам"
       otherTitle="Эти пять считают тебя иначе"
       otherSubtitle="Совместимость смотрит на двоих. Остальные пять описывают тебя одного и складываются с ней в один профиль"
       calculator={(api) => <SynastryCalculator {...api} />}

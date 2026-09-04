@@ -84,6 +84,31 @@ export function buildChartQuery(query: ChartQuery): string {
   return parts.length > 0 ? `?${parts.join("&")}` : "";
 }
 
+/**
+ * Уточнение для пары: у первого t1/g1, у второго t2/g2.
+ * /sovmestimost/13-07-1998/09-04-1992?t1=0940&g1=524901&t2=1430
+ */
+export function parsePairQuery(params: {
+  t1?: string | null;
+  g1?: string | null;
+  t2?: string | null;
+  g2?: string | null;
+}): [ChartQuery, ChartQuery] {
+  return [
+    parseChartQuery({ t: params.t1, g: params.g1 }),
+    parseChartQuery({ t: params.t2, g: params.g2 }),
+  ];
+}
+
+export function buildPairQuery(first: ChartQuery, second: ChartQuery): string {
+  const parts: string[] = [];
+  if (first.time) parts.push(`t1=${first.time.replace(":", "")}`);
+  if (first.placeId) parts.push(`g1=${first.placeId}`);
+  if (second.time) parts.push(`t2=${second.time.replace(":", "")}`);
+  if (second.placeId) parts.push(`g2=${second.placeId}`);
+  return parts.length > 0 ? `?${parts.join("&")}` : "";
+}
+
 /** Есть ли в запросе уточнение — от этого зависит noindex. */
 export function hasChartQuery(query: ChartQuery): boolean {
   return query.time !== null || query.placeId !== null;

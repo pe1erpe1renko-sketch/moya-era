@@ -15,13 +15,16 @@ import { CHART_SYSTEMS } from "@/lib/chartUrl";
  * Follow оставляем: по ссылкам с такой страницы ходить можно.
  */
 
-const CHART_PREFIXES = Object.values(CHART_SYSTEMS).map((s) => `/${s.slug}/`);
+const CHART_PREFIXES = [...Object.values(CHART_SYSTEMS).map((s) => `/${s.slug}/`), "/sovmestimost/"];
+
+/** Параметры уточнения: у карты одного человека t и g, у пары t1/g1 и t2/g2. */
+const REFINE_PARAMS = ["t", "g", "t1", "g1", "t2", "g2"];
 
 /** Уточнённый адрес карты — тот, у которого есть время или место. */
 function isRefinedChartUrl(request: NextRequest): boolean {
   const { pathname, searchParams } = request.nextUrl;
   if (!CHART_PREFIXES.some((p) => pathname.startsWith(p))) return false;
-  return searchParams.has("t") || searchParams.has("g");
+  return REFINE_PARAMS.some((p) => searchParams.has(p));
 }
 
 function withRobots(response: NextResponse, request: NextRequest): NextResponse {
