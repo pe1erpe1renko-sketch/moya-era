@@ -11,6 +11,7 @@ const hdAsset = "/images/humandesign2.png";
 import { HUMANDESIGN_LINES } from "@/lib/directionLines";
 import { BirthForm, type BirthValue } from "@/components/natal/BirthForm";
 import { Bodygraph } from "@/components/humandesign/Bodygraph";
+import { moscowClock } from "@/lib/geo/dayScan";
 import {
   HdReading,
   HdVariationNote,
@@ -334,6 +335,7 @@ function HdResultContent({ result, update }: ResultCtx<BirthValue>) {
           birth={result}
           facts={variation.facts}
           precision={chart.moment.precision}
+          moscowNoon={moscowClock(chart.moment.utc)}
           onRefine={update}
         />
       ) : (

@@ -3,11 +3,12 @@
 import { useEffect, useMemo } from "react";
 import { formatZodiac } from "@/lib/ephemeris";
 import { briefSlots, chartBody, natalDayVariation, natalTextKey } from "@/lib/natal";
+import { moscowClock } from "@/lib/geo/dayScan";
 import { BriefList, type BriefItem } from "@/components/chart/BriefList";
 import { useUrlBirth } from "@/components/chart/useUrlBirth";
 import { RefineBirth } from "@/components/common/RefineBirth";
 import { formatBirthDate } from "@/lib/pendingBirth";
-import { chartFromBirth, NatalReading, PreliminaryBadge } from "./NatalReading";
+import { chartFromBirth, NatalReading, PreliminaryBadge, whyApproximate } from "./NatalReading";
 import { NatalPositions, NatalWheel } from "./NatalWheel";
 import { useNatalTexts } from "./useNatalTexts";
 
@@ -178,10 +179,10 @@ function DateNote({
         <>
           <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.55 }}>
             {refined
-              ? "Место не выбрано из справочника, поэтому карта посчитана на полдень по всемирному времени."
-              : "Карта посчитана на полдень по всемирному времени: на этой странице известна только дата."}{" "}
-            Асцендент, середина неба и дома по одной дате не определяются — они меняются каждые два часа, для них нужны
-            час и место рождения
+              ? whyApproximate(chart.moment.precision, birth.time !== null, moscowClock(chart.moment.utc))
+              : `Карта посчитана на полдень по всемирному времени, это ${moscowClock(chart.moment.utc)} (мск): на этой странице известна только дата.`}{" "}
+            Асцендент, середина неба и дома по одной дате не определяются — они меняются каждые два часа,
+            {birth.place ? " для них нужен час рождения" : " для них нужны час и место рождения"}
           </p>
           {facts.length > 0 && (
             <>

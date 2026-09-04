@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo } from "react";
 import { CENTERS, hdBriefSlots, hdDayVariation } from "@/lib/humandesign";
+import { moscowClock } from "@/lib/geo/dayScan";
 import { BriefList, type BriefItem } from "@/components/chart/BriefList";
 import { useUrlBirth } from "@/components/chart/useUrlBirth";
 import { RefineBirth } from "@/components/common/RefineBirth";
 import { formatBirthDate } from "@/lib/pendingBirth";
 import { Bodygraph, CenterList } from "./Bodygraph";
-import { chartFromBirth, HdReading, PreliminaryBadge } from "./HdReading";
+import { chartFromBirth, HdReading, PreliminaryBadge, whyApproximate } from "./HdReading";
 import { useHdTexts } from "./useHdTexts";
 import type { DayVariation } from "@/components/natal/NatalDateView";
 
@@ -165,8 +166,8 @@ function DateNote({
         <>
           <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.55 }}>
             {refined
-              ? "Место не выбрано из справочника, поэтому бодиграф посчитан на полдень по всемирному времени."
-              : "Бодиграф посчитан на полдень по всемирному времени: на этой странице известна только дата."}{" "}
+              ? whyApproximate(chart.moment.precision, birth.time !== null, moscowClock(chart.moment.utc))
+              : `Бодиграф посчитан на полдень по всемирному времени, это ${moscowClock(chart.moment.utc)} (мск): на этой странице известна только дата.`}{" "}
             Луна проходит одни ворота примерно за десять часов, а одни ворота могут замкнуть канал — поэтому час
             рождения здесь важнее, чем в натальной карте
           </p>

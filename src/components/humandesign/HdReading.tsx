@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { buildHumanDesignChart, hdDayVariation, hdSections, type HumanDesignChart } from "@/lib/humandesign";
+import { moscowClock } from "@/lib/geo/dayScan";
 import { RefineBirth } from "@/components/common/RefineBirth";
 import { formatBirthDate } from "@/lib/pendingBirth";
 import { Paywall } from "@/components/reading/Paywall";
@@ -53,13 +54,21 @@ export function PreliminaryBadge() {
   );
 }
 
-/** Почему расчёт получился приблизительным — ровно по тому, чего не хватает. */
-function whyApproximate(precision: "exact" | "noon" | "date_only", hasTime: boolean): string {
+/**
+ * Почему расчёт получился приблизительным — ровно по тому, чего не хватает.
+ * Без места полдень называем и по московским часам: рядом стоит время
+ * перехода в них же, и читатель не должен складывать двое разных часов.
+ */
+export function whyApproximate(
+  precision: "exact" | "noon" | "date_only",
+  hasTime: boolean,
+  moscowNoon: string,
+): string {
   if (precision === "noon") return "Время рождения не указано, поэтому расчёт сделан на полдень по местному времени.";
   if (hasTime) {
-    return "Место не выбрано из справочника, поэтому перевести указанный час во всемирное время нельзя — расчёт сделан на полдень.";
+    return `Место не выбрано из справочника, поэтому перевести указанный час во всемирное время нельзя — расчёт сделан на полдень по всемирному времени, это ${moscowNoon} (мск).`;
   }
-  return "Ни время, ни место не указаны, поэтому расчёт сделан на полдень по всемирному времени.";
+  return `Ни время, ни место не указаны, поэтому расчёт сделан на полдень по всемирному времени, это ${moscowNoon} (мск).`;
 }
 
 /** Что именно меняется за сутки и кнопка уточнения — под результатом. */
@@ -67,17 +76,20 @@ export function HdVariationNote({
   birth,
   facts,
   precision,
+  moscowNoon,
   onRefine,
 }: {
   birth: BirthValue;
   facts: string[];
   precision: "exact" | "noon" | "date_only";
+  /** полдень расчёта в московских часах: «15:00» */
+  moscowNoon: string;
   onRefine: (next: BirthValue) => void;
 }) {
   return (
     <div className="mt-4 w-full max-w-full rounded-[14px] border border-border bg-surface-1" style={{ padding: "14px 18px" }}>
       <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.55 }}>
-        {whyApproximate(precision, birth.time !== null)} В этот день результат за сутки меняется:
+        {whyApproximate(precision, birth.time !== null, moscowNoon)} В этот день результат за сутки меняется:
       </p>
       <ul className="mt-2 flex flex-col" style={{ gap: 6 }}>
         {facts.map((f) => (
@@ -154,6 +166,7 @@ export function HdReading({
               birth={local}
               facts={variation.facts}
               precision={chart.moment.precision}
+              moscowNoon={moscowClock(chart.moment.utc)}
               onRefine={refine}
             />
           )}
@@ -313,7 +326,7 @@ function HdNotes({ chart }: { chart: HumanDesignChart }) {
 
   if (chart.moment.precision === "date_only") {
     notes.push(
-      "Место рождения не выбрано из справочника, поэтому карта построена на полдень по всемирному времени. Быстрые активации — Луна и оба узла — за сутки уходят на несколько ворот вперёд, а от них зависят каналы и тип. Это прикидка, а не ваш бодиграф.",
+      `Место рождения не выбрано из справочника, поэтому карта построена на полдень по всемирному времени — это ${moscowClock(chart.moment.utc)} (мск). Быстрые активации — Луна и оба узла — за сутки уходят на несколько ворот вперёд, а от них зависят каналы и тип. Это прикидка, а не ваш бодиграф.`,
     );
   } else if (chart.moment.precision === "noon") {
     notes.push(

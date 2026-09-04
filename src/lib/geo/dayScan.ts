@@ -13,9 +13,20 @@
  * же в любое время дня.
  */
 
+import { cityGenitive } from "./cityName";
 import { localToUtc, zoneOffsetSeconds } from "./localTime";
 
 const MINUTE = 60_000;
+
+/**
+ * Часы по умолчанию, когда место рождения неизвестно, — московские.
+ *
+ * Раньше здесь было всемирное время, и это подводило: аудитория
+ * русскоязычная, и «по всемирному времени» человек читает как своё
+ * местное, ошибаясь на три-десять часов. Москва — понятная всем точка
+ * отсчёта, и рядом с часами всегда стоит пометка «(мск)».
+ */
+export const DEFAULT_TZ = "Europe/Moscow";
 
 /** Шаг сетки: два часа. Меньше — дольше считать, больше — риск пропустить. */
 const STEP_MINUTES = 120;
@@ -38,22 +49,27 @@ export type DayScan<T> = {
 export type DayBounds = { start: Date; noon: Date; end: Date };
 
 /**
- * Границы суток рождения в UTC. Если пояс известен — местные сутки,
- * иначе всемирные.
+ * Границы суток рождения в UTC.
+ *
+ * Здесь встречаются двое часов, и путать их нельзя:
+ *  - start и end — сутки по тем часам, в которых мы называем время
+ *    перехода: по месту рождения, а без места — по Москве. Иначе переход
+ *    в 23:30 по всемирному времени назывался бы «02:30 (мск)», то есть
+ *    временем следующего дня;
+ *  - noon — момент, на который построен показанный разбор. Он совпадает с
+ *    `resolveBirthMoment`: местный полдень, если место известно, и полдень
+ *    по всемирному времени, если нет.
+ *
+ * Момент расчёта всегда лежит внутри суток: полдень по всемирному времени
+ * — это 15:00 или 16:00 по Москве, то есть середина московских суток.
  */
 export function dayBounds(date: string, tz: string | null): DayBounds {
-  if (tz) {
-    return {
-      start: localToUtc(date, "00:00", tz).utc,
-      noon: localToUtc(date, "12:00", tz).utc,
-      end: localToUtc(date, "23:59", tz).utc,
-    };
-  }
+  const clock = tz ?? DEFAULT_TZ;
   const [y, m, d] = date.split("-").map(Number);
   return {
-    start: new Date(Date.UTC(y, m - 1, d, 0, 0)),
-    noon: new Date(Date.UTC(y, m - 1, d, 12, 0)),
-    end: new Date(Date.UTC(y, m - 1, d, 23, 59)),
+    start: localToUtc(date, "00:00", clock).utc,
+    noon: tz ? localToUtc(date, "12:00", tz).utc : new Date(Date.UTC(y, m - 1, d, 12, 0)),
+    end: localToUtc(date, "23:59", clock).utc,
   };
 }
 
@@ -100,20 +116,30 @@ export function scanDay<T>(
   return { value, stable: changes.length === 0, changes };
 }
 
-/** Местное время момента в поясе: «14:20». Без пояса — время UTC. */
+/** Местное время момента в поясе: «14:20». Без пояса — московское. */
 export function formatLocalClock(utc: Date, tz: string | null): string {
-  const offsetSeconds = tz ? zoneOffsetSeconds(utc, tz) : 0;
+  const offsetSeconds = zoneOffsetSeconds(utc, tz ?? DEFAULT_TZ);
   const shifted = new Date(utc.getTime() + offsetSeconds * 1000);
   const p = (n: number) => String(n).padStart(2, "0");
   return `${p(shifted.getUTCHours())}:${p(shifted.getUTCMinutes())}`;
 }
 
 /**
- * Чьё это время — для фразы «после 14:20 …». С известным местом
- * называем город, без него честно говорим про всемирное время.
+ * Чьи это часы — для фразы «после 14:20 …». С известным местом называем
+ * город, без него — Москву. Пометка всегда в скобках и всегда есть:
+ * время без указания часов читатель примет за своё и ошибётся.
  */
 export function clockLabel(placeName: string | null): string {
-  if (!placeName) return "по всемирному времени";
+  if (!placeName) return "(мск)";
   const city = placeName.split(",")[0]?.trim();
-  return city ? `по времени в городе ${city}` : "по местному времени";
+  if (!city) return "(по местному времени)";
+  const genitive = cityGenitive(city);
+  // Где падеж не выводится наверняка — говорим «города Ростов-на-Дону»:
+  // казённее, зато без ошибки.
+  return genitive ? `(по времени ${genitive})` : `(по времени города ${city})`;
+}
+
+/** Момент в московских часах: «15:00». Для фразы «полдень по всемирному — это 15:00 (мск)». */
+export function moscowClock(utc: Date): string {
+  return formatLocalClock(utc, null);
 }

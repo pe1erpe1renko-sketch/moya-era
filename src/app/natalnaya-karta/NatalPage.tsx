@@ -19,6 +19,7 @@ import {
   useNatalVariation,
 } from "@/components/natal/NatalReading";
 import { NatalWheel } from "@/components/natal/NatalWheel";
+import { moscowClock } from "@/lib/geo/dayScan";
 
 const ABOUT_PARAGRAPHS = [
   "Натальная карта — это положение планет в момент рождения, рассчитанное для конкретной точки на Земле. Не символическая схема, а реальное небо: те же астрономические таблицы, по которым работают обсерватории.",
@@ -110,6 +111,7 @@ function NatalResultContent({ result, update }: ResultCtx<BirthValue>) {
           birth={result}
           facts={variation.facts}
           precision={chart.moment.precision}
+          moscowNoon={moscowClock(chart.moment.utc)}
           onRefine={update}
         />
       ) : (
