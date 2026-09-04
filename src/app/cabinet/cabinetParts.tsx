@@ -16,6 +16,9 @@ import { dayArcanum, todayIso } from "@/lib/dayCard";
 import { useAuth } from "@/lib/useAuth";
 import { referralLink } from "@/lib/referral";
 import { TarotFlipCard } from "@/components/tarot/TarotFlipCard";
+import { PlaceField } from "@/components/common/PlaceField";
+import { birthPlaceFields, hasResolvedPlace, placeFromFields } from "@/lib/geo/birthPlace";
+import type { Place } from "@/lib/geo/placesIndex";
 
 export type Profile = {
   id: string;
@@ -23,6 +26,10 @@ export type Profile = {
   birth_date: string | null;
   birth_time: string | null;
   birth_place: string | null;
+  birth_place_id: number | null;
+  birth_lat: number | null;
+  birth_lon: number | null;
+  birth_tz: string | null;
   referral_code: string | null;
 };
 
@@ -81,6 +88,7 @@ export function ProfileCard({
 }) {
   const [name, setName] = useState(profile?.name ?? "Мой профиль");
   const [place, setPlace] = useState(profile?.birth_place ?? "");
+  const [placeValue, setPlaceValue] = useState<Place | null>(profile ? placeFromFields(profile) : null);
   const parsed = parseDate(profile?.birth_date ?? null);
   const [date, setDate] = useState<DateParts>({
     day: parsed ? String(parsed.day) : "",
@@ -97,6 +105,7 @@ export function ProfileCard({
     if (!editing) return;
     setName(profile?.name ?? "Мой профиль");
     setPlace(profile?.birth_place ?? "");
+    setPlaceValue(profile ? placeFromFields(profile) : null);
     const p = parseDate(profile?.birth_date ?? null);
     setDate({
       day: p ? String(p.day) : "",
@@ -124,7 +133,7 @@ export function ProfileCard({
       name: name.trim() || "Мой профиль",
       birth_date: hasDate ? toIsoDate(d, m, y) : null,
       birth_time: hour !== "" && minute !== "" ? `${hour}:${minute}` : null,
-      birth_place: place.trim() || null,
+      ...birthPlaceFields(placeValue, place),
     };
     const { error: updateError } = await backend.profiles.update(profile.id, next);
     setBusy(false);
@@ -184,13 +193,14 @@ export function ProfileCard({
               ))}
             </select>
           </div>
-          <input
+          <PlaceField
+            value={placeValue}
+            text={place}
+            onChange={({ value, text }) => {
+              setPlaceValue(value);
+              setPlace(text);
+            }}
             className={inputClass}
-            value={place}
-            onChange={(e) => setPlace(e.target.value)}
-            placeholder="Место рождения"
-            aria-label="Место рождения"
-            maxLength={120}
           />
           {error && <p className="text-[13px]" style={{ color: "var(--text-danger)" }}>{error}</p>}
           <div className="mt-2 flex items-center gap-4">
@@ -233,6 +243,11 @@ export function ProfileCard({
             <Row label="Время" value={profile?.birth_time?.slice(0, 5) ?? null} />
             <Row label="Место" value={profile?.birth_place ?? null} />
           </div>
+          {profile?.birth_place && !hasResolvedPlace(profile) && (
+            <p className="mt-2 text-[13px] text-text-secondary">
+              Место записано словами, без координат. Выбери его из списка, чтобы посчитались дома и асцендент
+            </p>
+          )}
 
           <button
             type="button"

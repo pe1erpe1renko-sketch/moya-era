@@ -22,6 +22,10 @@ export async function ensureOwnerProfile(
       birth_date: pending?.date ?? null,
       birth_time: pending?.time ?? null,
       birth_place: pending?.place ?? null,
+      birth_place_id: pending?.placeId ?? null,
+      birth_lat: pending?.lat ?? null,
+      birth_lon: pending?.lon ?? null,
+      birth_tz: pending?.tz ?? null,
       referred_by: readPendingRef(),
     });
     if (insertError) return false;
@@ -42,6 +46,10 @@ export async function ensureOwnerProfile(
     birth_date: pending.date,
     birth_time: pending.time ?? null,
     birth_place: pending.place ?? null,
+    birth_place_id: pending.placeId ?? null,
+    birth_lat: pending.lat ?? null,
+    birth_lon: pending.lon ?? null,
+    birth_tz: pending.tz ?? null,
   });
 
   if (updateError) return false;

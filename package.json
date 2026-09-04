@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node src/lib/matrix/matrixEngine.test.js && node --import tsx --test \"src/lib/ephemeris/*.test.ts\"",
+    "test": "node src/lib/matrix/matrixEngine.test.js && node --import tsx --test \"src/lib/ephemeris/*.test.ts\" \"src/lib/geo/*.test.ts\"",
     "fill-texts": "node scripts/fill-texts.mjs",
     "llm-check": "node scripts/llm-check.mjs"
   },

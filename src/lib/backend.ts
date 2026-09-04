@@ -20,6 +20,11 @@ export type Profile = {
   birth_date: string | null; // YYYY-MM-DD
   birth_time: string | null; // HH:MM
   birth_place: string | null;
+  /** Место из справочника: id GeoNames, координаты, пояс IANA. null, если введено вручную. */
+  birth_place_id: number | null;
+  birth_lat: number | null;
+  birth_lon: number | null;
+  birth_tz: string | null;
   is_owner: boolean;
   referral_code: string | null;
   referred_by: string | null;
@@ -29,7 +34,9 @@ export type Profile = {
 export type ProfileInsert = Omit<Profile, "id" | "created_at" | "referral_code"> & {
   referral_code?: string | null;
 };
-export type ProfilePatch = Partial<Pick<Profile, "name" | "birth_date" | "birth_time" | "birth_place">>;
+export type ProfilePatch = Partial<
+  Pick<Profile, "name" | "birth_date" | "birth_time" | "birth_place" | "birth_place_id" | "birth_lat" | "birth_lon" | "birth_tz">
+>;
 
 export type Relation = "self" | "partner" | "child" | "mother" | "father" | "friend" | "colleague" | "other";
 
@@ -52,12 +59,18 @@ export type Person = {
   birth_date: string; // YYYY-MM-DD
   birth_time: string | null;
   birth_place: string | null;
+  birth_place_id: number | null;
+  birth_lat: number | null;
+  birth_lon: number | null;
+  birth_tz: string | null;
   sex: "м" | "ж" | null;
   created_at: string;
 };
 
 export type PersonInsert = Omit<Person, "id" | "created_at" | "user_id">;
-export type PersonPatch = Partial<Pick<Person, "name" | "relation" | "birth_date" | "birth_time" | "birth_place" | "sex">>;
+export type PersonPatch = Partial<
+  Pick<Person, "name" | "relation" | "birth_date" | "birth_time" | "birth_place" | "birth_place_id" | "birth_lat" | "birth_lon" | "birth_tz" | "sex">
+>;
 
 export type Plan = {
   id: string;

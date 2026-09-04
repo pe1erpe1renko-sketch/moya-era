@@ -112,6 +112,18 @@ export function Footer() {
             склонности и не являются предсказанием событий, медицинской, психологической,
             юридической или финансовой консультацией.
           </p>
+          <p className="mt-3 text-[12px] text-text-secondary opacity-50">
+            Справочник мест рождения:{" "}
+            <a
+              href="https://www.geonames.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-4 hover:underline"
+            >
+              GeoNames
+            </a>
+            , лицензия CC BY 4.0
+          </p>
           <p className="mt-3 text-[12px] text-text-secondary opacity-50">© 2026 Моя Эра</p>
         </div>
       </div>

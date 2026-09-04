@@ -8,6 +8,11 @@ export type PendingBirth = {
   /** HH:MM */
   time?: string;
   place?: string;
+  /** место из справочника, если выбрано: id GeoNames, координаты, пояс */
+  placeId?: number;
+  lat?: number;
+  lon?: number;
+  tz?: string;
   /** идентификатор направления, с которого пришёл человек */
   direction?: string;
 };

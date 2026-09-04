@@ -7,7 +7,10 @@ import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { directions } from "@/lib/directions";
 import { formatBirthDate, takeProfileSaveError } from "@/lib/pendingBirth";
-import { backend, RELATION_LABELS, type Person, type Plan, type Relation, type Subscription, type ReadingRow } from "@/lib/backend";
+import { backend, RELATION_LABELS, type Person, type PersonInsert, type Plan, type Relation, type Subscription, type ReadingRow } from "@/lib/backend";
+import { PlaceField } from "@/components/common/PlaceField";
+import { birthPlaceFields } from "@/lib/geo/birthPlace";
+import type { Place } from "@/lib/geo/placesIndex";
 import { useAuth } from "@/lib/useAuth";
 import { DEMO_MODE } from "@/lib/env";
 import { peopleLeft, isSubscriptionActive } from "@/lib/access";
@@ -61,6 +64,10 @@ export default function CabinetPage() {
         birth_date: p.birth_date,
         birth_time: p.birth_time,
         birth_place: p.birth_place,
+        birth_place_id: p.birth_place_id,
+        birth_lat: p.birth_lat,
+        birth_lon: p.birth_lon,
+        birth_tz: p.birth_tz,
         sex: null,
       });
       if (created.data) list = [created.data, ...list];
@@ -204,8 +211,21 @@ export default function CabinetPage() {
             onSaved={async (next) => {
               setProfile(next);
               setEditing(false);
-              if (self && next.birth_date && next.birth_date !== self.birth_date) {
-                await backend.people.update(self.id, { birth_date: next.birth_date, birth_time: next.birth_time, birth_place: next.birth_place });
+              const changed =
+                next.birth_date !== self?.birth_date ||
+                next.birth_time !== self?.birth_time ||
+                next.birth_place !== self?.birth_place ||
+                next.birth_place_id !== self?.birth_place_id;
+              if (self && next.birth_date && changed) {
+                await backend.people.update(self.id, {
+                  birth_date: next.birth_date,
+                  birth_time: next.birth_time,
+                  birth_place: next.birth_place,
+                  birth_place_id: next.birth_place_id,
+                  birth_lat: next.birth_lat,
+                  birth_lon: next.birth_lon,
+                  birth_tz: next.birth_tz,
+                });
               }
               await reload();
             }}
@@ -372,13 +392,17 @@ function PeopleBlock({
   planTitle: string | null;
   active: boolean;
   prefillDate: string | null;
-  onAdd: (row: { name: string; relation: Relation; birth_date: string; birth_time: null; birth_place: null; sex: null }) => Promise<string | null>;
+  onAdd: (row: PersonInsert) => Promise<string | null>;
   onRemove: (id: string) => Promise<void>;
 }) {
   const [adding, setAdding] = useState(Boolean(prefillDate));
   const [name, setName] = useState("");
   const [relation, setRelation] = useState<Relation>("partner");
   const [date, setDate] = useState<string | null>(prefillDate);
+  const [hour, setHour] = useState("");
+  const [minute, setMinute] = useState("");
+  const [place, setPlace] = useState("");
+  const [placeValue, setPlaceValue] = useState<Place | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const go = useGoToReading();
@@ -391,13 +415,24 @@ function PeopleBlock({
       return;
     }
     setBusy(true);
-    const err = await onAdd({ name: name.trim() || RELATION_LABELS[relation], relation, birth_date: date, birth_time: null, birth_place: null, sex: null });
+    const err = await onAdd({
+      name: name.trim() || RELATION_LABELS[relation],
+      relation,
+      birth_date: date,
+      birth_time: hour !== "" && minute !== "" ? `${hour}:${minute}` : null,
+      ...birthPlaceFields(placeValue, place),
+      sex: null,
+    });
     setBusy(false);
     if (err) setError(err);
     else {
       setAdding(false);
       setName("");
       setDate(null);
+      setHour("");
+      setMinute("");
+      setPlace("");
+      setPlaceValue(null);
       setError(null);
     }
   }
@@ -451,6 +486,37 @@ function PeopleBlock({
             ) : (
               <DateField label="Дата рождения" submitLabel="Выбрать" onSubmit={(iso) => setDate(iso)} />
             )}
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div>
+              <span className="mb-1.5 block text-[13px] text-text-secondary">Время рождения, если известно</span>
+              <div className="flex gap-3">
+                <select value={hour} onChange={(e) => setHour(e.target.value)} aria-label="Часы" className="qc-focus h-12 w-full appearance-none rounded-[12px] border border-border bg-surface-1 px-4 text-[16px] text-text-primary focus:border-text-accent">
+                  <option value="">Часы</option>
+                  {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                <select value={minute} onChange={(e) => setMinute(e.target.value)} aria-label="Минуты" className="qc-focus h-12 w-full appearance-none rounded-[12px] border border-border bg-surface-1 px-4 text-[16px] text-text-primary focus:border-text-accent">
+                  <option value="">Минуты</option>
+                  {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <span className="mb-1.5 block text-[13px] text-text-secondary">Место рождения</span>
+              <PlaceField
+                value={placeValue}
+                text={place}
+                onChange={({ value, text }) => {
+                  setPlaceValue(value);
+                  setPlace(text);
+                }}
+                className="qc-focus h-12 w-full rounded-[12px] border border-border bg-surface-1 px-4 text-[16px] text-text-primary focus:border-text-accent"
+              />
+            </div>
           </div>
           {error && <p className="mt-3 text-[14px] text-text-danger">{error}</p>}
           <button type="button" onClick={submit} disabled={busy || !date} className="mt-4 inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground disabled:opacity-40">
