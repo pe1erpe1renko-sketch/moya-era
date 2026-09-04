@@ -6,6 +6,7 @@ import { buildNatalRequest, isNatalCtx, NATAL_PROMPT_VERSION, type NatalCtx } fr
 import { buildHdRequest, isHdCtx, HD_PROMPT_VERSION, type HdCtx } from "@/lib/humandesign/prompts";
 import { buildPairRequest, isPairCtx, PAIR_PROMPT_VERSION, type PairCtx } from "@/lib/pair/prompts";
 import { buildNumRequest, isNumCtx, NUM_PROMPT_VERSION, type NumCtx } from "@/lib/numerology/prompts";
+import { buildTaroRequest, isTaroCtx, TARO_PROMPT_VERSION, type TaroCtx } from "@/lib/tarot/prompts";
 import { supabaseService } from "@/server/supabase";
 import { complete, LLM_ENABLED, MODEL_TEXTS } from "@/server/llm";
 
@@ -23,7 +24,7 @@ import { complete, LLM_ENABLED, MODEL_TEXTS } from "@/server/llm";
 export type TextSource = "cache" | "seed" | "generated" | "placeholder";
 export type TextResult = { key: string; text: string; source: TextSource; error?: string };
 
-export type SlotContext = (RequestCtx | NatalCtx | HdCtx | PairCtx | NumCtx) & {
+export type SlotContext = (RequestCtx | NatalCtx | HdCtx | PairCtx | NumCtx | TaroCtx) & {
   key: string;
   slotLabel?: string;
   sectionTitle?: string;
@@ -39,6 +40,7 @@ function requestFor(ctx: SlotContext) {
   if (isHdCtx(ctx)) return buildHdRequest(ctx);
   if (isPairCtx(ctx)) return buildPairRequest(ctx);
   if (isNumCtx(ctx)) return buildNumRequest(ctx);
+  if (isTaroCtx(ctx)) return buildTaroRequest(ctx);
   return buildRequest(ctx);
 }
 
@@ -47,6 +49,7 @@ function versionFor(ctx: SlotContext): number {
   if (isHdCtx(ctx)) return HD_PROMPT_VERSION;
   if (isPairCtx(ctx)) return PAIR_PROMPT_VERSION;
   if (isNumCtx(ctx)) return NUM_PROMPT_VERSION;
+  if (isTaroCtx(ctx)) return TARO_PROMPT_VERSION;
   return PROMPT_VERSION;
 }
 
@@ -99,8 +102,16 @@ async function generate(ctx: SlotContext): Promise<string> {
 }
 
 function placeholder(ctx: SlotContext): string {
-  if (isNatalCtx(ctx) || isHdCtx(ctx) || isPairCtx(ctx) || isNumCtx(ctx)) {
+  // Заглушка не должна врать про то, из чего считается разбор: у
+  // нумерологии никаких планет нет, у карты дня — тем более.
+  if (isNatalCtx(ctx) || isHdCtx(ctx) || isPairCtx(ctx)) {
     return `${ctx.slotLabel}\n\nЗдесь будет разбор этой позиции. Текст пишется по реальному положению планет в момент вашего рождения.`;
+  }
+  if (isNumCtx(ctx)) {
+    return `${ctx.slotLabel}\n\nЗдесь будет разбор этой позиции. Текст пишется по числам вашей даты рождения.`;
+  }
+  if (isTaroCtx(ctx)) {
+    return `${ctx.slotLabel}\n\nЗдесь будет разбор этой позиции. Текст пишется по аркану сегодняшнего дня и вашему аркану рождения.`;
   }
   return buildPlaceholder({
     slotLabel: ctx.slotLabel ?? "Разбор",

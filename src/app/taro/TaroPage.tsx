@@ -1,200 +1,137 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import {
   DirectionPage,
   type CalculatorApi,
 } from "@/components/direction/DirectionPage";
-import { TarotFlipCard } from "@/components/tarot/TarotFlipCard";
+import { DateCalculator } from "@/components/direction/DateCalculator";
+import { DayCardFace } from "@/components/tarot/DayCardFace";
 import { FullReadingButton } from "@/components/direction/FullReadingButton";
-import { arcana } from "@/lib/arcana";
+import { arcanumInfo, dayCardArcanum, moscowDay } from "@/lib/tarot";
+import { centralArcanum } from "@/lib/arcana";
+import { toIsoDate } from "@/lib/pendingBirth";
 const tarotAsset = "/images/tarot.png";
 import { TAROT_LINES } from "@/lib/directionLines";
 
+/**
+ * ВИТРИНА ТАРО — /taro
+ *
+ * Показывает карту дня по дате рождения и ведёт на постоянный адрес
+ * /taro/26-07-1990, где стоит разбор.
+ *
+ * Раньше здесь тянулась случайная карта на свободный вопрос. Живой
+ * расклад вернётся отдельным этапом, а карта дня со случайностью не
+ * уживается: если карта меняется от нажатия кнопки, обещание «у всех
+ * сегодня одна карта» перестаёт быть правдой в ту же секунду.
+ */
 
-type TarotResult = { n: number; question: string; drawKey: number };
+type TarotResult = { n: number; birthArcanum: number; date: { day: number; month: number; year: number } };
 
 const ABOUT_PARAGRAPHS = [
   "В колоде 78 карт: 22 старших аркана описывают крупные состояния и повороты, 56 младших — повседневные обстоятельства. В карте дня участвуют старшие: они говорят не о деталях, а о том, что сейчас главное.",
-  "Расклад не отвечает на вопрос «что будет». Он даёт формулировку: карта называет то, что уже происходит, но чего ты пока не проговорил словами.",
-  "Поэтому важнее не выпавшая карта, а вопрос. Чем точнее он задан, тем полезнее ответ — половина работы делается до того, как карта перевёрнута.",
-  "Карта выбирается случайно. Мы не подстраиваем результат под вопрос и не показываем «хорошие» карты чаще остальных.",
+  "Карта дня не отвечает на вопрос «что будет». Она даёт формулировку: называет то, что уже происходит, но чего вы пока не проговорили словами.",
+  "Карта выводится из даты рождения и сегодняшнего дня — не случайно. У всех, кто родился в один день, карта сегодня одна и та же, и обновление страницы её не меняет.",
+  "День считается по московскому времени: карта меняется у всех в один момент, в полночь по Москве. Иначе двое в разных поясах спорили бы, у кого сегодня какая карта.",
 ];
 
 const LINES = TAROT_LINES;
 
 const SAMPLE_PARAGRAPHS = [
-  "Девятый аркан в ответе на вопрос о работе почти всегда говорит одно: решение не придёт в разговоре. Тебе нужно время наедине с задачей, и попытки ускорить это обсуждением с коллегами дадут обратный эффект — чем больше мнений, тем дальше от собственного ответа.",
-  "Это не про изоляцию. Отшельник не уходит от людей, он уходит от шума. В рабочем контексте это чаще всего означает несколько дней без встреч, а не смену команды или увольнение.",
-  "Обрати внимание на то, как быстро ты задал этот вопрос. Карта девятого аркана выпадает тем, кто уже знает ответ, но ищет подтверждения снаружи. Если это так, настоящий вопрос звучит иначе, и он про то,",
+  "Девятый аркан на фоне тринадцатого работает необычно. Отшельник просит тишины, а ваш аркан рождения умеет заканчивать — и сегодня это сходится в одну задачу: побыть наедине не с вопросом, а с уже принятым решением, которое вы ещё не назвали вслух.",
+  "На деле такой день выглядит буднично. Меньше разговоров, чем обычно, и раздражение от чужих советов сильнее привычного. Это не признак усталости: чем больше мнений вы соберёте сегодня, тем дальше уйдёте от собственного ответа.",
+  "Обратная сторона у этого дня одна, и она не про одиночество. Тишину легко перепутать с откладыванием, и тогда день уходит на",
 ];
 
 const FAQ = [
   {
-    q: "Как выбирается карта",
-    a: "Случайно, из 22 старших арканов, с равной вероятностью для каждой. Результат не зависит от вопроса, времени суток и того, платный у тебя тариф или нет.",
+    q: "Как выбирается карта дня",
+    a: "Из даты рождения и сегодняшней даты, арифметически. Ничего случайного: одна и та же дата рождения в один и тот же день всегда даёт один и тот же аркан. Обновление страницы карту не меняет, и от тарифа она не зависит.",
   },
   {
-    q: "Можно ли тянуть карту несколько раз подряд",
-    a: "Технически да, но смысла мало. Если тянуть до тех пор, пока не выпадет приятное, ответом будет не карта, а твоё нежелание слышать первый вариант.",
+    q: "Когда меняется карта",
+    a: "В полночь по московскому времени, у всех одновременно. Так сделано нарочно: если бы день считался по местным часам, двое в разных поясах в один и тот же момент видели бы разные карты.",
   },
   {
-    q: "Что делать, если карта не подходит к вопросу",
-    a: "Это частая ситуация, и обычно она значит, что вопрос задан не о том. Попробуй переформулировать: вместо «что будет с работой» — «что мешает мне решиться».",
+    q: "Можно ли вытянуть другую карту, если эта не нравится",
+    a: "Нет, и это главное отличие карты дня от расклада. Если тянуть до тех пор, пока не выпадет приятное, ответом будет не карта, а нежелание слышать первый вариант.",
   },
   {
-    q: "Таро предсказывает будущее",
-    a: "Нет. Карта описывает состояние и даёт формулировку тому, что уже происходит. Что с этим делать, остаётся за тобой.",
+    q: "Почему тринадцатый аркан называется Перерождение",
+    a: "Так он называется у нас во всех разборах — как и пятнадцатый Искушение и шестнадцатый Обновление. С привычными книжными названиями человек читает не текст, а свой испуг, и до разбора не доходит. Смысл арканов при этом не меняется: тяжёлые остаются тяжёлыми, мы просто не пугаем заголовком.",
   },
   {
-    q: "Чем Таро отличается от матрицы судьбы",
-    a: "Матрица считается из даты рождения и не меняется всю жизнь — это устройство. Таро отвечает на конкретный вопрос сейчас — это состояние. В полном разборе они сопоставляются друг с другом.",
+    q: "Чем карта дня отличается от матрицы судьбы",
+    a: "Матрица считается из даты рождения и не меняется всю жизнь — это устройство. Карта дня меняется каждый день — это состояние. В полном разборе они сопоставляются: один и тот же аркан дня ложится по-разному на разные арканы рождения.",
   },
 ];
 
 function TarotCalculator({ stage, submit }: CalculatorApi<TarotResult>) {
-  const [question, setQuestion] = useState("");
-
-  const handleSubmit = () => {
-    const n = arcana[Math.floor(Math.random() * arcana.length)]!.n;
-    submit({ n, question: question.trim(), drawKey: Date.now() });
-  };
-
   return (
-    <>
-      <div style={{ marginTop: 32 }}>
-        <label className="sr-only" htmlFor="taro-question">
-          Твой вопрос
-        </label>
-        <input
-          id="taro-question"
-          type="text"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Например: что мешает мне решиться"
-          className="qc-focus w-full text-[17px] text-text-primary transition-colors placeholder:text-text-secondary focus:border-text-accent"
-          style={{
-            height: 56,
-            background: "var(--surface-1)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            paddingInline: 16,
-          }}
-        />
-      </div>
-
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={stage === "loading"}
-        className="qc-focus rounded-[12px] bg-accent text-[17px] font-medium text-primary-foreground transition-opacity"
-        style={{
-          marginTop: 20,
-          height: 54,
-          paddingInline: 40,
-          opacity: stage === "loading" ? 0.4 : 1,
-        }}
-      >
-        {stage === "loading"
-          ? "Тяну карту"
-          : stage === "result"
-            ? "Вытянуть другую"
-            : "Вытянуть карту"}
-      </button>
-    </>
+    <DateCalculator
+      idPrefix="taro"
+      stage={stage}
+      onSubmit={(date) => {
+        const iso = toIsoDate(date.day, date.month, date.year);
+        submit({
+          n: dayCardArcanum(iso, moscowDay()),
+          birthArcanum: centralArcanum(date.day, date.month, date.year),
+          date,
+        });
+      }}
+    />
   );
 }
 
 export default function TaroPage() {
-  const [flipped, setFlipped] = useState(false);
-  const handleFlip = useCallback((value: boolean) => setFlipped(value), []);
-
   return (
     <DirectionPage<TarotResult>
       id="tarot"
-      h1="Расклад Таро онлайн"
-      heroDescription="Задай вопрос и вытяни карту. Бесплатно, без регистрации, с трактовкой"
+      h1="Карта дня по дате рождения"
+      heroDescription="Один аркан на сегодня. Бесплатно, без регистрации, с трактовкой"
       heroImage={tarotAsset}
-      heroImageAlt="Расклад Таро онлайн — карта дня"
-      aboutTitle="Что даёт расклад"
+      heroImageAlt="Карта дня по дате рождения"
+      aboutTitle="Что даёт карта дня"
       aboutParagraphs={ABOUT_PARAGRAPHS}
-      resultLabel="ТВОЯ КАРТА"
+      resultLabel="ВАША КАРТА НА СЕГОДНЯ"
       linesTitle="Что входит в разбор"
-      linesSubtitle="Расклады, история вопросов и связь с остальными системами"
+      linesSubtitle="Расклады, история карт и связь с остальными системами"
       lines={LINES}
       exampleTitle="Как выглядит трактовка"
-      exampleSubtitle="Фрагмент настоящего текста. Вопрос про работу, выпал аркан 9"
+      exampleSubtitle="Фрагмент настоящего текста. Аркан дня 9 на аркане рождения 13"
       exampleParagraphs={SAMPLE_PARAGRAPHS}
-      exampleFooter="Полный расклад — три карты и связь с твоей матрицей"
-      faqTitle="Вопросы о Таро"
+      exampleFooter="Полный разбор — эта карта на фоне вашей карты рождения"
+      faqTitle="Вопросы о карте дня"
       faq={FAQ}
       otherTitle="Эти пять считают тебя иначе"
-      otherSubtitle="Таро говорит про сейчас. Остальные пять описывают устройство и складываются с ним в один профиль"
-      finalTitle="Вытяни свою карту"
-      finalSubtitle="Один аркан бесплатно, прямо сейчас"
+      otherSubtitle="Карта дня говорит про сегодня. Остальные пять описывают устройство и складываются с ним в один профиль"
+      finalTitle="Узнайте свою карту на сегодня"
+      finalSubtitle="Одна карта бесплатно, прямо сейчас"
       calculator={(api) => <TarotCalculator {...api} />}
-      resultVisual={({ result }) => {
-        const card = arcana.find((x) => x.n === result.n);
-        return (
-          <TarotFlipCard
-            n={result.n}
-            name={card?.name ?? ""}
-            drawKey={result.drawKey}
-            onFlip={handleFlip}
-          />
-        );
-      }}
+      resultVisual={({ result }) => <DayCardFace n={result.n} name={arcanumInfo(result.n).name} />}
       resultContent={({ result }) => {
-        const card = arcana.find((x) => x.n === result.n);
-        if (!flipped) {
-          return (
-            <div data-taro-pre="true">
-              <h2
-                className="font-display text-text-primary"
-                style={{ fontSize: "clamp(28px, 2.6vw, 46px)", lineHeight: 1.1 }}
-              >
-                Что даёт расклад
-              </h2>
-              <div
-                className="flex flex-col text-text-secondary"
-                style={{
-                  marginTop: 24,
-                  gap: 16,
-                  fontSize: "clamp(15px, 1.15vw, 19px)",
-                  lineHeight: 1.65,
-                }}
-              >
-                {ABOUT_PARAGRAPHS.map((p) => (
-                  <p key={p}>{p}</p>
-                ))}
-              </div>
-            </div>
-          );
-        }
-
-        const text = card?.draw ?? "";
-
+        const info = arcanumInfo(result.n);
+        const birth = arcanumInfo(result.birthArcanum);
         return (
           <>
             <h2
               className="font-display text-text-primary"
               style={{ marginTop: 8, fontSize: "clamp(28px, 2.6vw, 46px)", lineHeight: 1.1 }}
             >
-              {card?.n} · {card?.name}
+              {result.n} · {info.name}
             </h2>
 
-            {result.question && (
-              <p className="text-text-secondary" style={{ marginTop: 10, fontSize: 14 }}>
-                Вопрос: {result.question}
-              </p>
-            )}
+            <p className="text-text-secondary" style={{ marginTop: 10, fontSize: 14 }}>
+              Ваш аркан рождения — {result.birthArcanum}, {birth.name}
+            </p>
 
             <div className="relative overflow-hidden" style={{ marginTop: 20, height: 240 }}>
               <p
                 className="text-text-primary"
                 style={{ fontSize: "clamp(16px, 1.25vw, 21px)", lineHeight: 1.7 }}
               >
-                {text}
+                {info.line}. Один и тот же аркан дня ложится по-разному на разных людей: он попадает либо в то, что вам
+                и так даётся, либо в то, чего у вас мало. Поэтому разбор считается по двум числам сразу — аркану дня и
+                аркану рождения, и
               </p>
               <div
                 aria-hidden="true"
@@ -213,7 +150,12 @@ export default function TaroPage() {
               Дальше — в полном разборе
             </p>
 
-            <FullReadingButton />
+            <FullReadingButton
+              pending={{
+                date: toIsoDate(result.date.day, result.date.month, result.date.year),
+                direction: "tarot",
+              }}
+            />
           </>
         );
       }}

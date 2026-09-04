@@ -8,13 +8,14 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node src/lib/matrix/matrixEngine.test.js && node --import tsx --test \"src/lib/*.test.ts\" \"src/lib/ephemeris/*.test.ts\" \"src/lib/geo/*.test.ts\" \"src/lib/natal/*.test.ts\" \"src/lib/pair/*.test.ts\" \"src/lib/numerology/*.test.ts\" \"src/lib/humandesign/*.test.ts\"",
+    "test": "node src/lib/matrix/matrixEngine.test.js && node --import tsx --test \"src/lib/*.test.ts\" \"src/lib/ephemeris/*.test.ts\" \"src/lib/geo/*.test.ts\" \"src/lib/natal/*.test.ts\" \"src/lib/pair/*.test.ts\" \"src/lib/numerology/*.test.ts\" \"src/lib/tarot/*.test.ts\" \"src/lib/humandesign/*.test.ts\"",
     "fill-texts": "node scripts/fill-texts.mjs",
     "llm-check": "node scripts/llm-check.mjs",
     "fill-natal-texts": "node --import tsx scripts/fill-natal-texts.mjs",
     "fill-hd-texts": "node --import tsx scripts/fill-hd-texts.mjs",
     "fill-pair-texts": "node --import tsx scripts/fill-pair-texts.mjs",
-    "fill-numerology-texts": "node --import tsx scripts/fill-numerology-texts.mjs"
+    "fill-numerology-texts": "node --import tsx scripts/fill-numerology-texts.mjs",
+    "fill-tarot-texts": "node --import tsx scripts/fill-tarot-texts.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",

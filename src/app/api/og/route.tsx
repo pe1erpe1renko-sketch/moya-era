@@ -6,6 +6,7 @@ import { resolveNatalChart } from "@/server/natalTexts";
 import { resolveHdChart } from "@/server/hdTexts";
 import { resolveNumerology } from "@/server/numerologyTexts";
 import { lifePath } from "@/lib/numerology";
+import { arcanumInfo, buildDayCard } from "@/lib/tarot";
 
 export const runtime = "nodejs";
 const size = { width: 1200, height: 630 };
@@ -76,12 +77,68 @@ function chartImage(system: ChartSystem, slug: string) {
   );
 }
 
+/**
+ * Превью карты дня: /api/og?taro=26-07-1990
+ *
+ * Картинка живёт сутки, как и сама карта: адрес у неё постоянный, а
+ * содержимое меняется, поэтому кэш здесь короче, чем у остальных
+ * превью, — иначе в мессенджере висел бы вчерашний аркан.
+ */
+function taroImage(slug: string) {
+  const iso = chartUrlDateToIso(slug);
+  if (!iso) return null;
+  const card = buildDayCard(iso);
+  if (!card) return null;
+  const info = arcanumInfo(card.arcanum);
+  const birth = arcanumInfo(card.birthArcanum);
+  return new ImageResponse(
+    (
+      <div style={frame}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 30, letterSpacing: 4 }}>МОЯ ЭРА</div>
+          <div style={{ fontSize: 26, color: "#9fbab9", fontFamily: "sans-serif" }}>
+            Карта дня · {formatDateDots(iso)}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
+          <div
+            style={{
+              width: 180,
+              height: 260,
+              borderRadius: 14,
+              border: "2px solid #9fbab9",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 96,
+            }}
+          >
+            {card.arcanum}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
+            <div style={{ fontSize: 56, lineHeight: 1.1 }}>{info.name}</div>
+            <div style={{ fontSize: 28, color: "#9fbab9", fontFamily: "sans-serif" }}>
+              {info.line}. Ваш аркан рождения — {card.birthArcanum}, {birth.name}
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    { ...size, headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" } },
+  );
+}
+
 /** GET /api/og?type=matrica&dates=13-07-1998[,09-04-1992] — картинка для превью ссылки. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const chart = url.searchParams.get("chart");
   if (chart === "natal" || chart === "humandesign" || chart === "numerology") {
     const image = chartImage(chart, url.searchParams.get("date") ?? "");
+    if (image) return image;
+  }
+  const taro = url.searchParams.get("taro");
+  if (taro) {
+    const image = taroImage(taro);
     if (image) return image;
   }
   const slug = url.searchParams.get("type") ?? "";

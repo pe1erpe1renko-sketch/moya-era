@@ -1,6 +1,16 @@
-/** Детерминированный выбор карты дня: id пользователя + дата (1..22). */
-export function dayArcanum(userId: string, isoDay: string): number {
-  const seed = `${userId}:${isoDay}`;
+/**
+ * ВЫБОР КАРТЫ ДНЯ — общий на весь сайт.
+ *
+ * Перемешивает две строки в число от 1 до 22. Ни случайности, ни
+ * хранения: одна и та же пара строк всегда даёт один и тот же аркан, и
+ * страница, кабинет и будущая рассылка бота показывают одну карту.
+ *
+ * Что подставлять первой строкой, решает вызывающий: страница карты дня
+ * и кабинет берут дату рождения — тогда у человека одна карта, где бы он
+ * её ни открыл.
+ */
+export function dayArcanum(subject: string, isoDay: string): number {
+  const seed = `${subject}:${isoDay}`;
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
     h ^= seed.charCodeAt(i);
@@ -9,6 +19,13 @@ export function dayArcanum(userId: string, isoDay: string): number {
   return (Math.abs(h) % 22) + 1;
 }
 
+/**
+ * Сегодняшняя дата по часам того, кто спрашивает.
+ *
+ * Для карты дня НЕ ГОДИТСЯ: карта должна меняться у всех в один момент,
+ * а эти часы у сервера свои, у читателя из Владивостока свои. Там, где
+ * речь о карте дня, берите `moscowDay` из `lib/tarot/day`.
+ */
 export function todayIso(): string {
   const now = new Date();
   const p = (n: number) => String(n).padStart(2, "0");

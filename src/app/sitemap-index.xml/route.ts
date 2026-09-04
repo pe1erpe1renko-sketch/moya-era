@@ -16,9 +16,12 @@ import { SITE_URL } from "@/lib/env";
 export const runtime = "nodejs";
 export const revalidate = 86400;
 
-function chartSitemaps(system: ChartSystem): string[] {
-  const slug = CHART_SYSTEMS[system].slug;
+function sitemapsUnder(slug: string): string[] {
   return Array.from({ length: chartSitemapCount() }, (_, i) => `${SITE_URL}/${slug}/sitemap/${i}.xml`);
+}
+
+function chartSitemaps(system: ChartSystem): string[] {
+  return sitemapsUnder(CHART_SYSTEMS[system].slug);
 }
 
 export function GET() {
@@ -27,6 +30,9 @@ export function GET() {
     ...chartSitemaps("natal"),
     ...chartSitemaps("humandesign"),
     ...chartSitemaps("numerology"),
+    // Карта дня живёт по своему адресу и в CHART_SYSTEMS не входит:
+    // те три системы описывают неизменное устройство, а эта — сегодня.
+    ...sitemapsUnder("taro"),
   ];
   const now = new Date().toISOString();
   const body = `<?xml version="1.0" encoding="UTF-8"?>

@@ -11,7 +11,7 @@ import { directionLines } from "@/lib/directionLines";
 import { arcana, centralArcanum } from "@/lib/arcana";
 import { lifePath, lifePathNumber } from "@/lib/numerology";
 import { sunSign } from "@/lib/natal";
-import { dayArcanum, todayIso } from "@/lib/dayCard";
+import { dayCardArcanum, moscowDay } from "@/lib/tarot";
 import { backend } from "@/lib/backend";
 import { useAuth } from "@/lib/useAuth";
 import { NatalReading } from "@/components/natal/NatalReading";
@@ -42,10 +42,12 @@ type Head =
   | { kind: "value"; number: string | null; name: string }
   | { kind: "note"; note: string };
 
+const pad = (n: number) => String(n).padStart(2, "0");
+const birthIso = (b: { day: number; month: number; year: number }) => `${b.year}-${pad(b.month)}-${pad(b.day)}`;
+
 function buildReading(
   id: Direction["id"],
   birth: { day: number; month: number; year: number },
-  userId: string,
 ): { head: Head; openText: string | null } {
   if (id === "matrix") {
     const n = centralArcanum(birth.day, birth.month, birth.year);
@@ -69,7 +71,10 @@ function buildReading(
     return { head: { kind: "value", number: null, name: sign.name }, openText: null };
   }
   if (id === "tarot") {
-    const n = dayArcanum(userId, todayIso());
+    // Та же карта, что на /taro/26-07-1990: та же дата рождения, те же
+    // московские сутки. Иначе человек видел бы в кабинете одну карту, а
+    // на странице другую и справедливо решил бы, что мы гадаем наугад.
+    const n = dayCardArcanum(birthIso(birth), moscowDay());
     const card = arcana.find((a) => a.n === n);
     return {
       head: { kind: "value", number: String(n), name: card?.name ?? "" },
@@ -150,7 +155,7 @@ export default function ReadingPage() {
   const hdBirth = direction.id === "humandesign" ? chartBirth : null;
 
   const reading = useMemo(
-    () => (birth ? buildReading(direction.id, birth, user?.id ?? "") : null),
+    () => (birth ? buildReading(direction.id, birth) : null),
     [direction.id, birth?.day, birth?.month, birth?.year, user?.id],
   );
 

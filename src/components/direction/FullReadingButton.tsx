@@ -72,6 +72,16 @@ export function FullReadingButton({
       go(`${readingPath("sovmestimost", [pending.date, partnerDate])}${query}`);
       return;
     }
+    // У карты дня адрес свой: он не по системе из CHART_SYSTEMS, а по
+    // дате рождения — /taro/26-07-1990.
+    if (pending?.date && dir === "tarot") {
+      const iso = chartUrlDateToIso(isoToChartUrlDate(pending.date));
+      if (iso) {
+        track("calc_submit", { direction: "tarot" });
+        go(`/taro/${isoToChartUrlDate(iso)}`);
+        return;
+      }
+    }
     // У нумерологии, натальной карты и дизайна человека есть свои
     // постоянные адреса: ведём туда, а не через регистрацию.
     const system = DIRECTION_SYSTEM[dir ?? ""];
