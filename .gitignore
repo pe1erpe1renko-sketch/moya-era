@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# файлы для ИИ-агентов, которые next dev создаёт сам
+/AGENTS.md
+/CLAUDE.md

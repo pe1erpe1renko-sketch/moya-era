@@ -2,6 +2,7 @@ import "server-only";
 
 import { SEED_TEXTS, buildPlaceholder } from "@/lib/matrix/seedTexts";
 import { buildRequest, PROMPT_VERSION, type RequestCtx } from "@/lib/matrix/prompts";
+import { buildNatalRequest, isNatalCtx, NATAL_PROMPT_VERSION, type NatalCtx } from "@/lib/natal/prompts";
 import { supabaseService } from "@/server/supabase";
 import { complete, LLM_ENABLED, MODEL_TEXTS } from "@/server/llm";
 
@@ -19,32 +20,45 @@ import { complete, LLM_ENABLED, MODEL_TEXTS } from "@/server/llm";
 export type TextSource = "cache" | "seed" | "generated" | "placeholder";
 export type TextResult = { key: string; text: string; source: TextSource; error?: string };
 
-export type SlotContext = RequestCtx & {
+export type SlotContext = (RequestCtx | NatalCtx) & {
   key: string;
   slotLabel?: string;
   sectionTitle?: string;
   arcana?: number;
 };
 
+/**
+ * У матрицы и у натальной карты свои промпты и свои версии: правка одних
+ * не должна перегенерировать другие.
+ */
+function requestFor(ctx: SlotContext) {
+  return isNatalCtx(ctx) ? buildNatalRequest(ctx) : buildRequest(ctx);
+}
+
+function versionFor(ctx: SlotContext): number {
+  return isNatalCtx(ctx) ? NATAL_PROMPT_VERSION : PROMPT_VERSION;
+}
+
 /* ─── хранилище ─────────────────────────────────────────────────── */
 
 type Row = { key: string; body: string; version: number };
 
-async function readMany(keys: string[]): Promise<Map<string, string>> {
+async function readMany(ctxs: SlotContext[]): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   const sb = supabaseService();
-  if (!sb || keys.length === 0) return out;
-  const { data } = await sb.from("matrix_texts").select("key, body, version").in("key", keys);
+  if (!sb || ctxs.length === 0) return out;
+  const wanted = new Map(ctxs.map((c) => [c.key, versionFor(c)]));
+  const { data } = await sb.from("matrix_texts").select("key, body, version").in("key", [...wanted.keys()]);
   for (const row of (data as Row[] | null) ?? []) {
-    if (row.version === PROMPT_VERSION) out.set(row.key, row.body);
+    if (row.version === wanted.get(row.key)) out.set(row.key, row.body);
   }
   return out;
 }
 
-async function writeOne(key: string, body: string, model: string): Promise<void> {
+async function writeOne(key: string, body: string, model: string, version: number): Promise<void> {
   const sb = supabaseService();
   if (!sb) return;
-  await sb.from("matrix_texts").upsert({ key, body, version: PROMPT_VERSION, model, source: "generated" });
+  await sb.from("matrix_texts").upsert({ key, body, version, model, source: "generated" });
 }
 
 /* ─── генерация с блокировкой ───────────────────────────────────── */
@@ -60,7 +74,7 @@ function withLock(key: string, task: () => Promise<string>): Promise<string> {
 }
 
 async function generate(ctx: SlotContext): Promise<string> {
-  const req = buildRequest(ctx);
+  const req = requestFor(ctx);
   const user = req.user ?? "";
   const out = await complete({
     model: MODEL_TEXTS,
@@ -69,11 +83,14 @@ async function generate(ctx: SlotContext): Promise<string> {
     maxTokens: req.maxTokens,
     temperature: req.temperature,
   });
-  await writeOne(ctx.key, out.text, out.model);
+  await writeOne(ctx.key, out.text, out.model, req.version);
   return out.text;
 }
 
 function placeholder(ctx: SlotContext): string {
+  if (isNatalCtx(ctx)) {
+    return `${ctx.slotLabel}\n\nЗдесь будет разбор этой позиции вашей карты. Текст пишется по реальному положению планет в момент вашего рождения.`;
+  }
   return buildPlaceholder({
     slotLabel: ctx.slotLabel ?? "Разбор",
     arcana: ctx.arcana ?? 0,
@@ -93,7 +110,7 @@ export async function getText(ctx: SlotContext, { allowGenerate = true } = {}): 
  * для тех, кого нет ни в кэше, ни в эталонах.
  */
 export async function getTexts(ctxs: SlotContext[], { allowGenerate = true } = {}): Promise<TextResult[]> {
-  const cached = await readMany(ctxs.map((c) => c.key));
+  const cached = await readMany(ctxs);
 
   return Promise.all(
     ctxs.map(async (ctx): Promise<TextResult> => {

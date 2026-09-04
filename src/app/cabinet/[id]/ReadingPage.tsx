@@ -14,6 +14,8 @@ import { sunSign } from "@/lib/natal";
 import { dayArcanum, todayIso } from "@/lib/dayCard";
 import { backend } from "@/lib/backend";
 import { useAuth } from "@/lib/useAuth";
+import { NatalReading } from "@/components/natal/NatalReading";
+import { placeFromFields } from "@/lib/geo/birthPlace";
 
 
 type Profile = {
@@ -22,6 +24,10 @@ type Profile = {
   birth_date: string | null;
   birth_time: string | null;
   birth_place: string | null;
+  birth_place_id: number | null;
+  birth_lat: number | null;
+  birth_lon: number | null;
+  birth_tz: string | null;
 };
 
 function parseDate(iso: string | null) {
@@ -57,11 +63,9 @@ function buildReading(
     };
   }
   if (id === "natal") {
+    // Натальная карта считается по-настоящему и рисуется отдельным блоком.
     const { sign } = sunSign(birth.day, birth.month);
-    return {
-      head: { kind: "value", number: null, name: sign.name },
-      openText: sign.detail ?? null,
-    };
+    return { head: { kind: "value", number: null, name: sign.name }, openText: null };
   }
   if (id === "tarot") {
     const n = dayArcanum(userId, todayIso());
@@ -132,6 +136,15 @@ export default function ReadingPage() {
   }, [user]);
 
   const birth = parseDate(profile?.birth_date ?? null);
+  const natalBirth =
+    direction.id === "natal" && profile?.birth_date
+      ? {
+          date: profile.birth_date,
+          time: profile.birth_time?.slice(0, 5) ?? null,
+          place: placeFromFields(profile),
+          placeText: profile.birth_place ?? "",
+        }
+      : null;
 
   const reading = useMemo(
     () => (birth ? buildReading(direction.id, birth, user?.id ?? "") : null),
@@ -223,6 +236,12 @@ export default function ReadingPage() {
               </p>
             )}
 
+            {natalBirth && (
+              <div className="mt-8">
+                <NatalReading birth={natalBirth} />
+              </div>
+            )}
+
             {openSection && (
               <section>
                 <h2
@@ -245,7 +264,7 @@ export default function ReadingPage() {
             )}
 
             <div className="flex flex-col" style={{ marginTop: 32, gap: 14 }}>
-              {lockedSections.map((l) => (
+              {(natalBirth ? [] : lockedSections).map((l) => (
                 <div
                   key={l.n}
                   style={{
@@ -304,7 +323,9 @@ export default function ReadingPage() {
                 className="text-text-secondary"
                 style={{ marginTop: 12, fontSize: "clamp(15px, 1.15vw, 18px)", lineHeight: 1.6 }}
               >
-                {`Ещё ${numWord(lockedSections.length)} ${sectionWord(lockedSections.length)} по этому направлению и полные разборы по остальным пяти системам`}
+                {natalBirth
+                  ? "Все позиции карты, дома и аспекты — и полные разборы по остальным пяти системам"
+                  : `Ещё ${numWord(lockedSections.length)} ${sectionWord(lockedSections.length)} по этому направлению и полные разборы по остальным пяти системам`}
               </p>
               <div className="flex items-baseline gap-3" style={{ marginTop: 20 }}>
                 <span

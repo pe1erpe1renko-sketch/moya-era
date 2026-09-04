@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node src/lib/matrix/matrixEngine.test.js && node --import tsx --test \"src/lib/ephemeris/*.test.ts\" \"src/lib/geo/*.test.ts\"",
+    "test": "node src/lib/matrix/matrixEngine.test.js && node --import tsx --test \"src/lib/ephemeris/*.test.ts\" \"src/lib/geo/*.test.ts\" \"src/lib/natal/*.test.ts\"",
     "fill-texts": "node scripts/fill-texts.mjs",
-    "llm-check": "node scripts/llm-check.mjs"
+    "llm-check": "node scripts/llm-check.mjs",
+    "fill-natal-texts": "node --import tsx scripts/fill-natal-texts.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",

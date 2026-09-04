@@ -1,5 +1,11 @@
+import type { SignKey } from "@/lib/ephemeris";
+
+/**
+ * Короткие тексты знаков Солнца — бесплатная часть по одной дате.
+ * Полный разбор идёт через контентный слой (src/lib/natal/sections.ts).
+ */
 export type SunSign = {
-  key: string;
+  key: SignKey;
   name: string;
   line: string;
   detail: string;
@@ -93,20 +99,6 @@ export const sunSigns: SunSign[] = [
 ];
 
 /** Границы знаков: [день начала, месяц начала, день конца, месяц конца] */
-type SignKey =
-  | "aries"
-  | "taurus"
-  | "gemini"
-  | "cancer"
-  | "leo"
-  | "virgo"
-  | "libra"
-  | "scorpio"
-  | "sagittarius"
-  | "capricorn"
-  | "aquarius"
-  | "pisces";
-
 const RANGES: Record<SignKey, [number, number, number, number]> = {
   aries: [21, 3, 19, 4],
   taurus: [20, 4, 20, 5],
@@ -143,13 +135,22 @@ export type SunSignResult = {
   onCusp: boolean;
 };
 
-/** Знак Солнца по дню и месяцу рождения. */
+/**
+ * Знак Солнца по дню и месяцу рождения — грубый способ, по границам дат.
+ * Нужен там, где известна только дата и нет расчёта: витрина, кабинет.
+ * Настоящее положение Солнца считает движок эфемерид.
+ */
 export function sunSign(day: number, month: number): SunSignResult {
   for (const key of ORDER) {
     const [sd, sm, ed, em] = RANGES[key];
     const afterStart = month > sm || (month === sm && day >= sd);
     const beforeEnd = month < em || (month === em && day <= ed);
-    if (afterStart && beforeEnd) {
+    // Козерог переходит через Новый год: начало в декабре, конец в январе.
+    // Для него условие не «и», а «или», иначе январские даты не находятся
+    // и проваливаются в запасной вариант — так на сайте рождённым с 1 по
+    // 19 января показывались Рыбы вместо Козерога.
+    const inRange = sm > em ? afterStart || beforeEnd : afterStart && beforeEnd;
+    if (inRange) {
       const onCusp = (month === sm && day === sd) || (month === em && day === ed);
       return { sign: sunSigns.find((s) => s.key === key)!, onCusp };
     }
