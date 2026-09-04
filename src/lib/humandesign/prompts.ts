@@ -49,6 +49,37 @@ ${LIMITS}
 ФОРМАТ
 2–4 абзаца, 150–250 слов. Обычный текст.`;
 
+const BRIEF_VOICE = `КАК ПИСАТЬ
+
+Обращайся на «вы».
+Пиши конкретно. Не «энергия трансформации в вашей жизни», а «вы беретесь за чужую задачу раньше, чем вас попросили, и потом не понимаете, почему устали».
+Абзац должен давать узнавание: человек читает и думает «это про меня».
+Показывай обе стороны — сильную и теневую. Тень формулируй как механизм, а не как приговор.
+Заканчивай законченной мыслью, а не намёком на продолжение.`;
+
+/**
+ * Промпт коротких абзацев страницы по дате. Отдельный от основного, потому
+ * что задача другая: не разбор, а один самостоятельный абзац, который
+ * читают вместо разбора, а не перед ним.
+ */
+export const HD_BRIEF_SYSTEM_PROMPT = `Ты пишешь короткие справки о центрах бодиграфа для сервиса «Моя Эра».
+
+Такая справка стоит на общедоступной странице бодиграфа по дате рождения. Её читают вместо полного разбора, а не перед ним.
+
+${BRIEF_VOICE}
+
+ГЛАВНОЕ ПРАВИЛО
+Это самостоятельный текст, а не начало платного разбора. Не обрывай фразу, не обещай продолжения, не пиши «подробнее в полном разборе», «об этом ниже», «а дальше начинается самое интересное». Человек должен закрыть абзац с ощущением, что ему сказали что-то целое.
+
+ЧТО СКАЗАТЬ
+Одно предложение — что это состояние центра означает. Одно-два предложения — как оно выглядит в обычный день: поступок, привычка, реакция. Одно предложение — обратная сторона того же свойства.
+
+${LIMITS}
+
+ФОРМАТ
+Один абзац, 45–70 слов. Обычный текст без заголовка.`;
+
+export type HdBriefCenterCtx = { kind: "hd_brief_center"; slotLabel: string; center: CenterId; defined: boolean };
 export type HdTypeCtx = { kind: "hd_type"; slotLabel: string; type: HdTypeId };
 export type HdStrategyCtx = { kind: "hd_strategy"; slotLabel: string; type: HdTypeId };
 export type HdAuthorityCtx = { kind: "hd_authority"; slotLabel: string; authority: AuthorityId };
@@ -59,6 +90,7 @@ export type HdGateCtx = { kind: "hd_gate"; slotLabel: string; gate: number };
 export type HdCrossCtx = { kind: "hd_cross"; slotLabel: string; angle: CrossAngle; gates: number[] };
 
 export type HdCtx =
+  | HdBriefCenterCtx
   | HdTypeCtx
   | HdStrategyCtx
   | HdAuthorityCtx
@@ -69,6 +101,7 @@ export type HdCtx =
   | HdCrossCtx;
 
 const HD_KINDS = new Set([
+  "hd_brief_center",
   "hd_type",
   "hd_strategy",
   "hd_authority",
@@ -90,6 +123,14 @@ const ANGLE_ABOUT: Record<CrossAngle, string> = {
 };
 
 export function buildHdPrompt(ctx: HdCtx): string {
+  if (ctx.kind === "hd_brief_center") {
+    const c = CENTERS[ctx.center];
+    return `Центр: ${c.name}. О чём он: ${c.about}.
+Состояние: ${ctx.defined ? "определён — работает одинаково всегда, независимо от окружения" : "открыт — усиливает то, что приходит от людей рядом"}.
+
+Напиши одну короткую справку об этом состоянии центра: что оно означает и как выглядит в жизни.`;
+  }
+
   if (ctx.kind === "hd_type") {
     const t = HD_TYPES[ctx.type];
     return `Вопрос разбора: «${ctx.slotLabel}»
@@ -175,11 +216,12 @@ export type BuiltHdRequest = {
 };
 
 export function buildHdRequest(ctx: HdCtx): BuiltHdRequest {
+  const brief = ctx.kind === "hd_brief_center";
   return {
     version: HD_PROMPT_VERSION,
     temperature: 0.8,
-    system: HD_SYSTEM_PROMPT,
+    system: brief ? HD_BRIEF_SYSTEM_PROMPT : HD_SYSTEM_PROMPT,
     user: buildHdPrompt(ctx),
-    maxTokens: 900,
+    maxTokens: brief ? 300 : 900,
   };
 }

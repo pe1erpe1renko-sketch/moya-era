@@ -30,6 +30,15 @@ import { SITE_URL } from "@/lib/env";
 export const revalidate = 3600;
 export const dynamicParams = true;
 
+/**
+ * Пустой список — обязательное условие кэширования (ISR) для страниц,
+ * которые строятся по запросу: без generateStaticParams Next считает
+ * маршрут динамическим и рендерит его заново на каждый заход.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 type Params = { type: string; dates: string[] };
 
 function parse(params: Params) {

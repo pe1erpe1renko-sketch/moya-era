@@ -28,7 +28,7 @@ import { channelKey } from "./channels";
 import { gateName } from "./gates";
 import type { HumanDesignChart } from "./chart";
 
-export type HdSlotKind = "type" | "strategy" | "authority" | "profile" | "center" | "channel" | "gate" | "cross";
+export type HdSlotKind = "type" | "strategy" | "authority" | "profile" | "center" | "channel" | "gate" | "cross" | "brief_center";
 
 export type HdSlot = {
   id: string;
@@ -187,13 +187,41 @@ export function hdSections(chart: HumanDesignChart): HdSection[] {
   return sections;
 }
 
+/* ─── короткие абзацы для страницы по дате ──────────────────────── */
+
+/**
+ * КОРОТКИЕ АБЗАЦЫ О ЦЕНТРАХ. Открыты всем и попадают в HTML страницы по
+ * дате (/dizayn-cheloveka/26-07-1990) — это её содержимое для читателя и
+ * для поисковика. Ключ: hd_brief_center_sacral_defined.
+ *
+ * Тип и стратегия своих коротких текстов не получают: они и так открыты
+ * целиком, и короткая версия рядом с полной была бы пересказом.
+ *
+ * Это ОТДЕЛЬНЫЕ тексты, а не начало платных: у них свой промпт и своя
+ * задача — назвать состояние центра и один узнаваемый признак.
+ */
+export function hdBriefSlots(chart: HumanDesignChart): HdSlot[] {
+  return CENTER_ORDER.map((id) => {
+    const defined = chart.definedCenters.includes(id);
+    return {
+      id: `hd_brief_center_${id}`,
+      label: `${CENTERS[id].name}: ${defined ? "определён" : "открыт"}`,
+      kind: "brief_center" as const,
+      free: true,
+      key: `hd_brief_center_${id}_${defined ? "defined" : "open"}`,
+      center: id,
+    };
+  });
+}
+
 /** Слот по идентификатору — для проверки запроса с клиента. */
 export function findHdSlot(id: string, chart: HumanDesignChart): HdSlot | null {
   for (const section of hdSections(chart)) {
     const slot = section.slots.find((s) => s.id === id);
     if (slot) return slot;
   }
-  return null;
+  // Короткие абзацы живут вне разделов разбора, но запрашиваются тем же API.
+  return hdBriefSlots(chart).find((s) => s.id === id) ?? null;
 }
 
 /** Сколько вопросов открыто бесплатно и сколько всего в этой карте. */

@@ -16,15 +16,16 @@
  *   npm run fill-natal-texts -- --dry             # только посчитать объём
  *   npm run fill-natal-texts                      # генерировать
  *   npm run fill-natal-texts -- --only free       # сначала бесплатные
+ *   npm run fill-natal-texts -- --only brief      # короткие абзацы страниц по дате
  *   npm run fill-natal-texts -- --only aspects --limit 50
  *
  * Нужны те же переменные окружения, что и для fill-texts.mjs:
  *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
  *   LLM_API_KEY, LLM_BASE_URL (по умолчанию KIE), LLM_MODEL_TEXTS
  *
- * Объём: около 760 текстов. Из них 36 бесплатных (Солнце, Луна и асцендент
- * по знакам) — их стоит сгенерировать первыми: их видят посетители без
- * подписки.
+ * Объём: около 890 текстов. Из них 36 бесплатных (Солнце, Луна и асцендент
+ * по знакам) и 132 коротких абзаца страниц по дате — их стоит сгенерировать
+ * первыми: их видят посетители без подписки и поисковики.
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -54,7 +55,7 @@ const opt = (n, d) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : d;
 };
 const DRY = flag("dry");
-const ONLY = opt("only", "all"); // all | free | signs | houses | angles | aspects
+const ONLY = opt("only", "all"); // all | free | brief | signs | houses | angles | aspects
 const LIMIT = Number(opt("limit", "0")) || Infinity;
 const CONCURRENCY = Number(opt("concurrency", "4"));
 const MODEL = process.env.LLM_MODEL_TEXTS ?? "claude-opus-4-5";
@@ -69,6 +70,19 @@ const CHART_BODIES = NATAL_BODIES.filter((b) => b !== "lilith");
 const CAN_RETRO = new Set(["mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"]);
 
 const want = (group) => ONLY === "all" || ONLY === group || (ONLY === "free" && group === "free");
+
+// Короткие абзацы страниц по дате: планета в знаке, без ретроградности.
+if (want("brief")) {
+  for (const body of CHART_BODIES) {
+    for (const sign of SIGNS) {
+      push(
+        `natal_brief_${body}_${sign.key}`,
+        { kind: "natal_brief", slotLabel: `${BODIES[body].name} ${sign.inCase}`, bodyName: BODIES[body].name, sign: sign.key },
+        "brief",
+      );
+    }
+  }
+}
 
 for (const body of CHART_BODIES) {
   const slot = slotById.get(`natal_body_sign_${body}`);

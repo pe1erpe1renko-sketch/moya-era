@@ -27,6 +27,7 @@ import { angleDiff, bodyPosition, designMoment, houses, signAt, type BodyId } fr
 import { localToUtc } from "@/lib/geo/localTime";
 import {
   ASPECTS,
+  briefSlots,
   buildNatalChart,
   buildNatalRequest,
   chartBody,
@@ -384,5 +385,61 @@ describe("знак Солнца по дате остаётся согласов�
     assert.equal(sunSign(21, 12).sign.key, "sagittarius");
     assert.equal(sunSign(19, 1).onCusp, true);
     assert.equal(sunSign(22, 12).onCusp, true);
+  });
+});
+
+describe("короткие справки страницы по дате", () => {
+  const chart = buildNatalChart({ date: "1990-07-26", time: null, tz: null, latitude: null, longitude: null });
+
+  it("по справке на каждую планету карты, без асцендента и домов", () => {
+    const slots = briefSlots(chart);
+    assert.equal(slots.length, 11, "десять классических тел плюс северный узел");
+    assert.ok(slots.every((s) => s.free), "справки открыты всем");
+    assert.ok(!slots.some((s) => s.id.includes("asc") || s.id.includes("house")));
+  });
+
+  it("ключ содержит планету и знак и не зависит от ретроградности", () => {
+    const slots = briefSlots(chart);
+    const sun = slots.find((s) => s.id === "natal_brief_sun");
+    assert.ok(sun);
+    assert.equal(natalTextKey(sun, chart), "natal_brief_sun_leo");
+    assert.equal(sun.label, "Солнце во Льве");
+
+    // Сатурн 26.07.1990 ретрограден — в ключе это не отражается.
+    const saturn = slots.find((s) => s.id === "natal_brief_saturn");
+    assert.ok(saturn);
+    assert.equal(chartBody(chart, "saturn")?.retrograde, true);
+    assert.equal(natalTextKey(saturn, chart), "natal_brief_saturn_capricorn");
+  });
+
+  it("всего ключей — по знаку на планету", () => {
+    const keys = new Set<string>();
+    for (const iso of ["1990-01-15", "1990-04-15", "1990-07-26", "1990-10-15", "1998-07-13", "2024-02-29"]) {
+      const c = buildNatalChart({ date: iso, time: null, tz: null, latitude: null, longitude: null });
+      for (const slot of briefSlots(c)) keys.add(natalTextKey(slot, c) as string);
+    }
+    assert.ok(keys.size > 0 && keys.size <= 11 * 12);
+    assert.ok([...keys].every((k) => /^natal_brief_[a-z_]+_[a-z]+$/.test(k)), [...keys].join(" "));
+  });
+
+  it("API находит справку по идентификатору, иначе её нельзя было бы запросить", () => {
+    assert.ok(findNatalSlot("natal_brief_moon", chart));
+    assert.equal(findNatalSlot("natal_brief_nonsense", chart), null);
+  });
+
+  it("промпт справки отдельный: короткий и без обещаний продолжения", () => {
+    const brief = buildNatalRequest({ kind: "natal_brief", slotLabel: "Солнце во Льве", bodyName: "Солнце", sign: "leo" });
+    const full = buildNatalRequest({
+      kind: "natal_body_sign",
+      slotLabel: "Солнце в знаке",
+      bodyName: "Солнце",
+      sign: "leo",
+      retrograde: false,
+    });
+    assert.notEqual(brief.system, full.system, "платный текст пишется по другому промпту");
+    assert.ok(brief.system.includes("Один абзац"));
+    assert.ok(brief.system.includes("Не предсказывай события"), "ограничения на месте и здесь");
+    assert.ok(brief.maxTokens < full.maxTokens);
+    assert.ok(brief.user.includes("Солнце во Льве"));
   });
 });

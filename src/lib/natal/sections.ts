@@ -18,11 +18,11 @@
  * Остальные планеты, дома и аспекты — по подписке.
  */
 
-import { signAt, type BodyId } from "@/lib/ephemeris";
+import { BODIES, signAt, type BodyId } from "@/lib/ephemeris";
 import type { AspectKey, AspectPoint } from "./aspects";
-import { chartBody, pointName, type NatalChart } from "./chart";
+import { CHART_BODIES, chartBody, pointName, type NatalChart } from "./chart";
 
-export type NatalSlotKind = "body_sign" | "body_house" | "asc_sign" | "mc_sign" | "aspect";
+export type NatalSlotKind = "body_sign" | "body_house" | "asc_sign" | "mc_sign" | "aspect" | "brief";
 
 export type NatalSlot = {
   /** устойчивый идентификатор вопроса */
@@ -141,6 +141,37 @@ export const NATAL_SECTIONS: NatalSection[] = [
   },
 ];
 
+/* ─── короткие абзацы для страницы по дате ──────────────────────── */
+
+/**
+ * КОРОТКИЕ АБЗАЦЫ. Открыты всем и попадают в HTML страницы по дате
+ * (/natalnaya-karta/26-07-1990) — это её содержимое для читателя и для
+ * поисковика.
+ *
+ * Ключ: natal_brief_sun_leo. Ретроградность в ключ не входит: абзац
+ * в три-четыре строки описывает планету в знаке, а разворот внутрь —
+ * это уже подробность полного разбора.
+ *
+ * Это ОТДЕЛЬНЫЙ текст, а не начало платного: у него свой промпт и своя
+ * задача — назвать суть и один узнаваемый признак. Платный разбор той же
+ * позиции написан иначе и не продолжает этот абзац.
+ */
+export function briefSlots(chart: NatalChart): NatalSlot[] {
+  return CHART_BODIES.flatMap((body) => {
+    const b = chartBody(chart, body);
+    if (!b) return [];
+    return [
+      {
+        id: `natal_brief_${body}`,
+        label: `${BODIES[body].name} ${b.sign.inCase}`,
+        kind: "brief" as const,
+        free: true,
+        body,
+      },
+    ];
+  });
+}
+
 /** Сколько вопросов открыто бесплатно и сколько всего (без аспектов). */
 export function countNatalSlots(): { free: number; total: number } {
   let free = 0;
@@ -179,6 +210,10 @@ export const ASPECTS_SECTION = {
  * нельзя (нет домов без времени и места).
  */
 export function natalTextKey(slot: NatalSlot, chart: NatalChart): string | null {
+  if (slot.kind === "brief" && slot.body) {
+    const b = chartBody(chart, slot.body);
+    return b ? `${slot.id}_${b.sign.key}` : null;
+  }
   if (slot.kind === "body_sign" && slot.body) {
     const b = chartBody(chart, slot.body);
     // Ретроградность меняет смысл текста, поэтому входит в ключ: иначе
@@ -209,5 +244,6 @@ export function findNatalSlot(id: string, chart: NatalChart): NatalSlot | null {
     const slot = section.slots.find((s) => s.id === id);
     if (slot) return slot;
   }
-  return null;
+  // Короткие абзацы живут вне разделов разбора, но запрашиваются тем же API.
+  return briefSlots(chart).find((s) => s.id === id) ?? null;
 }

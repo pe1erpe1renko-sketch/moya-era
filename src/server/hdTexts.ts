@@ -5,6 +5,7 @@ import {
   buildHumanDesignChart,
   findChannel,
   findHdSlot,
+  hdBriefSlots,
   hdSections,
   type HdSlot,
   type HumanDesignChart,
@@ -66,6 +67,15 @@ export async function hdAccess(date: string): Promise<{ unlocked: boolean; reaso
 function contextFor(slot: HdSlot, chart: HumanDesignChart): SlotContext | null {
   const base = { key: slot.key, slotLabel: slot.label };
 
+  if (slot.kind === "brief_center" && slot.center) {
+    return {
+      ...base,
+      kind: "hd_brief_center",
+      center: slot.center,
+      defined: chart.definedCenters.includes(slot.center),
+    };
+  }
+
   if (slot.kind === "type") return { ...base, kind: "hd_type", type: chart.type.id };
   if (slot.kind === "strategy") return { ...base, kind: "hd_strategy", type: chart.type.id };
   if (slot.kind === "authority") return { ...base, kind: "hd_authority", authority: chart.authority.id };
@@ -125,6 +135,11 @@ export async function answerHdSlots(
     const t = byKey.get(x.ctx.key);
     return [{ slotId: x.slotId, locked: false, key: x.ctx.key, text: t?.text ?? "", source: t?.source ?? "placeholder" }];
   });
+}
+
+/** Идентификаторы коротких абзацев — для страницы по дате. */
+export function briefHdSlotIds(chart: HumanDesignChart): string[] {
+  return hdBriefSlots(chart).map((s) => s.id);
 }
 
 /** Короткая сводка карты для витрины и кабинета. */

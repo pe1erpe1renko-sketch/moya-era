@@ -33,12 +33,12 @@ export function chartFromBirth(birth: BirthValue): HumanDesignChart {
  * неизвестно: если результат за сутки не меняется, оговорок не нужно —
  * он верен в любой час этого дня.
  */
-export function useHdVariation(birth: BirthValue, chart: HumanDesignChart) {
+export function useHdVariation(birth: BirthValue, chart: HumanDesignChart, enabled = true) {
   return useMemo(() => {
-    if (!chart.approximate) return { preliminary: false, facts: [] as string[] };
+    if (!enabled || !chart.approximate) return { preliminary: false, facts: [] as string[] };
     const v = hdDayVariation(birth.date, birth.place?.tz ?? null, birth.place?.label ?? null);
     return { preliminary: !v.stable, facts: v.facts };
-  }, [birth.date, birth.place?.tz, birth.place?.label, chart.approximate]);
+  }, [enabled, birth.date, birth.place?.tz, birth.place?.label, chart.approximate]);
 }
 
 /** Пометка «предварительно» рядом с названием типа. */
@@ -108,7 +108,9 @@ export function HdReading({
     onRefine?.(next);
   };
   const chart = useMemo(() => chartFromBirth(local), [local]);
-  const variation = useHdVariation(local, chart);
+  // Проверка суток стоит десятки миллисекунд, поэтому считаем её только
+  // там, где показываем: в варианте со схемой.
+  const variation = useHdVariation(local, chart, variant === "full");
   const [active, setActive] = useState<string | null>(null);
   const [openSlot, setOpenSlot] = useState<string | null>(null);
   const [paywall, setPaywall] = useState(false);

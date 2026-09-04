@@ -30,13 +30,16 @@ import {
   LINE_SIZE,
   WHEEL_START,
   activeChannels,
+  buildHdRequest,
   buildHumanDesignChart,
   centerOfGate,
   crossAngle,
   determineAuthority,
   determineType,
+  findHdSlot,
   gateAt,
   gateStart,
+  hdBriefSlots,
   type CenterId,
 } from "./index";
 
@@ -293,5 +296,47 @@ describe("карта без времени рождения", () => {
     });
     assert.equal(chart.approximate, false);
     assert.ok(chart.daysBetween > 86 && chart.daysBetween < 93, `${chart.daysBetween} суток`);
+  });
+});
+
+describe("короткие справки страницы по дате", () => {
+  const chart = buildHumanDesignChart({ date: "1998-07-13", time: null, tz: null, latitude: null, longitude: null });
+
+  it("по справке на каждый из девяти центров", () => {
+    const slots = hdBriefSlots(chart);
+    assert.equal(slots.length, 9);
+    assert.ok(slots.every((s) => s.free), "справки открыты всем");
+    assert.deepEqual(
+      slots.map((s) => s.center),
+      [...CENTER_ORDER],
+    );
+  });
+
+  it("ключ говорит, определён центр или открыт", () => {
+    const byId = new Map(hdBriefSlots(chart).map((s) => [s.id, s]));
+    for (const id of CENTER_ORDER) {
+      const slot = byId.get(`hd_brief_center_${id}`);
+      assert.ok(slot);
+      const defined = chart.definedCenters.includes(id);
+      assert.equal(slot.key, `hd_brief_center_${id}_${defined ? "defined" : "open"}`);
+    }
+    // Всего таких ключей ровно восемнадцать: девять центров в двух состояниях.
+    const all = new Set(CENTER_ORDER.flatMap((id) => [`hd_brief_center_${id}_defined`, `hd_brief_center_${id}_open`]));
+    assert.equal(all.size, 18);
+  });
+
+  it("API находит справку по идентификатору", () => {
+    assert.ok(findHdSlot("hd_brief_center_sacral", chart));
+    assert.equal(findHdSlot("hd_brief_center_nonsense", chart), null);
+  });
+
+  it("промпт справки отдельный: короткий и без обещаний продолжения", () => {
+    const brief = buildHdRequest({ kind: "hd_brief_center", slotLabel: "Сакральный", center: "sacral", defined: true });
+    const full = buildHdRequest({ kind: "hd_center", slotLabel: "Сакральный: определён", center: "sacral", defined: true });
+    assert.notEqual(brief.system, full.system, "платный текст пишется по другому промпту");
+    assert.ok(brief.system.includes("Один абзац"));
+    assert.ok(brief.system.includes("Не предсказывай события"), "ограничения на месте и здесь");
+    assert.ok(brief.maxTokens < full.maxTokens);
+    assert.ok(brief.user.includes(CENTERS.sacral.name));
   });
 });

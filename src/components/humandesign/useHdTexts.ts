@@ -1,74 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useSlotTexts, type BirthKey, type LockReason, type SlotText } from "@/components/chart/useSlotTexts";
 
-export type HdSlotText = { text: string; source: string } | { locked: true };
+export type HdSlotText = SlotText;
+export type HdLockReason = LockReason;
 
-export type HdLockReason = "no_subscription" | "person_not_added" | "not_logged_in";
-
-/**
- * Загрузка текстов вопросов бодиграфа пачками. Устроена так же, как
- * `useReadingTexts` у матрицы: один запрос на пачку, повторно за тем же
- * вопросом не ходим.
- */
-export function useHdTexts(input: { date: string; time: string | null; placeId: number | null }) {
-  const [texts, setTexts] = useState<Record<string, HdSlotText>>({});
-  const [busy, setBusy] = useState<Set<string>>(new Set());
-  const [unlocked, setUnlocked] = useState(false);
-  const [reason, setReason] = useState<HdLockReason | null>(null);
-  const pending = useRef<Set<string>>(new Set());
-
-  const load = useCallback(
-    async (slotIds: string[]) => {
-      const need = slotIds.filter((id) => !texts[id] && !pending.current.has(id));
-      if (need.length === 0) return;
-      need.forEach((id) => pending.current.add(id));
-      setBusy((b) => new Set([...b, ...need]));
-      try {
-        const res = await fetch("/api/content/humandesign", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...input, slots: need }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as {
-          unlocked: boolean;
-          reason: HdLockReason | null;
-          answers: Array<{ slotId: string; locked: boolean; text?: string; source?: string }>;
-        };
-        setUnlocked(data.unlocked);
-        setReason(data.reason);
-        setTexts((prev) => {
-          const next = { ...prev };
-          for (const a of data.answers) {
-            next[a.slotId] = a.locked ? { locked: true } : { text: a.text ?? "", source: a.source ?? "placeholder" };
-          }
-          return next;
-        });
-      } catch {
-        /* интерфейс покажет, что текст не загрузился */
-      } finally {
-        need.forEach((id) => pending.current.delete(id));
-        setBusy((b) => {
-          const n = new Set(b);
-          need.forEach((id) => n.delete(id));
-          return n;
-        });
-      }
-    },
-    [texts, input],
-  );
-
-  /** Сброс замков после входа или оплаты. */
-  const reset = useCallback(
-    () =>
-      setTexts((prev) => {
-        const next: Record<string, HdSlotText> = {};
-        for (const [k, v] of Object.entries(prev)) if (!("locked" in v)) next[k] = v;
-        return next;
-      }),
-    [],
-  );
-
-  return { texts, busy, unlocked, reason, load, reset };
+/** Тексты вопросов бодиграфа. Вся механика — в useSlotTexts. */
+export function useHdTexts(input: BirthKey) {
+  return useSlotTexts("/api/content/humandesign", input);
 }

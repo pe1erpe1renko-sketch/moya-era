@@ -10,12 +10,14 @@
  *   npm run fill-hd-texts -- --dry            # только посчитать объём
  *   npm run fill-hd-texts                     # генерировать
  *   npm run fill-hd-texts -- --only free      # сначала бесплатные
+ *   npm run fill-hd-texts -- --only brief     # короткие абзацы страниц по дате
  *   npm run fill-hd-texts -- --only gates --limit 50
  *
  * Нужны те же переменные окружения, что и для fill-texts.mjs.
  *
- * Объём: 339 текстов. Из них 10 бесплатных — тип и стратегия для пяти
- * типов: их видят посетители без подписки.
+ * Объём: 357 текстов. Из них 10 бесплатных (тип и стратегия для пяти типов)
+ * и 18 коротких абзацев о центрах для страниц по дате: их видят посетители
+ * без подписки и поисковики.
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -23,7 +25,7 @@ import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 // Импортируем конкретные модули, а не общий index: под tsx этот файл
 // становится CommonJS, и реэкспорты через `export *` теряют имена.
-import { CENTER_ORDER } from "../src/lib/humandesign/centers.ts";
+import { CENTERS, CENTER_ORDER } from "../src/lib/humandesign/centers.ts";
 import { CHANNELS } from "../src/lib/humandesign/channels.ts";
 import { GATE_WHEEL, gateName } from "../src/lib/humandesign/gates.ts";
 import { HD_TYPES, AUTHORITIES, CROSS_ANGLES } from "../src/lib/humandesign/chart.ts";
@@ -46,7 +48,7 @@ const opt = (n, d) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : d;
 };
 const DRY = flag("dry");
-const ONLY = opt("only", "all"); // all | free | authorities | profiles | centers | channels | gates | crosses
+const ONLY = opt("only", "all"); // all | free | brief | authorities | profiles | centers | channels | gates | crosses
 const LIMIT = Number(opt("limit", "0")) || Infinity;
 const CONCURRENCY = Number(opt("concurrency", "4"));
 const MODEL = process.env.LLM_MODEL_TEXTS ?? "claude-opus-4-5";
@@ -54,6 +56,24 @@ const MODEL = process.env.LLM_MODEL_TEXTS ?? "claude-opus-4-5";
 const jobs = [];
 const push = (key, ctx, group) => jobs.push({ key, ctx, group });
 const want = (group) => ONLY === "all" || ONLY === group;
+
+// Короткие абзацы о центрах для страниц по дате.
+if (want("brief")) {
+  for (const center of CENTER_ORDER) {
+    for (const defined of [true, false]) {
+      push(
+        `hd_brief_center_${center}_${defined ? "defined" : "open"}`,
+        {
+          kind: "hd_brief_center",
+          slotLabel: `${CENTERS[center].name}: ${defined ? "определён" : "открыт"}`,
+          center,
+          defined,
+        },
+        "brief",
+      );
+    }
+  }
+}
 
 // Тип и стратегия — бесплатная часть.
 if (want("free")) {

@@ -35,6 +35,14 @@ const VOICE = `КАК ПИСАТЬ
 Показывай обе стороны — сильную и теневую. Тень формулируй как механизм, а не как приговор.
 Заканчивай одним конкретным действием, которое можно сделать на этой неделе.`;
 
+const BRIEF_VOICE = `КАК ПИСАТЬ
+
+Обращайся на «вы».
+Пиши конкретно. Не «энергия трансформации в вашей жизни», а «вы начинаете новое, только когда старое рухнуло само — заранее уходить не умеете».
+Абзац должен давать узнавание: человек читает и думает «это про меня».
+Показывай обе стороны — сильную и теневую. Тень формулируй как механизм, а не как приговор.
+Заканчивай законченной мыслью, а не намёком на продолжение.`;
+
 export const NATAL_SYSTEM_PROMPT = `Ты пишешь трактовки натальной карты для сервиса «Моя Эра».
 
 Натальная карта — это реальное положение планет в момент рождения, рассчитанное по астрономическим эфемеридам. Ты отвечаешь ровно на один вопрос разбора, а не описываешь планету вообще.
@@ -48,6 +56,35 @@ ${LIMITS}
 
 ФОРМАТ
 2–4 абзаца, 150–250 слов. Обычный текст.`;
+
+/**
+ * Промпт коротких абзацев страницы по дате. Отдельный от основного, потому
+ * что задача другая: не разбор, а один самостоятельный абзац, который
+ * читают вместо разбора, а не перед ним.
+ */
+export const NATAL_BRIEF_SYSTEM_PROMPT = `Ты пишешь короткие справки о положениях планет для сервиса «Моя Эра».
+
+Такая справка стоит на общедоступной странице карты по дате рождения. Её читают вместо полного разбора, а не перед ним.
+
+${BRIEF_VOICE}
+
+ГЛАВНОЕ ПРАВИЛО
+Это самостоятельный текст, а не начало платного разбора. Не обрывай фразу, не обещай продолжения, не пиши «подробнее в полном разборе», «об этом ниже», «а дальше начинается самое интересное». Человек должен закрыть абзац с ощущением, что ему сказали что-то целое.
+
+ЧТО СКАЗАТЬ
+Одно предложение — суть этого положения. Одно-два предложения — как это выглядит в обычный день: поступок, привычка, реакция. Одно предложение — обратная сторона того же свойства.
+
+${LIMITS}
+
+ФОРМАТ
+Один абзац, 45–70 слов. Обычный текст без заголовка.`;
+
+export type NatalBriefCtx = {
+  kind: "natal_brief";
+  slotLabel: string;
+  bodyName: string;
+  sign: SignKey;
+};
 
 export type NatalBodySignCtx = {
   kind: "natal_body_sign";
@@ -80,9 +117,9 @@ export type NatalAspectCtx = {
   aspect: AspectKey;
 };
 
-export type NatalCtx = NatalBodySignCtx | NatalBodyHouseCtx | NatalAngleCtx | NatalAspectCtx;
+export type NatalCtx = NatalBriefCtx | NatalBodySignCtx | NatalBodyHouseCtx | NatalAngleCtx | NatalAspectCtx;
 
-const NATAL_KINDS = new Set(["natal_body_sign", "natal_body_house", "natal_angle_sign", "natal_aspect"]);
+const NATAL_KINDS = new Set(["natal_brief", "natal_body_sign", "natal_body_house", "natal_angle_sign", "natal_aspect"]);
 
 export function isNatalCtx(ctx: { kind?: string }): ctx is NatalCtx {
   return typeof ctx.kind === "string" && NATAL_KINDS.has(ctx.kind);
@@ -106,6 +143,12 @@ const HOUSE_MEANING: Record<number, string> = {
 const signName = (key: SignKey) => SIGNS.find((s) => s.key === key)?.inCase ?? key;
 
 export function buildNatalPrompt(ctx: NatalCtx): string {
+  if (ctx.kind === "natal_brief") {
+    return `Положение: ${ctx.bodyName} ${signName(ctx.sign)}.
+
+Напиши одну короткую справку об этом положении: что оно означает и как выглядит в жизни.`;
+  }
+
   if (ctx.kind === "natal_body_sign") {
     const retro = ctx.retrograde
       ? "\nПланета ретроградна: её проявление развёрнуто внутрь, человек сначала переваривает и только потом действует. Скажи об этом одной фразой, без мистики."
@@ -159,11 +202,12 @@ export type BuiltNatalRequest = {
 };
 
 export function buildNatalRequest(ctx: NatalCtx): BuiltNatalRequest {
+  const brief = ctx.kind === "natal_brief";
   return {
     version: NATAL_PROMPT_VERSION,
     temperature: 0.8,
-    system: NATAL_SYSTEM_PROMPT,
+    system: brief ? NATAL_BRIEF_SYSTEM_PROMPT : NATAL_SYSTEM_PROMPT,
     user: buildNatalPrompt(ctx),
-    maxTokens: 900,
+    maxTokens: brief ? 300 : 900,
   };
 }

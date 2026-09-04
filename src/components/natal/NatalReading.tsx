@@ -44,12 +44,12 @@ export function chartFromBirth(birth: BirthValue): NatalChart {
  * Отсутствие асцендента и домов — отдельный разговор, о нём говорит
  * блок оговорок под шапкой.
  */
-export function useNatalVariation(birth: BirthValue, chart: NatalChart) {
+export function useNatalVariation(birth: BirthValue, chart: NatalChart, enabled = true) {
   return useMemo(() => {
-    if (chart.moment.precision === "exact") return { preliminary: false, facts: [] as string[] };
+    if (!enabled || chart.moment.precision === "exact") return { preliminary: false, facts: [] as string[] };
     const v = natalDayVariation(birth.date, birth.place?.tz ?? null, birth.place?.label ?? null);
     return { preliminary: !v.stable, facts: v.facts };
-  }, [birth.date, birth.place?.tz, birth.place?.label, chart.moment.precision]);
+  }, [enabled, birth.date, birth.place?.tz, birth.place?.label, chart.moment.precision]);
 }
 
 /** Пометка «предварительно» рядом с главным результатом. */
@@ -120,7 +120,9 @@ export function NatalReading({
     onRefine?.(next);
   };
   const chart = useMemo(() => chartFromBirth(local), [local]);
-  const variation = useNatalVariation(local, chart);
+  // Проверка суток стоит десятки миллисекунд, поэтому считаем её только
+  // там, где показываем: в варианте с картой.
+  const variation = useNatalVariation(local, chart, variant === "full");
 
   const [active, setActive] = useState<string | null>(null);
   const [openSlot, setOpenSlot] = useState<string | null>(null);

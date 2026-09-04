@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   ASPECTS,
+  briefSlots,
   buildNatalChart,
   chartBody,
   findNatalSlot,
@@ -84,6 +85,12 @@ function contextFor(slot: NatalSlot, chart: NatalChart): SlotContext | null {
   const key = natalTextKey(slot, chart);
   if (!key) return null;
 
+  if (slot.kind === "brief" && slot.body) {
+    const body = chartBody(chart, slot.body);
+    if (!body) return null;
+    return { key, kind: "natal_brief", slotLabel: slot.label, bodyName: body.name, sign: body.sign.key };
+  }
+
   if (slot.kind === "body_sign" && slot.body) {
     const body = chartBody(chart, slot.body);
     if (!body) return null;
@@ -162,6 +169,13 @@ export async function answerNatalSlots(
     const t = byKey.get(x.ctx.key);
     return [{ slotId: x.slotId, locked: false, key: x.ctx.key, text: t?.text ?? "", source: t?.source ?? "placeholder" }];
   });
+}
+
+/** Идентификаторы коротких абзацев — для страницы по дате. */
+export function briefNatalSlotIds(chart: NatalChart): string[] {
+  return briefSlots(chart)
+    .filter((s) => natalTextKey(s, chart) !== null)
+    .map((s) => s.id);
 }
 
 /** Идентификаторы бесплатных вопросов этой карты. */
