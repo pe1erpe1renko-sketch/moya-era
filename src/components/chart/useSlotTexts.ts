@@ -63,6 +63,9 @@ export function useSlotTexts(endpoint: string, input: Record<string, unknown>, s
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          // Свой же адрес в заголовке Referer нам ничего не даёт, а осесть
+          // в журнале запросов вместе с параметром имени может.
+          referrerPolicy: "no-referrer",
           body: JSON.stringify({ ...input, slots: need }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

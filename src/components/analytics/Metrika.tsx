@@ -4,14 +4,28 @@ import Script from "next/script";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { METRIKA_ID } from "@/lib/env";
+import { publicUrl } from "@/lib/chartUrl";
 
-/** Яндекс.Метрика. Включается переменной NEXT_PUBLIC_METRIKA_ID. */
+/**
+ * Яндекс.Метрика. Включается переменной NEXT_PUBLIC_METRIKA_ID.
+ *
+ * АДРЕС ЧИСТИТСЯ ПЕРЕД ОТПРАВКОЙ. В адресе страницы может стоять имя
+ * человека (?n= для числа судьбы) — это персональные данные, и в чужой
+ * статистике им не место. `publicUrl` снимает такие параметры, остальной
+ * адрес уходит как есть.
+ *
+ * `defer: true` в init обязателен: без него счётчик сам отправит первый
+ * просмотр с настоящим, неочищенным адресом ещё до нашего вызова.
+ */
 export function Metrika() {
   const pathname = usePathname();
 
   useEffect(() => {
     if (!METRIKA_ID || !window.ym) return;
-    window.ym(Number(METRIKA_ID), "hit", window.location.href);
+    window.ym(Number(METRIKA_ID), "hit", publicUrl(window.location.href), {
+      // Откуда пришли — тоже адрес нашего сайта и тоже может нести имя.
+      referer: publicUrl(document.referrer),
+    });
   }, [pathname]);
 
   if (!METRIKA_ID) return null;

@@ -2,11 +2,12 @@ import "server-only";
 
 import {
   briefSlots,
-  buildNumerology,
+  buildNumerologyWithDestiny,
   findNumerologySlot,
+  numContextFor,
   numerologySections,
   type NumerologyChart,
-  type NumerologySlot,
+  type NumSlotContext,
 } from "@/lib/numerology";
 import { getTexts, type SlotContext, type TextResult } from "@/server/content";
 import { loadAccess, accessUnlocks } from "@/server/entitlements";
@@ -31,10 +32,14 @@ export type NumerologyAnswer =
 
 /**
  * Строит расчёт по дате. null, если дата негодная.
- * Имя необязательно: без него не будет числа судьбы, остальное будет.
+ *
+ * Число судьбы приходит готовым числом, а не именем: имя человека серверу
+ * не нужно — для выбора текста хватает числа, — а раз не нужно, то и
+ * получать его незачем. Считает его браузер, здесь значение только
+ * проверяется на допустимость. Без него считается всё остальное.
  */
-export function resolveNumerology(date: string, forYear?: number, name?: string | null): NumerologyChart | null {
-  const chart = buildNumerology(date, forYear, name ?? null);
+export function resolveNumerology(date: string, forYear?: number, destiny?: number | null): NumerologyChart | null {
+  const chart = buildNumerologyWithDestiny(date, forYear, destiny ?? null);
   if (!chart) return null;
   if (chart.year < 1900 || chart.year > new Date().getUTCFullYear()) return null;
   return chart;
@@ -56,23 +61,6 @@ export async function numerologyAccess(date: string): Promise<{
   return { unlocked, reason, demo: access.demo };
 }
 
-function contextFor(slot: NumerologySlot, chart: NumerologyChart): SlotContext | null {
-  const base = { key: slot.key, slotLabel: slot.label };
-
-  if (slot.kind === "cell" && slot.cell) {
-    return { ...base, kind: "num_cell", digit: slot.cell.digit, count: slot.cell.count };
-  }
-
-  // Идентификатор вида num_brief_path или num_path — из него берём число.
-  const id = slot.id.replace(/^num_(brief_)?/, "") as "path" | "birthday" | "attitude" | "year";
-  const value =
-    id === "path" ? chart.path : id === "birthday" ? chart.birthday : id === "attitude" ? chart.attitude : chart.personalYear;
-
-  if (slot.kind === "brief") return { ...base, kind: "num_brief", number: id, value };
-  if (slot.kind === "number") return { ...base, kind: "num_number", number: id, value };
-  return null;
-}
-
 export async function answerNumerologySlots(
   chart: NumerologyChart,
   slotIds: string[],
@@ -83,9 +71,9 @@ export async function answerNumerologySlots(
       const slot = findNumerologySlot(chart, slotId);
       if (!slot) return null;
       const locked = !slot.free && !unlocked;
-      return { slotId, locked, ctx: locked ? null : contextFor(slot, chart) };
+      return { slotId, locked, ctx: locked ? null : numContextFor(slot, chart) };
     })
-    .filter((x): x is { slotId: string; locked: boolean; ctx: SlotContext | null } => x !== null);
+    .filter((x): x is { slotId: string; locked: boolean; ctx: NumSlotContext | null } => x !== null);
 
   const open = items.filter((x) => !x.locked && x.ctx);
   const texts = await getTexts(

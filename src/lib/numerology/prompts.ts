@@ -7,7 +7,8 @@
  * ВЕРСИОНИРОВАНИЕ: меняешь текст промпта — поднимай NUM_PROMPT_VERSION.
  */
 
-import { NUMEROLOGY_NUMBERS, type NumerologyNumberId } from "./sections";
+import { NUMEROLOGY_NUMBERS, numberValue, type NumerologyNumberId, type NumerologySlot } from "./sections";
+import type { NumerologyChart } from "./numbers";
 import { squareLabels } from "./texts";
 
 export const NUM_PROMPT_VERSION = 1;
@@ -151,4 +152,33 @@ export function buildNumRequest(ctx: NumCtx): BuiltNumRequest {
     user: buildNumPrompt(ctx),
     maxTokens: brief ? 300 : 900,
   };
+}
+
+/** Контекст текста: ключ в базе плюс всё, что нужно промпту. */
+export type NumSlotContext = NumCtx & { key: string; slotLabel: string };
+
+/**
+ * Что писать в этой позиции разбора.
+ *
+ * Значение числа спрашиваем у карты позиций, а не выводим здесь заново.
+ * Пока чисел было четыре, значение подставлялось цепочкой условий; когда
+ * пятым добавилось число судьбы, цепочка молча отдала ему значение
+ * личного года — ключ говорил одно, а текст писался про другое. Теперь
+ * источник значения один на всех, и разойтись им негде.
+ */
+export function numContextFor(slot: NumerologySlot, chart: NumerologyChart): NumSlotContext | null {
+  const base = { key: slot.key, slotLabel: slot.label };
+
+  if (slot.kind === "cell" && slot.cell) {
+    return { ...base, kind: "num_cell", digit: slot.cell.digit, count: slot.cell.count };
+  }
+
+  // Идентификатор вида num_brief_path или num_path — из него берём число.
+  const id = slot.id.replace(/^num_(brief_)?/, "") as NumerologyNumberId;
+  const value = numberValue(chart, id);
+  if (value === null) return null;
+
+  if (slot.kind === "brief") return { ...base, kind: "num_brief", number: id, value };
+  if (slot.kind === "number") return { ...base, kind: "num_number", number: id, value };
+  return null;
 }

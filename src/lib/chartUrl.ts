@@ -137,6 +137,46 @@ export function buildNameQuery(name: string | null): string {
   return clean ? `?n=${encodeURIComponent(clean)}` : "";
 }
 
+/**
+ * ЛИЧНЫЕ ПАРАМЕТРЫ АДРЕСА — их нельзя отдавать наружу.
+ *
+ * Имя человека — персональные данные. Оно живёт в адресе только затем,
+ * чтобы страницу можно было обновить и не вводить имя заново, и дальше
+ * браузера уходить не должно. Метрика же пишет адрес каждого просмотра —
+ * значит без чистки имена людей осели бы в чужой статистике навсегда.
+ *
+ * Время и место рождения здесь не перечислены сознательно: это не
+ * человек, а параметры расчёта, и по ним нужно видеть, сколько людей
+ * доходит до уточнения. Дата в адресе была всегда и остаётся.
+ */
+export const PRIVATE_PARAMS = ["n"];
+
+/**
+ * Адрес без личных параметров: то, что можно писать в статистику, слать в
+ * заголовке и вообще показывать кому-то, кроме самого человека.
+ *
+ * @param href полный адрес или путь с запросом
+ */
+export function publicUrl(href: string): string {
+  // База нужна только для разбора относительного пути и в ответ не попадает.
+  let url: URL;
+  try {
+    url = new URL(href, "https://x");
+  } catch {
+    return href;
+  }
+  let touched = false;
+  for (const p of PRIVATE_PARAMS) {
+    if (url.searchParams.has(p)) {
+      url.searchParams.delete(p);
+      touched = true;
+    }
+  }
+  if (!touched) return href;
+  const tail = `${url.pathname}${url.search}${url.hash}`;
+  return /^[a-z]+:/i.test(href) ? `${url.origin}${tail}` : tail;
+}
+
 /** Есть ли в запросе уточнение — от этого зависит noindex. */
 export function hasChartQuery(query: ChartQuery): boolean {
   return query.time !== null || query.placeId !== null;

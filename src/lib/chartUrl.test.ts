@@ -9,6 +9,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  PRIVATE_PARAMS,
+  publicUrl,
+  buildNameQuery,
   buildPairQuery,
   parsePairQuery,
   CHART_SYSTEMS,
@@ -148,5 +151,48 @@ describe("список дат для карты сайта", () => {
     for (const system of Object.keys(CHART_SYSTEMS)) {
       assert.match(chartPath(system as never, "1990-07-26"), /^\/[a-z-]+\/26-07-1990$/);
     }
+  });
+});
+
+describe("адрес без личных данных", () => {
+  it("имя снимается, остальное остаётся", () => {
+    assert.equal(
+      publicUrl("https://moya-era.ru/numerologiya/26-07-1990?n=%D0%9F%D1%91%D1%82%D1%80"),
+      "https://moya-era.ru/numerologiya/26-07-1990",
+    );
+    assert.equal(publicUrl("/numerologiya/26-07-1990?n=Пётр"), "/numerologiya/26-07-1990");
+  });
+
+  it("имя снимается и посреди других параметров", () => {
+    assert.equal(
+      publicUrl("/natalnaya-karta/26-07-1990?t=0940&n=Пётр&g=524901"),
+      "/natalnaya-karta/26-07-1990?t=0940&g=524901",
+    );
+  });
+
+  it("время и место остаются: это параметры расчёта, а не человек", () => {
+    const url = "https://moya-era.ru/natalnaya-karta/26-07-1990?t=0940&g=524901";
+    assert.equal(publicUrl(url), url);
+  });
+
+  it("якорь на месте: по нему видно, какой взгляд открывали", () => {
+    assert.equal(publicUrl("/sovmestimost/13-07-1998/09-04-1992?n=Пётр#sinastriya"), "/sovmestimost/13-07-1998/09-04-1992#sinastriya");
+  });
+
+  it("чистый адрес возвращается как есть, вместе с доменом", () => {
+    for (const url of ["https://moya-era.ru/taro/26-07-1990", "/matrica/26-07-1990", "", "не адрес"]) {
+      assert.equal(publicUrl(url), url);
+    }
+  });
+
+  it("имя названо личным параметром — иначе чистить нечего", () => {
+    assert.ok(PRIVATE_PARAMS.includes("n"));
+  });
+
+  it("параметр имени из адреса и список личных параметров — об одном и том же", () => {
+    // Если ?n= когда-нибудь переименуют, а список забудут — этот тест упадёт.
+    const built = buildNameQuery("Пётр");
+    assert.ok(PRIVATE_PARAMS.some((p) => built.startsWith(`?${p}=`)), built);
+    assert.equal(publicUrl(`/numerologiya/26-07-1990${built}`), "/numerologiya/26-07-1990");
   });
 });

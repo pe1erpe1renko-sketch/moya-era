@@ -150,10 +150,18 @@ export type NumerologyChart = {
   personalYear: number;
   forYear: number;
   square: PythagorasResult;
-  /** имя, если его назвали, — для числа судьбы и обращения */
+  /**
+   * Имя, если его назвали, — только для обращения в тексте.
+   * Живёт исключительно в браузере: на сервер уходит уже число судьбы.
+   */
   name: string | null;
   /** число судьбы; null, если имени нет */
-  destiny: DestinyBreakdown | null;
+  destiny: number | null;
+  /**
+   * Как это число получилось. null, когда число известно, а имя — нет:
+   * так расчёт выглядит на сервере, и это честно, а не «сумма 0».
+   */
+  destinyBreakdown: DestinyBreakdown | null;
 };
 
 /**
@@ -174,6 +182,8 @@ export function buildNumerology(
   const check = new Date(Date.UTC(year, month - 1, day));
   if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) return null;
 
+  const breakdown = name ? destinyNumber(name) : null;
+
   return {
     date,
     day,
@@ -186,6 +196,26 @@ export function buildNumerology(
     forYear,
     square: pythagoras(day, month, year),
     name: name && isCountableName(name) ? name.trim() : null,
-    destiny: name ? destinyNumber(name) : null,
+    destiny: breakdown?.value ?? null,
+    destinyBreakdown: breakdown,
   };
+}
+
+/**
+ * Тот же расчёт, но число судьбы задано готовым числом, без имени.
+ *
+ * Так считает сервер. Имя ему не нужно: для выбора текста хватает числа,
+ * а имя — персональные данные, и незачем возить их по сети и класть в
+ * журналы запросов. Из имени число выводит браузер, сервер получает
+ * результат и проверяет, что это вообще возможное значение.
+ */
+export function buildNumerologyWithDestiny(
+  date: string,
+  forYear?: number,
+  destiny?: number | null,
+): NumerologyChart | null {
+  const chart = buildNumerology(date, forYear);
+  if (!chart) return null;
+  const value = destiny != null && NUMBER_VALUES.includes(destiny) ? destiny : null;
+  return { ...chart, destiny: value };
 }

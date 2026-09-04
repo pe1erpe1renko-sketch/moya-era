@@ -64,16 +64,19 @@ export function NumerologyDateView({
   const brief = briefSlots(chart);
   const sections = numerologySections(chart);
 
+  // На сервер уходит ЧИСЛО судьбы, а не имя: тексту хватает числа, а имя
+  // остаётся в браузере. По той же причине и подпись набора текстов
+  // считается по числу — от написания имени тексты не зависят.
   const { texts, busy, unlocked, load, reset } = useSlotTexts(
     "/api/content/numerologiya",
-    { date: chart.date, forYear: chart.forYear, name },
-    `${chart.date}|${chart.forYear}|${name ?? ""}`,
+    { date: chart.date, forYear: chart.forYear, destiny: chart.destiny },
+    `${chart.date}|${chart.forYear}|${chart.destiny ?? ""}`,
   );
 
   // С именем появилось число судьбы — его справку сервер не считал.
   useEffect(() => {
-    if (name) load(brief.map((s) => s.id));
-  }, [name, brief, load]);
+    if (chart.destiny) load(brief.map((s) => s.id));
+  }, [chart.destiny, brief, load]);
 
   useEffect(() => {
     if (unlocked) reset();
@@ -99,7 +102,7 @@ export function NumerologyDateView({
           {afterGreeting(
             chart.name,
             `Число жизненного пути ${chart.path}, число дня рождения ${chart.birthday}, число отношения ${chart.attitude}. Личный год на ${chart.forYear} — ${chart.personalYear}${
-              chart.destiny ? `. Число судьбы по имени — ${chart.destiny.value}` : ""
+              chart.destiny ? `. Число судьбы по имени — ${chart.destiny}` : ""
             }`,
           )}
         </p>
@@ -132,7 +135,7 @@ export function NumerologyDateView({
         <div className="rounded-[16px] border border-border bg-surface-1" style={{ padding: "16px 18px" }}>
           <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.55 }}>
             {chart.destiny
-              ? `Число судьбы ${chart.destiny.value} посчитано по имени «${chart.name}»: сумма значений всех букв ${chart.destiny.sum}, свёрнутая до одного числа`
+              ? `Число судьбы ${chart.destiny} посчитано по имени «${chart.name}»: сумма значений всех букв ${chart.destinyBreakdown?.sum}, свёрнутая до одного числа`
               : "Число судьбы считается по полному имени, а не по дате, — поэтому его здесь пока нет. Без имени считается всё остальное"}
           </p>
           <AddName name={chart.name} onApply={applyName} />

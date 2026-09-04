@@ -20,10 +20,13 @@ import {
   birthdayNumber,
   buildNumRequest,
   buildNumerology,
+  buildNumerologyWithDestiny,
   cellBucket,
   briefSlots,
   findNumerologySlot,
   lifePathNumber,
+  numContextFor,
+  numberValue,
   numerologySections,
   personalYear,
   pythagoras,
@@ -224,8 +227,65 @@ describe("разбор по дате", () => {
     const brief = briefSlots(named);
     assert.equal(brief.length, 5);
     assert.equal(brief[4].id, "num_brief_destiny");
-    assert.equal(brief[4].key, `num_brief_destiny_${named.destiny!.value}`);
-    assert.ok(named.destiny!.letters.length > 0);
+    assert.equal(brief[4].key, `num_brief_destiny_${named.destiny}`);
+    assert.ok(named.destinyBreakdown!.letters.length > 0);
+    assert.equal(named.destinyBreakdown!.value, named.destiny);
+  });
+
+  it("каждое число попадает в свой вопрос, а не в соседний", () => {
+    // Числа добавлялись по одному, и подстановка значения по цепочке
+    // условий однажды уже отдала числу судьбы значение личного года.
+    // Проверяем все пять сразу: у справки и у полного разбора одного
+    // числа значение в ключе совпадает со значением в расчёте.
+    const named = buildNumerology("1990-07-26", 2026, "Пётр Иванович Петров")!;
+    const expected: Record<string, number> = {
+      path: named.path,
+      birthday: named.birthday,
+      attitude: named.attitude,
+      year: named.personalYear,
+      destiny: named.destiny!,
+    };
+    assert.equal(new Set(Object.values(expected)).size >= 3, true, "числа не совпадают все разом");
+
+    for (const [id, value] of Object.entries(expected)) {
+      assert.equal(numberValue(named, id as never), value, id);
+
+      // И в ключе, и в промпте — одно и то же число. Раньше здесь
+      // расходилось: ключ говорил num_brief_destiny_8, а промпт писал
+      // текст про личный год.
+      for (const slot of [
+        briefSlots(named).find((s) => s.id === `num_brief_${id}`)!,
+        numerologySections(named)[0].slots.find((s) => s.id === `num_${id}`)!,
+      ]) {
+        const ctx = numContextFor(slot, named)!;
+        assert.ok(ctx, id);
+        assert.equal(slot.key, `${slot.id === `num_${id}` ? "num" : "num_brief"}_${id}_${value}`);
+        assert.equal(ctx.key, slot.key);
+        assert.equal("value" in ctx ? ctx.value : null, value, `${slot.id}: промпт про другое число`);
+        assert.ok(buildNumRequest(ctx).user.includes(`Число: ${value}`), slot.id);
+      }
+    }
+  });
+
+  it("число судьбы можно задать числом, без имени: так считает сервер", () => {
+    const server = buildNumerologyWithDestiny("1990-07-26", 2026, 8)!;
+    assert.equal(server.destiny, 8);
+    assert.equal(server.name, null, "имя на сервер не уходит");
+    assert.equal(server.destinyBreakdown, null, "и разложения по буквам он не знает");
+    assert.equal(briefSlots(server).length, 5);
+    assert.equal(briefSlots(server)[4].key, "num_brief_destiny_8");
+
+    // То же число из имени даёт тот же ключ — сервер и браузер сойдутся.
+    const named = buildNumerology("1990-07-26", 2026, "Пётр Иванович Петров")!;
+    const same = buildNumerologyWithDestiny("1990-07-26", 2026, named.destiny)!;
+    assert.deepEqual(briefSlots(same).map((x) => x.key), briefSlots(named).map((x) => x.key));
+  });
+
+  it("негодное число судьбы отбрасывается, а не подставляется", () => {
+    for (const bad of [0, 10, 33, -1, 4.5, NaN]) {
+      assert.equal(buildNumerologyWithDestiny("1990-07-26", 2026, bad)!.destiny, null, `${bad}`);
+    }
+    assert.equal(buildNumerologyWithDestiny("1990-07-26", 2026, null)!.destiny, null);
   });
 
   it("мусор вместо имени не создаёт числа судьбы", () => {

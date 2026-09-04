@@ -100,7 +100,7 @@ export function numberValue(chart: NumerologyChart, id: NumerologyNumberId): num
   if (id === "birthday") return chart.birthday;
   if (id === "attitude") return chart.attitude;
   if (id === "year") return chart.personalYear;
-  return chart.destiny?.value ?? null;
+  return chart.destiny;
 }
 
 /** Числа, которые есть в этом расчёте: без имени числа судьбы среди них нет. */
