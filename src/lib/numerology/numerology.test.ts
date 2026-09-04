@@ -207,6 +207,35 @@ describe("разбор по дате", () => {
     assert.equal(findNumerologySlot(chart, "нет такого"), null);
   });
 
+  it("без имени числа судьбы нет, и это не ошибка", () => {
+    assert.equal(chart.name, null);
+    assert.equal(chart.destiny, null);
+    assert.equal(briefSlots(chart).length, 4, "четыре числа по дате");
+    assert.ok(!briefSlots(chart).some((s) => s.id === "num_brief_destiny"));
+  });
+
+  it("с именем появляется пятое число и пятая справка", () => {
+    const named = buildNumerology("1990-07-26", 2026, "Пётр Иванович Петров")!;
+    assert.equal(named.name, "Пётр Иванович Петров");
+    assert.ok(named.destiny);
+    assert.equal(named.path, chart.path, "числа по дате от имени не зависят");
+    assert.equal(named.birthday, chart.birthday);
+
+    const brief = briefSlots(named);
+    assert.equal(brief.length, 5);
+    assert.equal(brief[4].id, "num_brief_destiny");
+    assert.equal(brief[4].key, `num_brief_destiny_${named.destiny!.value}`);
+    assert.ok(named.destiny!.letters.length > 0);
+  });
+
+  it("мусор вместо имени не создаёт числа судьбы", () => {
+    for (const junk of ["", "  ", "1", "42", "-"]) {
+      const c = buildNumerology("1990-07-26", 2026, junk)!;
+      assert.equal(c.destiny, null, `«${junk}»`);
+      assert.equal(c.name, null);
+    }
+  });
+
   it("личный год зависит от календарного года, остальное — нет", () => {
     const next = buildNumerology("1990-07-26", 2027)!;
     assert.equal(next.path, chart.path);

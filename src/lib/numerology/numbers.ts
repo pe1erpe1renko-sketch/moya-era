@@ -18,11 +18,11 @@
  * Обе дают другие ответы примерно на одной дате из десяти. Расхождения
  * зафиксированы в тесте поимённо: см. `fixtures/calculators.ts`.
  *
- * ЧИСЛА СУДЬБЫ ЗДЕСЬ НЕТ. В пифагорейской школе оно считается по полному
- * имени, а не по дате, — а имени мы не спрашиваем. Часть русских школ
- * называет числом судьбы то же самое число жизненного пути; выдумывать
- * ради названия второе число мы не стали.
+ * ЧИСЛО СУДЬБЫ считается по полному имени, а не по дате, — см.
+ * `letters.ts`. Имя необязательно: без него считается всё остальное.
  */
+
+import { destinyNumber, isCountableName, type DestinyBreakdown } from "./letters";
 
 const digits = (s: string) => s.split("").map(Number);
 const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
@@ -150,10 +150,22 @@ export type NumerologyChart = {
   personalYear: number;
   forYear: number;
   square: PythagorasResult;
+  /** имя, если его назвали, — для числа судьбы и обращения */
+  name: string | null;
+  /** число судьбы; null, если имени нет */
+  destiny: DestinyBreakdown | null;
 };
 
-/** Полный расчёт по дате. `forYear` — для какого календарного года считать личный год. */
-export function buildNumerology(date: string, forYear = new Date().getUTCFullYear()): NumerologyChart | null {
+/**
+ * Полный расчёт по дате.
+ * @param forYear для какого календарного года считать личный год
+ * @param name    полное имя; без него не будет числа судьбы, остальное будет
+ */
+export function buildNumerology(
+  date: string,
+  forYear = new Date().getUTCFullYear(),
+  name: string | null = null,
+): NumerologyChart | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!m) return null;
   const year = Number(m[1]);
@@ -173,5 +185,7 @@ export function buildNumerology(date: string, forYear = new Date().getUTCFullYea
     personalYear: personalYear(day, month, forYear),
     forYear,
     square: pythagoras(day, month, year),
+    name: name && isCountableName(name) ? name.trim() : null,
+    destiny: name ? destinyNumber(name) : null,
   };
 }

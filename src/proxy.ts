@@ -17,8 +17,11 @@ import { CHART_SYSTEMS, REFINABLE_SYSTEMS } from "@/lib/chartUrl";
 
 const CHART_PREFIXES = [...REFINABLE_SYSTEMS.map((s) => `/${CHART_SYSTEMS[s].slug}/`), "/sovmestimost/"];
 
-/** Параметры уточнения: у карты одного человека t и g, у пары t1/g1 и t2/g2. */
-const REFINE_PARAMS = ["t", "g", "t1", "g1", "t2", "g2"];
+/**
+ * Параметры уточнения: у карты одного человека t и g, у пары t1/g1 и
+ * t2/g2, у нумерологии n — имя для числа судьбы.
+ */
+const REFINE_PARAMS = ["t", "g", "t1", "g1", "t2", "g2", "n"];
 
 /** Уточнённый адрес карты — тот, у которого есть время или место. */
 function isRefinedChartUrl(request: NextRequest): boolean {

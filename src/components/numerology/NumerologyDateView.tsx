@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { briefSlots, numerologySections, type NumerologyChart } from "@/lib/numerology";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { afterGreeting, briefSlots, buildNumerology, numerologySections, type NumerologyChart } from "@/lib/numerology";
+import { buildNameQuery, parseNameQuery } from "@/lib/chartUrl";
+import { AddName } from "./AddName";
 import { BriefList, type BriefItem } from "@/components/chart/BriefList";
 import { useSlotTexts } from "@/components/chart/useSlotTexts";
 import { Paywall } from "@/components/reading/Paywall";
@@ -16,12 +18,17 @@ import { NumbersSchema, PythagorasSquare, WorkingNumbers } from "./NumbersSchema
  * разборы чисел и девять ячеек квадрата.
  *
  * Ни времени, ни места нумерологии не нужно: она считается по одной дате
- * целиком. Поэтому здесь нет ни кнопки уточнения, ни оговорок про полдень —
- * этой странице нечего оговаривать, и делать вид, что есть, не нужно.
+ * целиком. Поэтому здесь нет оговорок про полдень — этой странице нечего
+ * оговаривать, и делать вид, что есть, не нужно.
+ *
+ * Одного по дате всё же не посчитать — числа судьбы: оно выводится из
+ * имени. Имя необязательно, спрашивается прямо в результате и живёт в
+ * параметре адреса, а не в пути: чужое имя в общедоступной ссылке — это
+ * персональные данные, и такая страница закрыта от индексации.
  */
 
 export function NumerologyDateView({
-  chart,
+  chart: initialChart,
   initialTexts,
 }: {
   chart: NumerologyChart;
@@ -30,15 +37,43 @@ export function NumerologyDateView({
 }) {
   const [paywall, setPaywall] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  const [name, setName] = useState<string | null>(null);
+
+  // Имя приходит параметром адреса и применяется уже в браузере: сама
+  // страница кэшируется одна на всех и про имя ничего не знает.
+  useEffect(() => {
+    const read = () => setName(parseNameQuery(new URLSearchParams(window.location.search).get("n")));
+    read();
+    window.addEventListener("popstate", read);
+    return () => window.removeEventListener("popstate", read);
+  }, []);
+
+  const applyName = useCallback(
+    (next: string | null) => {
+      setName(next);
+      window.history.replaceState(null, "", `${window.location.pathname}${buildNameQuery(next)}`);
+    },
+    [],
+  );
+
+  const chart = useMemo(
+    () => (name ? (buildNumerology(initialChart.date, initialChart.forYear, name) ?? initialChart) : initialChart),
+    [name, initialChart],
+  );
 
   const brief = briefSlots(chart);
   const sections = numerologySections(chart);
 
   const { texts, busy, unlocked, load, reset } = useSlotTexts(
     "/api/content/numerologiya",
-    { date: chart.date, forYear: chart.forYear },
-    `${chart.date}|${chart.forYear}`,
+    { date: chart.date, forYear: chart.forYear, name },
+    `${chart.date}|${chart.forYear}|${name ?? ""}`,
   );
+
+  // С именем появилось число судьбы — его справку сервер не считал.
+  useEffect(() => {
+    if (name) load(brief.map((s) => s.id));
+  }, [name, brief, load]);
 
   useEffect(() => {
     if (unlocked) reset();
@@ -61,8 +96,12 @@ export function NumerologyDateView({
           Нумерология {formatBirthDate(chart.date)}
         </h1>
         <p className="mt-4 text-text-secondary" style={{ fontSize: "clamp(16px, 1.25vw, 20px)", lineHeight: 1.5 }}>
-          Число жизненного пути {chart.path}, число дня рождения {chart.birthday}, число отношения {chart.attitude}.
-          Личный год на {chart.forYear} — {chart.personalYear}
+          {afterGreeting(
+            chart.name,
+            `Число жизненного пути ${chart.path}, число дня рождения ${chart.birthday}, число отношения ${chart.attitude}. Личный год на ${chart.forYear} — ${chart.personalYear}${
+              chart.destiny ? `. Число судьбы по имени — ${chart.destiny.value}` : ""
+            }`,
+          )}
         </p>
       </header>
 
@@ -89,12 +128,23 @@ export function NumerologyDateView({
         </div>
       </div>
 
+      <section className="mt-10">
+        <div className="rounded-[16px] border border-border bg-surface-1" style={{ padding: "16px 18px" }}>
+          <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.55 }}>
+            {chart.destiny
+              ? `Число судьбы ${chart.destiny.value} посчитано по имени «${chart.name}»: сумма значений всех букв ${chart.destiny.sum}, свёрнутая до одного числа`
+              : "Число судьбы считается по полному имени, а не по дате, — поэтому его здесь пока нет. Без имени считается всё остальное"}
+          </p>
+          <AddName name={chart.name} onApply={applyName} />
+        </div>
+      </section>
+
       <section className="mt-12">
         <h2 className="font-display text-text-primary" style={{ fontSize: "clamp(24px, 2.2vw, 38px)", lineHeight: 1.1 }}>
           Коротко о каждом числе
         </h2>
         <p className="mt-2 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
-          Четыре числа этой даты. Подробный разбор каждого и девять ячеек квадрата — ниже
+          {afterGreeting(chart.name, "Числа этой даты коротко. Подробный разбор каждого и девять ячеек квадрата — ниже")}
         </p>
         <BriefList items={items} />
       </section>
@@ -104,7 +154,7 @@ export function NumerologyDateView({
           Полный разбор
         </h2>
         <p className="mt-2 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
-          Тринадцать вопросов: четыре числа подробно и каждая ячейка квадрата. Открывает подписка
+          {brief.length + 9} вопросов: каждое число подробно и каждая ячейка квадрата. Открывает подписка
         </p>
 
         <div className="mt-6 flex flex-col" style={{ gap: 28 }}>

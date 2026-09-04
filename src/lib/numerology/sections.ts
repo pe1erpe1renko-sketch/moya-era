@@ -25,7 +25,7 @@
 import { cellBucket, MAX_CELL_BUCKET, type NumerologyChart } from "./numbers";
 import { squareLabels } from "./texts";
 
-export type NumerologyNumberId = "path" | "birthday" | "attitude" | "year";
+export type NumerologyNumberId = "path" | "birthday" | "attitude" | "year" | "destiny";
 
 export type NumerologySlotKind = "brief" | "number" | "cell";
 
@@ -83,20 +83,35 @@ export const NUMEROLOGY_NUMBERS: Array<{
     about: "фаза девятилетнего цикла, в которой вы сейчас",
     question: "Личный год: что это за фаза и чем она занята",
   },
+  {
+    id: "destiny",
+    title: "Число судьбы",
+    about: "задача, которую несёт ваше имя",
+    question: "Число судьбы: какую задачу несёт ваше имя",
+  },
 ];
 
-/** Значение числа в конкретном расчёте. */
-export function numberValue(chart: NumerologyChart, id: NumerologyNumberId): number {
+/** Числа, которые считаются по одной дате. Число судьбы требует имени. */
+export const DATE_NUMBERS = NUMEROLOGY_NUMBERS.filter((n) => n.id !== "destiny");
+
+/** Значение числа в конкретном расчёте. null — считать его пока нечем. */
+export function numberValue(chart: NumerologyChart, id: NumerologyNumberId): number | null {
   if (id === "path") return chart.path;
   if (id === "birthday") return chart.birthday;
   if (id === "attitude") return chart.attitude;
-  return chart.personalYear;
+  if (id === "year") return chart.personalYear;
+  return chart.destiny?.value ?? null;
+}
+
+/** Числа, которые есть в этом расчёте: без имени числа судьбы среди них нет. */
+export function availableNumbers(chart: NumerologyChart) {
+  return NUMEROLOGY_NUMBERS.filter((n) => numberValue(chart, n.id) !== null);
 }
 
 /** Короткие справки — бесплатная часть страницы по дате. */
 export function briefSlots(chart: NumerologyChart): NumerologySlot[] {
-  return NUMEROLOGY_NUMBERS.map((n) => {
-    const value = numberValue(chart, n.id);
+  return availableNumbers(chart).map((n) => {
+    const value = numberValue(chart, n.id) as number;
     return {
       id: `num_brief_${n.id}`,
       label: `${n.title} — ${value}`,
@@ -113,10 +128,10 @@ export function numerologySections(chart: NumerologyChart): NumerologySection[] 
   return [
     {
       id: "num_numbers",
-      title: "Четыре числа подробно",
-      lead: "Каждое число отвечает на свой вопрос: как вы действуете, что даётся даром, каким вас видят и в какой фазе цикла вы сейчас.",
-      slots: NUMEROLOGY_NUMBERS.map((n) => {
-        const value = numberValue(chart, n.id);
+      title: "Числа подробно",
+      lead: "Каждое число отвечает на свой вопрос: как вы действуете, что даётся даром, каким вас видят и в какой фазе цикла вы сейчас. Число судьбы появляется, если назвать имя.",
+      slots: availableNumbers(chart).map((n) => {
+        const value = numberValue(chart, n.id) as number;
         return {
           id: `num_${n.id}`,
           label: `${n.question}`,

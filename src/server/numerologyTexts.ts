@@ -29,9 +29,12 @@ export type NumerologyAnswer =
   | { slotId: string; locked: true }
   | { slotId: string; locked: false; key: string; text: string; source: TextResult["source"] };
 
-/** Строит расчёт по дате. null, если дата негодная. */
-export function resolveNumerology(date: string, forYear?: number): NumerologyChart | null {
-  const chart = buildNumerology(date, forYear);
+/**
+ * Строит расчёт по дате. null, если дата негодная.
+ * Имя необязательно: без него не будет числа судьбы, остальное будет.
+ */
+export function resolveNumerology(date: string, forYear?: number, name?: string | null): NumerologyChart | null {
+  const chart = buildNumerology(date, forYear, name ?? null);
   if (!chart) return null;
   if (chart.year < 1900 || chart.year > new Date().getUTCFullYear()) return null;
   return chart;

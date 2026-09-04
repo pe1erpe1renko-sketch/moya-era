@@ -9,13 +9,16 @@ import {
   type ResultCtx,
 } from "@/components/direction/DirectionPage";
 import { DateCalculator } from "@/components/direction/DateCalculator";
+import { useState } from "react";
 import {
+  isCountableName,
   lifePath,
   lifePathNumber,
   pythagoras,
   squareLabels,
   type PythagorasResult,
 } from "@/lib/numerology";
+import { buildNameQuery } from "@/lib/chartUrl";
 import { MONTHS } from "@/lib/arcana";
 const numerologyAsset = "/images/numerology.png";
 import { NUMEROLOGY_LINES } from "@/lib/directionLines";
@@ -25,6 +28,8 @@ type NumerologyResult = {
   path: number;
   square: PythagorasResult;
   date: { day: number; month: number; year: number };
+  /** необязательное имя: с ним считается ещё и число судьбы */
+  name: string | null;
 };
 
 const ABOUT_PARAGRAPHS = [
@@ -45,7 +50,11 @@ const SAMPLE_PARAGRAPHS = [
 const FAQ = [
   {
     q: "Чем число пути отличается от числа судьбы",
-    a: "Число пути считается из полной даты рождения и описывает способ действовать. Числом судьбы в разных школах называют разное — чаще всего расчёт по имени, а не по дате. Мы работаем только с датой, поэтому используем однозначные названия.",
+    a: "Число пути считается из полной даты рождения и описывает способ действовать — оно не меняется всю жизнь. Число судьбы считается по полному имени: каждой букве соответствует цифра. Поэтому имя в форме необязательно: без него посчитается всё, кроме числа судьбы. И если имя меняется, меняется и это число — в отличие от всех остальных.",
+  },
+  {
+    q: "Какая таблица букв используется",
+    a: "Пифагорейская: буква получает номер своей позиции в алфавите, свёрнутый до одной цифры. Для латиницы это классическое A=1, B=2 и так далее до Z=8; для кириллицы то же правило по русскому алфавиту. Букву Ё приводим к Е, чтобы «Фёдор» и «Федор» давали одно число: это одно имя, как бы его ни написали. Халдейскую таблицу не используем — смешивать две школы в одном разборе нельзя.",
   },
   {
     q: "Почему 11 и 22 не сворачиваются",
@@ -74,19 +83,52 @@ function formatDate(d: { day: number; month: number; year: number }) {
   return `${d.day} ${MONTHS[d.month - 1]?.toLowerCase() ?? ""} ${d.year}`;
 }
 
+/**
+ * Дата обязательна, имя — нет. Имя нужно только числу судьбы: оно
+ * считается по буквам, а не по цифрам, и без имени его просто не бывает.
+ */
 function NumerologyCalculator({ stage, submit }: CalculatorApi<NumerologyResult>) {
+  const [name, setName] = useState("");
+
   return (
-    <DateCalculator
-      idPrefix="num"
-      stage={stage}
-      onSubmit={(date) =>
-        submit({
-          path: lifePathNumber(date.day, date.month, date.year),
-          square: pythagoras(date.day, date.month, date.year),
-          date,
-        })
-      }
-    />
+    <>
+      <DateCalculator
+        idPrefix="num"
+        stage={stage}
+        onSubmit={(date) =>
+          submit({
+            path: lifePathNumber(date.day, date.month, date.year),
+            square: pythagoras(date.day, date.month, date.year),
+            date,
+            name: isCountableName(name) ? name.trim() : null,
+          })
+        }
+      />
+
+      <div style={{ marginTop: 16 }}>
+        <label className="sr-only" htmlFor="num-name">
+          Полное имя
+        </label>
+        <input
+          id="num-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Полное имя, если хотите число судьбы"
+          className="qc-focus w-full text-[17px] text-text-primary transition-colors placeholder:text-text-secondary focus:border-text-accent"
+          style={{
+            height: 56,
+            background: "var(--surface-1)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            paddingInline: 16,
+          }}
+        />
+        <p className="text-text-secondary" style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
+          Полное имя — для числа судьбы. Без него посчитаем всё, что считается по дате
+        </p>
+      </div>
+    </>
   );
 }
 
@@ -130,6 +172,7 @@ function NumerologyResultContent({ result }: ResultCtx<NumerologyResult>) {
           date: toIsoDate(result.date.day, result.date.month, result.date.year),
           direction: "numerology",
         }}
+        query={buildNameQuery(result.name)}
       />
     </>
   );

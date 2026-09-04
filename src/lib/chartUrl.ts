@@ -55,8 +55,12 @@ export const CHART_SYSTEMS: Record<ChartSystem, { slug: string; title: string }>
   numerology: { slug: "numerologiya", title: "Нумерология" },
 };
 
-/** Системам, которым нужны время и место: у них бывает уточнённый адрес. */
-export const REFINABLE_SYSTEMS: ChartSystem[] = ["natal", "humandesign"];
+/**
+ * Системы, у которых бывает уточнённый адрес. Карте и дизайну человека
+ * нужны время и место, нумерологии — имя для числа судьбы. У всех таких
+ * адресов noindex и canonical на чистый адрес по дате.
+ */
+export const REFINABLE_SYSTEMS: ChartSystem[] = ["natal", "humandesign", "numerology"];
 
 /** Чистый адрес по дате — он же canonical. */
 export function chartPath(system: ChartSystem, iso: string): string {
@@ -113,6 +117,24 @@ export function buildPairQuery(first: ChartQuery, second: ChartQuery): string {
   if (second.time) parts.push(`t2=${second.time.replace(":", "")}`);
   if (second.placeId) parts.push(`g2=${second.placeId}`);
   return parts.length > 0 ? `?${parts.join("&")}` : "";
+}
+
+/**
+ * Имя в адресе нумерологии: ?n=Пётр%20Петров.
+ *
+ * В путь адреса имя не кладём принципиально. Кириллица в ссылке
+ * превращается в нечитаемую кашу из процентов, а чужое имя в
+ * общедоступном адресе — это персональные данные в чистом виде. Поэтому
+ * имя живёт в параметре, а такая страница закрыта от индексации.
+ */
+export function parseNameQuery(value: string | null | undefined): string | null {
+  const clean = (value ?? "").trim().replace(/\s+/g, " ").slice(0, 120);
+  return clean.length >= 2 ? clean : null;
+}
+
+export function buildNameQuery(name: string | null): string {
+  const clean = parseNameQuery(name);
+  return clean ? `?n=${encodeURIComponent(clean)}` : "";
 }
 
 /** Есть ли в запросе уточнение — от этого зависит noindex. */
