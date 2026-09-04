@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node src/lib/matrix/matrixEngine.test.js",
+    "test": "node src/lib/matrix/matrixEngine.test.js && node --import tsx --test \"src/lib/ephemeris/*.test.ts\"",
     "fill-texts": "node scripts/fill-texts.mjs",
     "llm-check": "node scripts/llm-check.mjs"
   },
@@ -16,6 +16,7 @@
     "@anthropic-ai/sdk": "^0.123.0",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.114.0",
+    "astronomy-engine": "^2.1.19",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -29,6 +30,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }
