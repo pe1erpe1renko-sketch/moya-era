@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { CHART_SYSTEMS } from "@/lib/chartUrl";
+import { CHART_SYSTEMS, REFINABLE_SYSTEMS } from "@/lib/chartUrl";
 
 /**
  * Обновляет сессию Supabase в cookies на каждом запросе, чтобы серверные
@@ -15,7 +15,7 @@ import { CHART_SYSTEMS } from "@/lib/chartUrl";
  * Follow оставляем: по ссылкам с такой страницы ходить можно.
  */
 
-const CHART_PREFIXES = [...Object.values(CHART_SYSTEMS).map((s) => `/${s.slug}/`), "/sovmestimost/"];
+const CHART_PREFIXES = [...REFINABLE_SYSTEMS.map((s) => `/${CHART_SYSTEMS[s].slug}/`), "/sovmestimost/"];
 
 /** Параметры уточнения: у карты одного человека t и g, у пары t1/g1 и t2/g2. */
 const REFINE_PARAMS = ["t", "g", "t1", "g1", "t2", "g2"];

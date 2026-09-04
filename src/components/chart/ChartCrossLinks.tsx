@@ -22,7 +22,7 @@ const linkClass =
   "qc-focus rounded-[12px] border border-border px-4 py-3 text-text-primary transition-colors hover:border-text-accent/60";
 
 export function ChartCrossLinks({ system, iso }: { system: ChartSystem; iso: string }) {
-  const other: ChartSystem = system === "natal" ? "humandesign" : "natal";
+  const others = (Object.keys(CHART_SYSTEMS) as ChartSystem[]).filter((s) => s !== system);
   const prev = dayShift(iso, -1);
   const next = dayShift(iso, 1);
   const inRange = (d: string) => chartUrlDateToIso(isoToChartUrlDate(d)) !== null;
@@ -33,9 +33,11 @@ export function ChartCrossLinks({ system, iso }: { system: ChartSystem; iso: str
         Эта же дата в других системах
       </div>
       <div className="mt-3 flex flex-wrap" style={{ gap: 10 }}>
-        <Link href={chartPath(other, iso)} className={linkClass} style={{ fontSize: 15 }}>
-          {CHART_SYSTEMS[other].title} на {formatBirthDate(iso)}
-        </Link>
+        {others.map((other) => (
+          <Link key={other} href={chartPath(other, iso)} className={linkClass} style={{ fontSize: 15 }}>
+            {CHART_SYSTEMS[other].title} на {formatBirthDate(iso)}
+          </Link>
+        ))}
         <Link href={readingPath("matrica", [iso])} className={linkClass} style={{ fontSize: 15 }}>
           Матрица судьбы на {formatBirthDate(iso)}
         </Link>

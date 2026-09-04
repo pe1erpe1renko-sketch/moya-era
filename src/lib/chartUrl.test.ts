@@ -136,13 +136,17 @@ describe("список дат для карты сайта", () => {
     assert.ok(!dates.includes("2001-02-29"));
   });
 
-  it("обеих систем хватает на файлы карты сайта по 50 000 адресов", () => {
+  it("каждой системе хватает файлов карты сайта по 50 000 адресов", () => {
     // Правило: не больше 50 000 адресов в файле. Проверяем, что нарезка
     // по 45 000 даёт целое число файлов и ни один не переполнен.
     const perFile = 45_000;
     const files = Math.ceil(dates.length / perFile);
     assert.ok(files >= 1);
     assert.ok(dates.length - (files - 1) * perFile <= 50_000);
-    assert.equal(Object.keys(CHART_SYSTEMS).length, 2);
+    // Три системы с адресами по дате: карта, дизайн человека, нумерология.
+    assert.equal(Object.keys(CHART_SYSTEMS).length, 3);
+    for (const system of Object.keys(CHART_SYSTEMS)) {
+      assert.match(chartPath(system as never, "1990-07-26"), /^\/[a-z-]+\/26-07-1990$/);
+    }
   });
 });

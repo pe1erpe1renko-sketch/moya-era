@@ -4,6 +4,8 @@ import { chartUrlDateToIso, type ChartSystem } from "@/lib/chartUrl";
 import { chartBody } from "@/lib/natal";
 import { resolveNatalChart } from "@/server/natalTexts";
 import { resolveHdChart } from "@/server/hdTexts";
+import { resolveNumerology } from "@/server/numerologyTexts";
+import { lifePath } from "@/lib/numerology";
 
 export const runtime = "nodejs";
 const size = { width: 1200, height: 630 };
@@ -38,14 +40,25 @@ function chartImage(system: ChartSystem, slug: string) {
     if (!sun) return null;
     heading = `Солнце ${sun.sign.inCase}`;
     sub = moon && !chart?.unknown.moonSign ? `Луна ${moon.sign.inCase}. Все планеты по знакам и разбор каждого положения` : "Все планеты по знакам и разбор каждого положения";
-  } else {
+  } else if (system === "humandesign") {
     const chart = resolveHdChart({ date: iso, time: null, placeId: null });
     if (!chart) return null;
     heading = chart.type.name;
     sub = `Стратегия «${chart.type.strategy}». Определённых центров: ${chart.definedCenters.length} из девяти`;
+  } else {
+    const chart = resolveNumerology(iso);
+    if (!chart) return null;
+    const card = lifePath.find((x) => x.n === chart.path);
+    heading = `Число пути ${chart.path}${card ? ` · ${card.title}` : ""}`;
+    sub = `День рождения ${chart.birthday}, отношение ${chart.attitude}, личный год ${chart.personalYear}`;
   }
 
-  const title = `${system === "natal" ? "Натальная карта" : "Дизайн человека"} · ${dots}`;
+  const SYSTEM_TITLE: Record<ChartSystem, string> = {
+    natal: "Натальная карта",
+    humandesign: "Дизайн человека",
+    numerology: "Нумерология",
+  };
+  const title = `${SYSTEM_TITLE[system]} · ${dots}`;
   return new ImageResponse(
     (
       <div style={frame}>
@@ -67,7 +80,7 @@ function chartImage(system: ChartSystem, slug: string) {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const chart = url.searchParams.get("chart");
-  if (chart === "natal" || chart === "humandesign") {
+  if (chart === "natal" || chart === "humandesign" || chart === "numerology") {
     const image = chartImage(chart, url.searchParams.get("date") ?? "");
     if (image) return image;
   }

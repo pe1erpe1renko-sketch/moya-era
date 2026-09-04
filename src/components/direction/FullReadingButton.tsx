@@ -11,6 +11,7 @@ import {
   type PendingBirth,
 } from "@/lib/pendingBirth";
 import { readingPath } from "@/lib/matrix";
+import { chartPath, chartUrlDateToIso, isoToChartUrlDate, type ChartSystem } from "@/lib/chartUrl";
 import { useGoToReading } from "@/components/reading/CalcTheater";
 import { track } from "@/components/analytics/track";
 
@@ -36,6 +37,13 @@ export type FullReadingButtonProps = {
  * Остальные направления пока ведут в кабинет через регистрацию —
  * до тех пор, пока у них не появятся свои страницы с адресами.
  */
+/** Направление витрины → система с постоянными адресами по дате. */
+const DIRECTION_SYSTEM: Record<string, ChartSystem | undefined> = {
+  numerology: "numerology",
+  natal: "natal",
+  humandesign: "humandesign",
+};
+
 export function FullReadingButton({
   pending = null,
   partnerDate = null,
@@ -63,6 +71,17 @@ export function FullReadingButton({
       track("calc_submit", { direction: "synastry" });
       go(`${readingPath("sovmestimost", [pending.date, partnerDate])}${query}`);
       return;
+    }
+    // У нумерологии, натальной карты и дизайна человека есть свои
+    // постоянные адреса: ведём туда, а не через регистрацию.
+    const system = DIRECTION_SYSTEM[dir ?? ""];
+    if (pending?.date && system) {
+      const iso = chartUrlDateToIso(isoToChartUrlDate(pending.date));
+      if (iso) {
+        track("calc_submit", { direction: dir });
+        go(`${chartPath(system, iso)}${query}`);
+        return;
+      }
     }
 
     if (!isAuthenticated || !user) {

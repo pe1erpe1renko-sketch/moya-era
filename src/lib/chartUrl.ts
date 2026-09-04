@@ -45,12 +45,18 @@ export function isoToChartUrlDate(iso: string): string {
   return `${d}-${m}-${y}`;
 }
 
-export type ChartSystem = "natal" | "humandesign";
+export type ChartSystem = "natal" | "humandesign" | "numerology";
 
 export const CHART_SYSTEMS: Record<ChartSystem, { slug: string; title: string }> = {
   natal: { slug: "natalnaya-karta", title: "Натальная карта" },
   humandesign: { slug: "dizayn-cheloveka", title: "Дизайн человека" },
+  // Нумерологии не нужны ни время, ни место: она считается по одной дате.
+  // Поэтому уточняющих параметров у её адресов не бывает.
+  numerology: { slug: "numerologiya", title: "Нумерология" },
 };
+
+/** Системам, которым нужны время и место: у них бывает уточнённый адрес. */
+export const REFINABLE_SYSTEMS: ChartSystem[] = ["natal", "humandesign"];
 
 /** Чистый адрес по дате — он же canonical. */
 export function chartPath(system: ChartSystem, iso: string): string {

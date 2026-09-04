@@ -26,6 +26,7 @@ export function GET() {
     `${SITE_URL}/sitemap.xml`,
     ...chartSitemaps("natal"),
     ...chartSitemaps("humandesign"),
+    ...chartSitemaps("numerology"),
   ];
   const now = new Date().toISOString();
   const body = `<?xml version="1.0" encoding="UTF-8"?>
