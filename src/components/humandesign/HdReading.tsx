@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { buildHumanDesignChart, hdSections, type HumanDesignChart } from "@/lib/humandesign";
+import { buildHumanDesignChart, hdDayVariation, hdSections, type HumanDesignChart } from "@/lib/humandesign";
+import { RefineBirth } from "@/components/common/RefineBirth";
 import { formatBirthDate } from "@/lib/pendingBirth";
 import { Paywall } from "@/components/reading/Paywall";
 import { Bodygraph, CenterList } from "./Bodygraph";
@@ -27,16 +28,95 @@ export function chartFromBirth(birth: BirthValue): HumanDesignChart {
   });
 }
 
-export function HdReading({ birth, variant = "full" }: { birth: BirthValue; variant?: "full" | "questions" }) {
-  const chart = useMemo(() => chartFromBirth(birth), [birth]);
+/**
+ * Меняется ли бодиграф за сутки рождения. Считается только когда время
+ * неизвестно: если результат за сутки не меняется, оговорок не нужно —
+ * он верен в любой час этого дня.
+ */
+export function useHdVariation(birth: BirthValue, chart: HumanDesignChart) {
+  return useMemo(() => {
+    if (!chart.approximate) return { preliminary: false, facts: [] as string[] };
+    const v = hdDayVariation(birth.date, birth.place?.tz ?? null, birth.place?.label ?? null);
+    return { preliminary: !v.stable, facts: v.facts };
+  }, [birth.date, birth.place?.tz, birth.place?.label, chart.approximate]);
+}
+
+/** Пометка «предварительно» рядом с названием типа. */
+export function PreliminaryBadge() {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border border-text-accent/50 px-3 py-1 text-text-accent"
+      style={{ fontSize: 12, letterSpacing: "0.04em" }}
+    >
+      предварительно
+    </span>
+  );
+}
+
+/** Почему расчёт получился приблизительным — ровно по тому, чего не хватает. */
+function whyApproximate(precision: "exact" | "noon" | "date_only", hasTime: boolean): string {
+  if (precision === "noon") return "Время рождения не указано, поэтому расчёт сделан на полдень по местному времени.";
+  if (hasTime) {
+    return "Место не выбрано из справочника, поэтому перевести указанный час во всемирное время нельзя — расчёт сделан на полдень.";
+  }
+  return "Ни время, ни место не указаны, поэтому расчёт сделан на полдень по всемирному времени.";
+}
+
+/** Что именно меняется за сутки и кнопка уточнения — под результатом. */
+export function HdVariationNote({
+  birth,
+  facts,
+  precision,
+  onRefine,
+}: {
+  birth: BirthValue;
+  facts: string[];
+  precision: "exact" | "noon" | "date_only";
+  onRefine: (next: BirthValue) => void;
+}) {
+  return (
+    <div className="mt-4 w-full max-w-full rounded-[14px] border border-border bg-surface-1" style={{ padding: "14px 18px" }}>
+      <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.55 }}>
+        {whyApproximate(precision, birth.time !== null)} В этот день результат за сутки меняется:
+      </p>
+      <ul className="mt-2 flex flex-col" style={{ gap: 6 }}>
+        {facts.map((f) => (
+          <li key={f} className="text-text-secondary" style={{ fontSize: 14, lineHeight: 1.5 }}>
+            · {f}
+          </li>
+        ))}
+      </ul>
+      <RefineBirth birth={birth} onRefine={onRefine} />
+    </div>
+  );
+}
+
+export function HdReading({
+  birth,
+  variant = "full",
+  onRefine,
+}: {
+  birth: BirthValue;
+  variant?: "full" | "questions";
+  /** уточнение времени и места: наверх, чтобы пересчитались все блоки */
+  onRefine?: (next: BirthValue) => void;
+}) {
+  const [local, setLocal] = useState(birth);
+  useEffect(() => setLocal(birth), [birth]);
+  const refine = (next: BirthValue) => {
+    setLocal(next);
+    onRefine?.(next);
+  };
+  const chart = useMemo(() => chartFromBirth(local), [local]);
+  const variation = useHdVariation(local, chart);
   const [active, setActive] = useState<string | null>(null);
   const [openSlot, setOpenSlot] = useState<string | null>(null);
   const [paywall, setPaywall] = useState(false);
 
   const { texts, busy, unlocked, reason, load, reset } = useHdTexts({
-    date: birth.date,
-    time: birth.time,
-    placeId: birth.place?.id ?? null,
+    date: local.date,
+    time: local.time,
+    placeId: local.place?.id ?? null,
   });
 
   const sections = useMemo(() => hdSections(chart), [chart]);
@@ -58,13 +138,23 @@ export function HdReading({ birth, variant = "full" }: { birth: BirthValue; vari
         <>
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <h2 className="font-display text-text-primary" style={{ fontSize: "clamp(24px, 2.2vw, 38px)", lineHeight: 1.1 }}>
-              Бодиграф на {formatBirthDate(birth.date)}
+              Бодиграф на {formatBirthDate(local.date)}
             </h2>
             <span className="text-text-secondary" style={{ fontSize: 14 }}>
-              {birth.time ?? "время не указано"}
-              {chart.place ? `, ${chart.place.name ?? ""}` : birth.placeText ? `, ${birth.placeText}` : ""}
+              {local.time ?? "время не указано"}
+              {chart.place ? `, ${chart.place.name ?? ""}` : local.placeText ? `, ${local.placeText}` : ""}
             </span>
+            {variation.preliminary && <PreliminaryBadge />}
           </div>
+
+          {variation.preliminary && (
+            <HdVariationNote
+              birth={local}
+              facts={variation.facts}
+              precision={chart.moment.precision}
+              onRefine={refine}
+            />
+          )}
 
           <HdNotes chart={chart} />
 
@@ -73,7 +163,7 @@ export function HdReading({ birth, variant = "full" }: { birth: BirthValue; vari
 
             <div>
               <div className="grid grid-cols-2 gap-4">
-                <Fact label="Тип" value={chart.type.name} />
+                <Fact label="Тип" value={chart.type.name} preliminary={variation.preliminary} />
                 <Fact label="Стратегия" value={chart.type.strategy} />
                 <Fact label="Авторитет" value={chart.authority.name} />
                 <Fact label="Профиль" value={chart.profile} />
@@ -179,7 +269,7 @@ export function HdReading({ birth, variant = "full" }: { birth: BirthValue; vari
       <Paywall
         open={paywall}
         onClose={() => setPaywall(false)}
-        date={birth.date}
+        date={local.date}
         freeCount={2}
         totalCount={totalSlots}
         reason={reason ?? undefined}
@@ -188,14 +278,17 @@ export function HdReading({ birth, variant = "full" }: { birth: BirthValue; vari
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+function Fact({ label, value, preliminary = false }: { label: string; value: string; preliminary?: boolean }) {
   return (
     <div>
       <div className="text-text-secondary" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>
         {label}
       </div>
-      <div className="mt-1 text-text-primary" style={{ fontSize: "clamp(16px, 1.3vw, 20px)", lineHeight: 1.25 }}>
-        {value}
+      <div className="mt-1 flex flex-wrap items-baseline gap-2">
+        <span className="text-text-primary" style={{ fontSize: "clamp(16px, 1.3vw, 20px)", lineHeight: 1.25 }}>
+          {value}
+        </span>
+        {preliminary && <span className="text-text-accent" style={{ fontSize: 12 }}>предварительно</span>}
       </div>
     </div>
   );

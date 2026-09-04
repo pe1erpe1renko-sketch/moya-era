@@ -5,12 +5,14 @@ import { formatZodiac } from "@/lib/ephemeris";
 import {
   buildNatalChart,
   chartBody,
+  natalDayVariation,
   natalSections,
   natalTextKey,
   pointName,
   type NatalChart,
   type NatalSlot,
 } from "@/lib/natal";
+import { RefineBirth } from "@/components/common/RefineBirth";
 import { formatBirthDate } from "@/lib/pendingBirth";
 import { Paywall } from "@/components/reading/Paywall";
 import { NatalPositions, NatalWheel } from "./NatalWheel";
@@ -25,35 +27,109 @@ import type { BirthValue } from "./BirthForm";
  * бесплатно читаются Солнце, Луна и асцендент, остальное по подписке.
  */
 
+export function chartFromBirth(birth: BirthValue): NatalChart {
+  return buildNatalChart({
+    date: birth.date,
+    time: birth.time,
+    tz: birth.place?.tz ?? null,
+    latitude: birth.place?.lat ?? null,
+    longitude: birth.place?.lon ?? null,
+    placeName: birth.place?.label ?? birth.placeText ?? null,
+  });
+}
+
+/**
+ * Меняются ли знаки планет за сутки рождения. Считается только когда время
+ * неизвестно: если за сутки ничего не меняется, оговорок не нужно.
+ * Отсутствие асцендента и домов — отдельный разговор, о нём говорит
+ * блок оговорок под шапкой.
+ */
+export function useNatalVariation(birth: BirthValue, chart: NatalChart) {
+  return useMemo(() => {
+    if (chart.moment.precision === "exact") return { preliminary: false, facts: [] as string[] };
+    const v = natalDayVariation(birth.date, birth.place?.tz ?? null, birth.place?.label ?? null);
+    return { preliminary: !v.stable, facts: v.facts };
+  }, [birth.date, birth.place?.tz, birth.place?.label, chart.moment.precision]);
+}
+
+/** Пометка «предварительно» рядом с главным результатом. */
+export function PreliminaryBadge() {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border border-text-accent/50 px-3 py-1 text-text-accent"
+      style={{ fontSize: 12, letterSpacing: "0.04em" }}
+    >
+      предварительно
+    </span>
+  );
+}
+
+/** Почему расчёт получился приблизительным — ровно по тому, чего не хватает. */
+function whyApproximate(precision: "exact" | "noon" | "date_only", hasTime: boolean): string {
+  if (precision === "noon") return "Время рождения не указано, поэтому расчёт сделан на полдень по местному времени.";
+  if (hasTime) {
+    return "Место не выбрано из справочника, поэтому перевести указанный час во всемирное время нельзя — расчёт сделан на полдень.";
+  }
+  return "Ни время, ни место не указаны, поэтому расчёт сделан на полдень по всемирному времени.";
+}
+
+/** Что меняется за сутки и кнопка уточнения — прямо под результатом. */
+export function NatalVariationNote({
+  birth,
+  facts,
+  precision,
+  onRefine,
+}: {
+  birth: BirthValue;
+  facts: string[];
+  precision: "exact" | "noon" | "date_only";
+  onRefine: (next: BirthValue) => void;
+}) {
+  return (
+    <div className="mt-4 w-full max-w-full rounded-[14px] border border-border bg-surface-1" style={{ padding: "14px 18px" }}>
+      <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.55 }}>
+        {whyApproximate(precision, birth.time !== null)} В этот день положения за сутки меняются:
+      </p>
+      <ul className="mt-2 flex flex-col" style={{ gap: 6 }}>
+        {facts.map((f) => (
+          <li key={f} className="text-text-secondary" style={{ fontSize: 14, lineHeight: 1.5 }}>
+            · {f}
+          </li>
+        ))}
+      </ul>
+      <RefineBirth birth={birth} onRefine={onRefine} />
+    </div>
+  );
+}
+
 export function NatalReading({
   birth,
   variant = "full",
+  onRefine,
 }: {
   birth: BirthValue;
   /** full — с кругом и положениями; questions — только вопросы разбора */
   variant?: "full" | "questions";
+  /** уточнение времени и места: наверх, чтобы пересчитались все блоки */
+  onRefine?: (next: BirthValue) => void;
 }) {
-  const chart = useMemo(
-    () =>
-      buildNatalChart({
-        date: birth.date,
-        time: birth.time,
-        tz: birth.place?.tz ?? null,
-        latitude: birth.place?.lat ?? null,
-        longitude: birth.place?.lon ?? null,
-        placeName: birth.place?.label ?? birth.placeText ?? null,
-      }),
-    [birth],
-  );
+  const [local, setLocal] = useState(birth);
+  useEffect(() => setLocal(birth), [birth]);
+  const refine = (next: BirthValue) => {
+    setLocal(next);
+    onRefine?.(next);
+  };
+  const chart = useMemo(() => chartFromBirth(local), [local]);
+  const variation = useNatalVariation(local, chart);
 
   const [active, setActive] = useState<string | null>(null);
   const [openSlot, setOpenSlot] = useState<string | null>(null);
   const [paywall, setPaywall] = useState(false);
 
   const { texts, busy, unlocked, reason, load, reset } = useNatalTexts({
-    date: birth.date,
-    time: birth.time,
-    placeId: birth.place?.id ?? null,
+    date: local.date,
+    time: local.time,
+    placeId: local.place?.id ?? null,
   });
 
   const sections = useMemo(() => natalSections(chart), [chart]);
@@ -88,13 +164,23 @@ export function NatalReading({
       {/* Шапка: что посчитано и по каким данным */}
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h2 className="font-display text-text-primary" style={{ fontSize: "clamp(24px, 2.2vw, 38px)", lineHeight: 1.1 }}>
-          Карта на {formatBirthDate(birth.date)}
+          Карта на {formatBirthDate(local.date)}
         </h2>
         <span className="text-text-secondary" style={{ fontSize: 14 }}>
-          {birth.time ? `${birth.time}` : "время не указано"}
-          {chart.place ? `, ${chart.place.name ?? ""}` : birth.placeText ? `, ${birth.placeText}` : ""}
+          {local.time ? `${local.time}` : "время не указано"}
+          {chart.place ? `, ${chart.place.name ?? ""}` : local.placeText ? `, ${local.placeText}` : ""}
         </span>
+        {variation.preliminary && <PreliminaryBadge />}
       </div>
+
+      {variation.preliminary && (
+        <NatalVariationNote
+          birth={local}
+          facts={variation.facts}
+          precision={chart.moment.precision}
+          onRefine={refine}
+        />
+      )}
 
       <ChartNotes chart={chart} />
 
@@ -198,7 +284,7 @@ export function NatalReading({
       <Paywall
         open={paywall}
         onClose={() => setPaywall(false)}
-        date={birth.date}
+        date={local.date}
         freeCount={3}
         totalCount={sections.reduce((n, s) => n + s.slots.length, 0)}
         reason={reason ?? undefined}

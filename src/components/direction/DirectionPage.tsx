@@ -27,6 +27,8 @@ export type CalculatorApi<R> = {
 
 export type ResultCtx<R> = {
   result: R;
+  /** Заменить результат, не возвращаясь к форме: уточнение времени и места. */
+  update: (next: R) => void;
   /** true, пока орбиты разогнаны сразу после расчёта */
   fast: boolean;
   reduced: boolean;
@@ -141,7 +143,7 @@ export function DirectionPage<R>({
 
   const showResult = stage === "result" && result !== null;
   const ctx: ResultCtx<R> | null = showResult
-    ? { result: result as R, fast, reduced }
+    ? { result: result as R, update: setResult, fast, reduced }
     : null;
 
   return (

@@ -17,3 +17,4 @@ export * from "./channels";
 export * from "./chart";
 export * from "./sections";
 export * from "./prompts";
+export * from "./variation";

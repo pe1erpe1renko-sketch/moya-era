@@ -11,7 +11,13 @@ const natalAsset = "/images/natal.png";
 import { buildNatalChart } from "@/lib/natal";
 import { NATAL_LINES } from "@/lib/directionLines";
 import { BirthForm, type BirthValue } from "@/components/natal/BirthForm";
-import { NatalHeadline, NatalReading } from "@/components/natal/NatalReading";
+import {
+  NatalHeadline,
+  NatalReading,
+  NatalVariationNote,
+  PreliminaryBadge,
+  useNatalVariation,
+} from "@/components/natal/NatalReading";
 import { NatalWheel } from "@/components/natal/NatalWheel";
 
 const ABOUT_PARAGRAPHS = [
@@ -87,15 +93,31 @@ function NatalStage({ result }: ResultCtx<BirthValue>) {
   return <NatalWheel chart={chart} className="mx-auto w-full max-w-[520px]" />;
 }
 
-function NatalResultContent({ result }: ResultCtx<BirthValue>) {
+function NatalResultContent({ result, update }: ResultCtx<BirthValue>) {
   const chart = useMemo(() => chartOf(result), [result]);
+  const variation = useNatalVariation(result, chart);
   return (
     <>
+      {variation.preliminary && (
+        <div className="mb-3">
+          <PreliminaryBadge />
+        </div>
+      )}
       <NatalHeadline chart={chart} />
-      <p className="text-text-secondary" style={{ marginTop: 20, fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
-        Разбор карты — ниже. Солнце, Луна и асцендент читаются бесплатно, остальные позиции и аспекты открывает
-        подписка
-      </p>
+
+      {variation.preliminary ? (
+        <NatalVariationNote
+          birth={result}
+          facts={variation.facts}
+          precision={chart.moment.precision}
+          onRefine={update}
+        />
+      ) : (
+        <p className="text-text-secondary" style={{ marginTop: 20, fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
+          Разбор карты — ниже. Солнце, Луна и асцендент читаются бесплатно, остальные позиции и аспекты открывает
+          подписка
+        </p>
+      )}
     </>
   );
 }
@@ -109,7 +131,7 @@ function NatalExplain({ ctx }: { ctx: ResultCtx<BirthValue> | null }) {
         style={{ paddingTop: "clamp(48px, 6vh, 90px)", paddingBottom: "clamp(64px, 8vh, 120px)" }}
       >
         <div className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
-          <NatalReading birth={ctx.result} variant="questions" />
+          <NatalReading birth={ctx.result} variant="questions" onRefine={ctx.update} />
         </div>
       </section>
     );

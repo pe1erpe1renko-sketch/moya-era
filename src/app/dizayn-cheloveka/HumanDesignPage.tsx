@@ -11,7 +11,13 @@ const hdAsset = "/images/humandesign2.png";
 import { HUMANDESIGN_LINES } from "@/lib/directionLines";
 import { BirthForm, type BirthValue } from "@/components/natal/BirthForm";
 import { Bodygraph } from "@/components/humandesign/Bodygraph";
-import { HdReading, chartFromBirth } from "@/components/humandesign/HdReading";
+import {
+  HdReading,
+  HdVariationNote,
+  PreliminaryBadge,
+  chartFromBirth,
+  useHdVariation,
+} from "@/components/humandesign/HdReading";
 
 const ABOUT_PARAGRAPHS = [
   "Дизайн человека появился в конце восьмидесятых и соединил четыре старые системы: астрологию, китайскую Книгу перемен, каббалу и учение о чакрах. Из них собрана одна схема — бодиграф, где девять центров соединены каналами.",
@@ -305,12 +311,16 @@ function HdStage({ result }: ResultCtx<BirthValue>) {
   );
 }
 
-function HdResultContent({ result }: ResultCtx<BirthValue>) {
+function HdResultContent({ result, update }: ResultCtx<BirthValue>) {
   const chart = useMemo(() => chartFromBirth(result), [result]);
+  const variation = useHdVariation(result, chart);
   return (
     <>
-      <div className="font-display text-text-primary" style={{ fontSize: "clamp(28px, 2.6vw, 46px)", lineHeight: 1.1 }}>
-        {chart.type.name}
+      <div className="flex flex-wrap items-baseline gap-3">
+        <div className="font-display text-text-primary" style={{ fontSize: "clamp(28px, 2.6vw, 46px)", lineHeight: 1.1 }}>
+          {chart.type.name}
+        </div>
+        {variation.preliminary && <PreliminaryBadge />}
       </div>
       <div className="mt-2 text-text-secondary" style={{ fontSize: "clamp(15px, 1.15vw, 18px)" }}>
         Стратегия: {chart.type.strategy.toLowerCase()}
@@ -318,9 +328,19 @@ function HdResultContent({ result }: ResultCtx<BirthValue>) {
       <p className="mt-4 text-text-primary" style={{ fontSize: "clamp(15px, 1.15vw, 18px)", lineHeight: 1.6 }}>
         {chart.type.strategyLine}
       </p>
-      <p className="mt-4 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
-        Разбор — ниже. Тип и стратегия читаются бесплатно, авторитет, профиль, каналы и ворота открывает подписка
-      </p>
+
+      {variation.preliminary ? (
+        <HdVariationNote
+          birth={result}
+          facts={variation.facts}
+          precision={chart.moment.precision}
+          onRefine={update}
+        />
+      ) : (
+        <p className="mt-4 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
+          Разбор — ниже. Тип и стратегия читаются бесплатно, авторитет, профиль, каналы и ворота открывает подписка
+        </p>
+      )}
     </>
   );
 }
@@ -334,7 +354,7 @@ function HdExplain({ ctx }: { ctx: ResultCtx<BirthValue> | null }) {
         style={{ paddingTop: "clamp(48px, 6vh, 90px)", paddingBottom: "clamp(64px, 8vh, 120px)" }}
       >
         <div className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
-          <HdReading birth={ctx.result} variant="questions" />
+          <HdReading birth={ctx.result} variant="questions" onRefine={ctx.update} />
         </div>
       </section>
     );

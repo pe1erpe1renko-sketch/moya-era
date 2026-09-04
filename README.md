@@ -15,6 +15,7 @@
 | Справочник мест рождения (GeoNames, CC BY 4.0) и перевод местного времени в UTC с историей поясов | `src/lib/geo/`, данные `src/lib/geo/data/places.json`, генератор `scripts/build-places.py`, подсказки `/api/places` |
 | **Натальная карта** — положения по знакам и домам, асцендент и MC, аспекты; сверена со Swiss Ephemeris на 20 датах | `src/lib/natal/`, колесо `src/components/natal/`, тексты `src/server/natalTexts.ts` + `/api/content/natal` |
 | **Дизайн человека** — 64 ворот, 36 каналов, 9 центров, тип, авторитет, профиль, крест; сверен с открытым калькулятором на 20 датах | `src/lib/humandesign/`, бодиграф `src/components/humandesign/`, тексты `src/server/hdTexts.ts` + `/api/content/humandesign` |
+| Проверка «меняется ли результат за сутки» и уточнение времени и места прямо в результате | `src/lib/geo/dayScan.ts`, `*/variation.ts`, `src/components/common/RefineBirth.tsx` |
 | Октаграмма, сферы и вопросы, замок, исследовательские блоки, театр загрузки | `src/components/reading/` |
 | Кабинет: аркан дня, личный год, календарь, люди, подписка, кредиты | `src/app/cabinet/` |
 | Наставник (чат с кредитами, потоковый ответ, блок безопасности) | `src/app/nastavnik/`, `src/app/api/chat/` |
