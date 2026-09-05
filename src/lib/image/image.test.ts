@@ -15,6 +15,7 @@ import { arcanaName, calculateMatrix } from "../matrix";
 import { dayCardArcanum, moscowDay } from "../tarot";
 import { buildAllImageData, buildImageData, findImageTheme, IMAGE_THEMES } from "./themes";
 import { CARD_HEIGHT, CARD_WIDTH, PAD, contentBottom, fit, layout, wrap } from "./layout";
+import { CODE_LENGTH, imagePath, isImageCode, newImageCode } from "./code";
 
 const NOW = new Date("2026-09-05T10:00:00Z");
 const BIRTH = "1998-07-13";
@@ -204,5 +205,44 @@ describe("разметка карточки", () => {
         }
       }
     }
+  });
+});
+
+describe("код карточки в адресе", () => {
+  it("нужной длины и из разрешённых знаков", () => {
+    for (let i = 0; i < 500; i++) {
+      const code = newImageCode();
+      assert.equal(code.length, CODE_LENGTH);
+      assert.ok(isImageCode(code), code);
+    }
+  });
+
+  it("без похожих знаков: код переписывают руками", () => {
+    // Ни нуля с «o», ни единицы с «l» — иначе это чужая карточка или 404.
+    const seen = new Set<string>();
+    for (let i = 0; i < 2000; i++) for (const ch of newImageCode()) seen.add(ch);
+    for (const bad of ["0", "o", "1", "l", "i"]) assert.ok(!seen.has(bad), `в коде встретился «${bad}»`);
+  });
+
+  it("коды не повторяются", () => {
+    const all = new Set(Array.from({ length: 5000 }, () => newImageCode()));
+    assert.equal(all.size, 5000, "на пяти тысячах кодов уже случилось совпадение");
+  });
+
+  it("мусор кодом не считается — в базу за ним не ходим", () => {
+    for (const bad of ["", "abc", "A".repeat(10), "0000000000", "aaaaaaaaaaa", "../../etc", "abcde fghi"]) {
+      assert.equal(isImageCode(bad), false, bad);
+    }
+  });
+
+  it("адрес собирается из кода", () => {
+    assert.equal(imagePath("k7m2q9xw4t"), "/obraz/k7m2q9xw4t");
+  });
+
+  it("из кода не выводится дата рождения: он случайный", () => {
+    // Один и тот же вход даёт разные коды — значит кода как функции от
+    // данных человека не существует.
+    const codes = new Set(Array.from({ length: 100 }, () => newImageCode()));
+    assert.ok(codes.size > 90, "коды подозрительно повторяются");
   });
 });

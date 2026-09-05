@@ -47,6 +47,8 @@ export function ImageDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [link, setLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const all = useMemo(() => buildAllImageData(birthIso), [birthIso]);
@@ -96,12 +98,37 @@ export function ImageDialog({
     setBusy(true);
     try {
       await downloadCard(canvasRef.current, `moyaera-${data.theme}-${isoToChartUrlDate(birthIso)}.jpg`);
+
+      // Запись у карточки появляется вместе со скачиванием: постоянный
+      // адрес нужен именно тогда, когда её собираются выкладывать.
+      // Не получилось — картинка всё равно скачана, и это главное.
+      const res = await fetch("/api/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        referrerPolicy: "no-referrer",
+        body: JSON.stringify({ date: birthIso, theme: data.theme, name, show: choices }),
+      });
+      if (res.ok) {
+        const { path } = (await res.json()) as { path: string };
+        setLink(`${window.location.origin}${path}`);
+        setCopied(false);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
-  }, [data, birthIso]);
+  }, [data, birthIso, name, choices]);
+
+  const copy = useCallback(async () => {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }, [link]);
 
   useEffect(() => {
     if (!open) return;
@@ -224,6 +251,33 @@ export function ImageDialog({
                 {busy ? "Сохраняем…" : "Скачать картинку"}
               </button>
             </div>
+
+            {link && (
+              <div className="mt-4 rounded-[12px] border border-border bg-surface-1" style={{ padding: "12px 14px" }}>
+                <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.5 }}>
+                  Картинка сохранена. У карточки есть и своя страница — по ссылке она развернётся превьюшкой
+                </p>
+                <div className="mt-2 flex flex-wrap items-center" style={{ gap: 10 }}>
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="qc-focus min-w-0 flex-1 truncate text-text-accent underline underline-offset-4"
+                    style={{ fontSize: 14 }}
+                  >
+                    {link}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={copy}
+                    className="qc-focus inline-flex flex-shrink-0 items-center rounded-[10px] border border-text-accent/50 px-4 text-[14px] text-text-primary transition-colors hover:bg-accent/10"
+                    style={{ height: 36 }}
+                  >
+                    {copied ? "Скопировано" : "Скопировать"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
