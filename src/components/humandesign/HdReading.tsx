@@ -220,7 +220,7 @@ export function HdReading({
                 const locked = value && "locked" in value;
                 const open = openSlot === slot.id;
                 return (
-                  <div key={slot.id} className="rounded-[14px] border border-border bg-surface-1" style={{ padding: "16px 18px" }}>
+                  <div key={slot.id} className="rounded-[14px] border border-border bg-surface-1" style={{ padding: "0 18px" }}>
                     <button
                       type="button"
                       onClick={() => {
@@ -234,7 +234,7 @@ export function HdReading({
                         if (slot.channel) setActive(`channel:${Math.min(slot.channel.a, slot.channel.b)}_${Math.max(slot.channel.a, slot.channel.b)}`);
                       }}
                       onMouseLeave={() => setActive(null)}
-                      className="flex w-full items-center justify-between gap-4 text-left"
+                      className="flex w-full items-center justify-between gap-4 py-4 text-left"
                       aria-expanded={open}
                     >
                       <span className="text-text-primary" style={{ fontSize: "clamp(15px, 1.15vw, 17px)", lineHeight: 1.4 }}>
@@ -246,7 +246,7 @@ export function HdReading({
                     </button>
 
                     {open && (
-                      <div className="mt-3">
+                      <div className="pb-4">
                         {busy.has(slot.id) ? (
                           <p className="text-text-secondary" style={{ fontSize: 15 }}>
                             Пишем разбор…

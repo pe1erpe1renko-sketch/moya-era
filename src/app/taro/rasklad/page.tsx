@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import SpreadMaker from "./SpreadMaker";
 
 /**
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
     "Четыре расклада на старших арканах: одна карта, три карты, отношения и большой расклад. Свой вопрос своими словами, разбор пишется под него.",
   alternates: { canonical: "/taro/rasklad" },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Расклад Таро на вопрос — Моя Эра",
     description: "Выберите вид расклада, задайте вопрос своими словами и вытяните карты.",
     type: "website",

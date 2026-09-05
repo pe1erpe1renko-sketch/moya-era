@@ -36,6 +36,13 @@ export type ReadingViewProps = {
   initialTexts: Record<string, SlotText>;
   freeCount: number;
   totalCount: number;
+  /**
+   * Разбор встроен в другую страницу (совместимость показывает матрицу
+   * пары одним из трёх взглядов). У той страницы уже есть свой h1, а два
+   * главных заголовка на одной странице — это два разных ответа
+   * поисковику на вопрос «о чём страница».
+   */
+  embedded?: boolean;
 };
 
 export function ReadingView(props: ReadingViewProps) {
@@ -123,9 +130,9 @@ export function ReadingView(props: ReadingViewProps) {
         <div className="mt-3 flex flex-col gap-5 sm:flex-row sm:items-start">
           <ArcanaImage n={core.C} width={132} rounded={14} priority />
           <div className="min-w-0">
-            <h1 className="font-display text-[clamp(32px,5vw,64px)] leading-[1.05] text-text-primary">
+            <Heading embedded={Boolean(props.embedded)} className="font-display text-[clamp(32px,5vw,64px)] leading-[1.05] text-text-primary">
               {isPair ? "Ядро пары" : "Центральный аркан"} — {core.C}, {arcanaName(core.C)}
-            </h1>
+            </Heading>
             <p className="mt-3 max-w-[720px] text-[clamp(16px,1.3vw,20px)] leading-[1.55] text-text-secondary">{arcanaLine(core.C)}</p>
             {/* Образ — рядом с центральным арканом, обычной кнопкой. */}
             {single && <MakeImageButton birthIso={single.birthDate} theme="core" style={{ height: 46, marginTop: 20 }} />}
@@ -172,15 +179,18 @@ export function ReadingView(props: ReadingViewProps) {
 
       {/* Схема */}
       <section className="mx-auto w-full max-w-[1200px] px-[5vw] pb-12 md:px-6">
+        {/* min-w-0 на обеих колонках обязателен: без него таблица чакр
+            со своей минимальной шириной распирала единственную колонку на
+            телефоне на 12px за край экрана. */}
         <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-start">
-          <div>
+          <div className="min-w-0">
             <h2 className="font-display text-[clamp(24px,2.6vw,36px)] text-text-primary">Схема матрицы</h2>
             <p className="mt-2 text-[15px] text-text-secondary">25 точек, каждая — своё число. Внешние восемь и центр — основа, промежуточные считаются из них. Нажмите на точку — увидите, что она значит.</p>
             <div className="mt-5">
               <Octagram matrix={matrix} showTimeline={!isPair} age={single?.today.age ?? null} onSelect={onSelectPoint} hints={hints} loading={busy} onGoToSection={goToSection} />
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             {single && <TodayCard matrix={single} texts={texts} onLoad={() => load(["day_energy"])} />}
             <ChakraTable matrix={matrix} />
           </div>
@@ -246,6 +256,11 @@ export function ReadingView(props: ReadingViewProps) {
   );
 }
 
+/** h1 у самостоятельной страницы, h2 — когда разбор встроен в другую. */
+function Heading({ embedded, className, children }: { embedded: boolean; className: string; children: React.ReactNode }) {
+  return embedded ? <h2 className={className}>{children}</h2> : <h1 className={className}>{children}</h1>;
+}
+
 /* ─── Сегодня ───────────────────────────────────────────────────── */
 
 function TodayCard({ matrix, texts, onLoad }: { matrix: Matrix; texts: Record<string, SlotText>; onLoad: () => void }) {
@@ -286,8 +301,12 @@ function ChakraTable({ matrix }: { matrix: Matrix | PairMatrix }) {
   return (
     <div className="rounded-[20px] border border-border/60 bg-surface-1/40 p-5 md:p-6">
       <div className="text-[13px] uppercase tracking-[0.08em] text-text-secondary">Карта здоровья по чакрам</div>
+      {/* Без min-width: четыре колонки коротких чисел и названий чакр
+          помещаются и в 311 точек, а принудительные 340 давали +12px к
+          ширине страницы на телефоне. Прокрутка остаётся на случай очень
+          узкого экрана. */}
       <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[340px] text-[14px]">
+        <table className="w-full text-[14px]">
           <thead>
             <tr className="text-left text-[12px] uppercase tracking-[0.06em] text-text-secondary">
               <th className="py-2 pr-2 font-normal">Чакра</th>

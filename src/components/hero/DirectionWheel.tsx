@@ -24,6 +24,17 @@ function computeMetrics(): Metrics {
   };
 }
 
+/**
+ * Координата в стилях — с двумя знаками после запятой.
+ *
+ * Не ради красоты: браузер хранит inline-стили с точностью до сотых, и
+ * React при гидратации сравнивает своё «-51.24217531171661px» с
+ * браузерным «-51.2422px», считает это расхождением и пишет в консоль на
+ * каждой загрузке главной. Число, которое сериализуется без потерь,
+ * совпадает само с собой.
+ */
+const px = (v: number) => Math.round(v * 100) / 100;
+
 /** wrap into (-180, 180] */
 const wrapDeg = (v: number) => {
   let a = ((v % 360) + 360) % 360;
@@ -178,8 +189,8 @@ export function DirectionWheel() {
       {directions.map((d, i) => {
         const angle = offset + i * STEP;
         const rad = (angle * Math.PI) / 180;
-        const x = centerX + r * Math.sin(rad);
-        const y = centerY - r * Math.cos(rad);
+        const x = px(centerX + r * Math.sin(rad));
+        const y = px(centerY - r * Math.cos(rad));
         const isActive = i === activeIndex;
         const size = isActive ? 10 : 8;
         return (
@@ -204,8 +215,8 @@ export function DirectionWheel() {
       {directions.map((d, i) => {
         const angle = offset + i * STEP;
         const rad = (angle * Math.PI) / 180;
-        const x = centerX + r * Math.sin(rad);
-        const y = centerY - r * Math.cos(rad);
+        const x = px(centerX + r * Math.sin(rad));
+        const y = px(centerY - r * Math.cos(rad));
         const isActive = i === activeIndex;
         return (
           <div

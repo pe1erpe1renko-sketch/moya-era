@@ -5,11 +5,20 @@ import Link from "next/link";
 import { directions, type Direction } from "@/lib/directions";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { CursorStarField } from "@/components/common/CursorStarField";
+import { seededRandom, seedFrom } from "@/lib/seededRandom";
 
 const CARD_GRADIENT =
   "linear-gradient(to bottom, rgba(3,25,30,0) 40%, rgba(3,25,30,0.6) 62%, rgba(3,25,30,0.9) 82%, rgba(3,25,30,0.97) 100%)";
 
-const rand = (min: number, max: number) => min + Math.random() * (max - min);
+/**
+ * Случайность с зерном, а не `Math.random`: разметка карточки собирается
+ * и на сервере, и в браузере, и звёзды должны лечь одинаково — иначе
+ * React при гидратации находит расхождение и пишет об этом в консоль.
+ */
+const makeRand = (seed: number) => {
+  const next = seededRandom(seed);
+  return (min: number, max: number) => min + next() * (max - min);
+};
 
 const INSET = 24;
 
@@ -41,7 +50,8 @@ function perimeterPos(i: number, total: number) {
   return { x: `${a}px`, y: `calc(${q * 100}% - ${q * 2 * a}px + ${a}px)` };
 }
 
-function buildCardStars(count: number): CardStar[] {
+function buildCardStars(count: number, seed: number): CardStar[] {
+  const rand = makeRand(seed);
   return Array.from({ length: count }, (_, i) => ({
     id: i,
     fromX: rand(-38, 138),
@@ -106,7 +116,7 @@ function DirectionCard({
   cabinetLinks?: boolean;
 }) {
   const [active, setActive] = useState(false);
-  const stars = useMemo(() => buildCardStars(14), []);
+  const stars = useMemo(() => buildCardStars(14, seedFrom(item.id)), [item.id]);
 
   return (
     <div className="relative aspect-square w-[62vw] shrink-0 md:w-auto md:shrink">

@@ -44,7 +44,10 @@ export async function POST(req: Request) {
     const reply = LLM_ENABLED
       ? await demoReply(message)
       : "Наставник появится, когда будет подключён ключ нейросети (LLM_API_KEY). Пока попробуйте один из вопросов ниже — они покажут, как устроен разговор.";
-    return new Response(reply, { headers: { "Content-Type": "text/plain; charset=utf-8", "X-Credits-Left": "∞" } });
+    // Без X-Credits-Left: в демо списаний нет, а «∞» в заголовке ронял
+    // ответ целиком — HTTP-заголовки принимают только латиницу-1, и Node
+    // бросал TypeError на каждом сообщении наставнику.
+    return new Response(reply, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
 
   const sb = supabaseService();

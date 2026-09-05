@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import NumerologyPage from "./NumerologyPage";
 
 export const metadata: Metadata = {
@@ -6,6 +7,7 @@ export const metadata: Metadata = {
   description: "Бесплатный расчёт числа жизненного пути и квадрата Пифагора по дате рождения, с объяснением каждого шага.",
   alternates: { canonical: "/numerologiya" },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Нумерология по дате рождения: число судьбы и квадрат Пифагора — Моя Эра",
     description: "Бесплатный расчёт числа жизненного пути и квадрата Пифагора по дате рождения, с объяснением каждого шага.",
     type: "website",

@@ -84,8 +84,9 @@ export default function MentorPage() {
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
       const tid = res.headers.get("X-Thread-Id");
       if (tid && tid !== threadId) setThreadId(tid);
+      // В демо заголовка нет вовсе — остаток не меняется.
       const left = res.headers.get("X-Credits-Left");
-      if (left && left !== "∞") setCredits(Number(left));
+      if (left !== null && /^\d+$/.test(left)) setCredits(Number(left));
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -126,9 +127,12 @@ export default function MentorPage() {
           </div>
         </div>
 
+        {/* min-w-0 на обеих колонках: без него выпадающий список «О ком
+            говорим» со своей минимальной шириной распирал страницу на
+            телефоне на 31px за край экрана. */}
         <div className="mt-6 grid gap-4 md:grid-cols-[240px_1fr]">
           {/* Слева: о ком и история */}
-          <aside className="space-y-4">
+          <aside className="min-w-0 space-y-4">
             <div className="rounded-[16px] border border-border/60 bg-surface-1/40 p-4">
               <div className="text-[12px] uppercase tracking-[0.08em] text-text-secondary">О ком говорим</div>
               <select value={personId ?? ""} onChange={(e) => { setPersonId(e.target.value || null); setThreadId(null); setMessages([]); }} className="qc-focus mt-2 h-11 w-full appearance-none rounded-[12px] border border-border bg-surface-1 px-3 text-[15px] text-text-primary">
@@ -158,7 +162,7 @@ export default function MentorPage() {
           </aside>
 
           {/* Чат */}
-          <section className="flex min-h-[520px] flex-col rounded-[20px] border border-border/60 bg-surface-1/30">
+          <section className="flex min-h-[520px] min-w-0 flex-col rounded-[20px] border border-border/60 bg-surface-1/30">
             <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto p-4 md:p-6" style={{ maxHeight: "60vh" }}>
               {messages.length === 0 && (
                 <div>
@@ -190,13 +194,16 @@ export default function MentorPage() {
               }}
               className="flex gap-2 border-t border-border/40 p-3 md:p-4"
             >
+              {/* min-w-0 у поля: у <input> есть своя минимальная ширина, и
+                  без него поле с кнопкой не помещались в 390 точек — страница
+                  уезжала вправо на 17px. */}
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ваш вопрос…"
                 maxLength={1500}
                 disabled={busy}
-                className="qc-focus h-12 flex-1 rounded-[12px] border border-border bg-surface-1 px-4 text-[16px] text-text-primary focus:border-text-accent"
+                className="qc-focus h-12 min-w-0 flex-1 rounded-[12px] border border-border bg-surface-1 px-4 text-[16px] text-text-primary focus:border-text-accent"
               />
               <button type="submit" disabled={busy || !input.trim()} className="h-12 rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground disabled:opacity-40">
                 {busy ? "…" : "Отправить"}

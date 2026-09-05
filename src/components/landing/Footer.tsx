@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { directions } from "@/lib/directions";
+import { CONTACT_EMAIL, TELEGRAM_URL } from "@/lib/env";
 
 const SERVICE = [
   { label: "О сервисе", to: "/about" as const },
@@ -42,14 +43,23 @@ export function Footer() {
             <p className="mt-[14px] max-w-[280px] text-[14px] text-text-secondary">
               Шесть систем считают одного человека и складываются в один профиль
             </p>
-            <div className="mt-6 flex flex-col gap-[10px]">
-              <a href="https://t.me/" className="text-text-accent text-[14px] underline-offset-4 hover:underline">
-                Telegram
-              </a>
-              <a href="mailto:hello@moyaera.ru" className="text-text-accent text-[14px] underline-offset-4 hover:underline">
-                hello@moyaera.ru
-              </a>
-            </div>
+            {/* Контакты появляются, когда заданы настройками. Выдуманный
+                адрес хуже отсутствующего: человек напишет и не получит
+                ответа. */}
+            {(TELEGRAM_URL || CONTACT_EMAIL) && (
+              <div className="mt-6 flex flex-col gap-[10px]">
+                {TELEGRAM_URL && (
+                  <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-text-accent text-[14px] underline-offset-4 hover:underline">
+                    Telegram
+                  </a>
+                )}
+                {CONTACT_EMAIL && (
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="text-text-accent text-[14px] underline-offset-4 hover:underline">
+                    {CONTACT_EMAIL}
+                  </a>
+                )}
+              </div>
+            )}
             <p className="mt-6 text-[12px] text-text-secondary opacity-70">
               Оплата картами Мир, Visa, Mastercard
             </p>

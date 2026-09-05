@@ -34,16 +34,25 @@ export * from "./contentPositions";
 
 const URL_DATE = /^(\d{2})-(\d{2})-(\d{4})$/;
 
-/** '13-07-1998' → '1998-07-13'. null, если формат не тот или даты не существует. */
-export function urlDateToIso(slug: string): string | null {
+/**
+ * '13-07-1998' → '1998-07-13'. null, если формат не тот, даты не существует
+ * или она ещё не наступила.
+ *
+ * Будущее отсекается по дню, а не по году: проверка «год не больше
+ * текущего» пропускала 31 декабря этого года, и сайт строил матрицу
+ * человеку, который ещё не родился, — с заголовком, OG-картинкой и
+ * адресом, годным для индексации.
+ */
+export function urlDateToIso(slug: string, now: Date = new Date()): string | null {
   const m = URL_DATE.exec(slug);
   if (!m) return null;
   const [, d, mo, y] = m;
   const iso = `${y}-${mo}-${d}`;
   const parsed = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d)));
   if (parsed.getUTCMonth() !== Number(mo) - 1 || parsed.getUTCDate() !== Number(d)) return null;
-  const year = Number(y);
-  if (year < 1900 || year > new Date().getFullYear()) return null;
+  if (Number(y) < 1900) return null;
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  if (parsed.getTime() > today) return null;
   return iso;
 }
 

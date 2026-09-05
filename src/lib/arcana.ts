@@ -291,3 +291,16 @@ export function isValidDate(day: number, month: number, year: number): boolean {
     date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
   );
 }
+
+/**
+ * Дата рождения ещё не наступила.
+ *
+ * Списки годов в калькуляторах кончаются текущим годом, но день и месяц
+ * внутри него можно выбрать любые — и 31 декабря проходило как дата
+ * рождения. Одна проверка на все три калькулятора, чтобы они не
+ * расходились в том, что считать будущим.
+ */
+export function isFutureDate(day: number, month: number, year: number, now: Date = new Date()): boolean {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return new Date(year, month - 1, day).getTime() > today;
+}

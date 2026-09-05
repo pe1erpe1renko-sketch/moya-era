@@ -27,6 +27,9 @@
 | Переменная | Откуда | Где нужна |
 |---|---|---|
 | `NEXT_PUBLIC_SITE_URL` | боевой домен, `https://moyaera.ru` | canonical, OG, карты сайта, **подпись на карточке образа** и ссылка приглашения. Пока не задан — везде подставляется рабочий адрес на Vercel, чтобы ссылки вели не в никуда |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | почта для связи, например `hello@<домен>` | подвал сайта. Не задана — строки с почтой нет |
+| `NEXT_PUBLIC_TELEGRAM_URL` | ссылка на канал или чат, `https://t.me/<имя>` | подвал сайта. Не задана — строки с телеграмом нет |
+| `BILLING_AUTO_RENEW` | `1` — только после появления оферты с условиями автосписания | задача автопродления. Без переменной не делает ничего |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API → Project URL | клиент и сервер |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | там же → `anon` `public` | клиент и сервер |
 | `SUPABASE_SERVICE_ROLE_KEY` | там же → `service_role` **secret** | **только сервер**. Никогда не добавлять префикс `NEXT_PUBLIC_` |
@@ -113,7 +116,7 @@
 | 22 иллюстрации арканов | `public/arcana/01.jpeg … 22.jpeg` | **Получены и лежат в репозитории.** Новые версии кладутся тем же скриптом: `python3 scripts/build-arcana.py <каталог>` — он положит оригиналы и уменьшенные наборы `sm/` и `md/`. Адреса собирает `src/lib/arcanaImage.ts`, показывает `src/components/arcana/ArcanaImage.tsx` |
 | Юридические тексты | `src/app/offer/page.tsx`, `privacy`, `consent`, `subscription-terms` | Заменить `body` в компоненте `DocPage`, убрать `draftNotice` |
 | Реквизиты в подвале | `src/components/landing/Footer.tsx` | Сейчас «ИП [ФИО] · ИНН [__] · ОГРНИП [__]» |
-| Почта и Telegram в подвале | там же | `hello@moyaera.ru`, ссылка на Telegram |
+| Почта и Telegram в подвале | переменные `NEXT_PUBLIC_CONTACT_EMAIL` и `NEXT_PUBLIC_TELEGRAM_URL` | Пока не заданы — контактов в подвале нет вовсе. Раньше там стояли `hello@moyaera.ru` (домена не существует) и голая ссылка на t.me — обе вели в никуда |
 
 ---
 

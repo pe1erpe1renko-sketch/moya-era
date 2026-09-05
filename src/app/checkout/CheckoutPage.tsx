@@ -35,7 +35,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      const back = `/checkout?${search.toString()}`;
+      const back = search.toString() ? `/checkout?${search.toString()}` : "/checkout";
       router.replace(`/register?next=${encodeURIComponent(back)}`);
     }
   }, [loading, isAuthenticated, router, search]);

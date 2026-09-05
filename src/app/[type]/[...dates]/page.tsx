@@ -45,7 +45,7 @@ type Params = { type: string; dates: string[] };
 function parse(params: Params) {
   const type = ALL_CALC_TYPES.find((t) => t.slug === params.type);
   if (!type) return null;
-  const isoDates = params.dates.map(urlDateToIso);
+  const isoDates = params.dates.map((d) => urlDateToIso(d));
   if (isoDates.some((d) => d === null)) return null;
   if (isoDates.length !== (type.pair ? 2 : 1)) return null;
   return { type, isoDates: isoDates as string[], urlDates: params.dates };

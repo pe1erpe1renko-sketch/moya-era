@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import { directions } from "@/lib/directions";
 import ReadingPage from "./ReadingPage";
@@ -7,6 +8,7 @@ export const metadata: Metadata = {
   title: "Разбор — Моя Эра",
   description: "Разбор по направлению в личном кабинете Моя Эра: открытая часть и разделы полного разбора.",
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Разбор — Моя Эра",
     description: "Открытая часть разбора и состав полного разбора.",
     type: "website",

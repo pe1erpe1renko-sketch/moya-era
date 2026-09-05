@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MONTHS, isValidDate } from "@/lib/arcana";
+import { MONTHS, isFutureDate, isValidDate } from "@/lib/arcana";
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
@@ -122,7 +122,8 @@ export function DateCalculator({ idPrefix, stage, onSubmit }: DateCalculatorProp
 
   const complete = day !== "" && month !== "" && year !== "";
   const dateInvalid = complete && !isValidDate(Number(day), Number(month), Number(year));
-  const disabled = !complete || dateInvalid || stage === "loading";
+  const dateFuture = complete && !dateInvalid && isFutureDate(Number(day), Number(month), Number(year));
+  const disabled = !complete || dateInvalid || dateFuture || stage === "loading";
 
   return (
     <>
@@ -191,6 +192,11 @@ export function DateCalculator({ idPrefix, stage, onSubmit }: DateCalculatorProp
       {dateInvalid ? (
         <p className="text-text-secondary" style={{ marginTop: 10, fontSize: 14 }}>
           Такой даты не существует
+        </p>
+      ) : null}
+      {dateFuture ? (
+        <p className="text-text-secondary" style={{ marginTop: 10, fontSize: 14 }}>
+          Эта дата ещё не наступила
         </p>
       ) : null}
 

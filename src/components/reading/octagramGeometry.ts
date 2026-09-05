@@ -13,7 +13,18 @@ export const CY = 200;
 export const R = 158; // радиус внешних точек
 export const RING_R = 184; // кольцо возрастной шкалы
 
-const D = R * Math.SQRT1_2; // проекция диагонали
+/**
+ * Координаты — с точностью до тысячной доли единицы viewBox.
+ *
+ * `Math.cos`/`Math.sin` у Node и у браузера не обязаны совпадать в
+ * последнем знаке — и не совпадают: сервер отдавал 47.00959133633165, а
+ * браузер насчитал 47.009591336331624. React видел это как расхождение
+ * при гидратации на каждой странице разбора. Тысячная доля при размере
+ * схемы 400 единиц глазом неразличима.
+ */
+const r3 = (v: number) => Math.round(v * 1000) / 1000;
+
+const D = r3(R * Math.SQRT1_2); // проекция диагонали
 
 export type PointKind = "outer" | "center" | "axis" | "diagonal";
 
@@ -101,8 +112,8 @@ export function timelineRing(): Array<{ age: number; x: number; y: number; major
     const angle = Math.PI - (i / 32) * Math.PI * 2;
     out.push({
       age,
-      x: CX + RING_R * Math.cos(angle),
-      y: CY - RING_R * Math.sin(angle),
+      x: r3(CX + RING_R * Math.cos(angle)),
+      y: r3(CY - RING_R * Math.sin(angle)),
       major: age % 10 === 0,
     });
   }

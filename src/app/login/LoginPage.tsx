@@ -107,13 +107,13 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-[18px] flex flex-col items-center gap-2">
-          <Link href="/register" className="text-text-accent text-[15px] hover:underline">
+          <Link href="/register" className="py-2 text-text-accent text-[15px] hover:underline">
             Создать профиль
           </Link>
           <button
             type="button"
             onClick={() => setRecoverNote(true)}
-            className="text-[13px] text-text-secondary hover:underline"
+            className="py-2 text-[13px] text-text-secondary hover:underline"
           >
             Забыл пароль
           </button>

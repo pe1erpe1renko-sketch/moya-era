@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { MONTHS } from "@/lib/arcana";
+import { MONTHS, isFutureDate } from "@/lib/arcana";
 import { toIsoDate } from "@/lib/pendingBirth";
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -24,6 +24,7 @@ function isValid(d: number, m: number, y: number) {
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
 }
 
+
 export type DateFieldProps = {
   label?: string;
   submitLabel?: string;
@@ -38,7 +39,10 @@ export function DateField({ label, submitLabel = "Рассчитать", compact
   const [d, setD] = useState<number | "">("");
   const [m, setM] = useState<number | "">("");
   const [y, setY] = useState<number | "">("");
-  const ready = d !== "" && m !== "" && y !== "" && isValid(d, m, y);
+  const complete = d !== "" && m !== "" && y !== "";
+  const invalid = complete && !isValid(d as number, m as number, y as number);
+  const future = complete && !invalid && isFutureDate(d as number, m as number, y as number);
+  const ready = complete && !invalid && !future;
 
   return (
     <form
@@ -89,6 +93,19 @@ export function DateField({ label, submitLabel = "Рассчитать", compact
           {busy ? "…" : submitLabel}
         </button>
       </div>
+      {/* Отключённая кнопка без объяснения — это тупик: человек не
+          понимает, почему нельзя нажать. Говорим, что именно не так, тем
+          же словом, что и остальные калькуляторы сайта. */}
+      {invalid && (
+        <p role="alert" className="mt-2 text-[13px] text-text-danger">
+          Такой даты не существует — проверьте день и месяц
+        </p>
+      )}
+      {future && (
+        <p role="alert" className="mt-2 text-[13px] text-text-danger">
+          Эта дата ещё не наступила
+        </p>
+      )}
     </form>
   );
 }

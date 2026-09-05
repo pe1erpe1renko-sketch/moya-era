@@ -113,6 +113,7 @@ git push -u origin main
 2. Environment Variables — все из `.env.example`. `SUPABASE_SERVICE_ROLE_KEY`, `LLM_API_KEY`, `YOOKASSA_*` — без префикса `NEXT_PUBLIC_`, они серверные.
 3. Deploy. Домен — Settings → Domains.
 4. `NEXT_PUBLIC_SITE_URL` поставить равным боевому домену (для canonical, OG и карт сайта).
+   Контакты в подвале — `NEXT_PUBLIC_CONTACT_EMAIL` и `NEXT_PUBLIC_TELEGRAM_URL`; пока не заданы, подвал их не показывает (выдуманный адрес хуже отсутствующего).
 5. После первого деплоя отдать в Яндекс.Вебмастер и Search Console адрес
    `https://<домен>/sitemap-index.xml` — в нём базовые страницы и по файлу
    на каждую систему карт (по 31 тысяче адресов). Страницы по датам

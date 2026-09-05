@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const raw = (url.searchParams.get("dates") ?? "").split(",").filter(Boolean);
-  const dates = raw.map(urlDateToIso);
+  const dates = raw.map((d) => urlDateToIso(d));
   if (dates.length === 0 || dates.some((d) => d === null)) {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }

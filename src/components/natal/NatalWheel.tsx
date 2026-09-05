@@ -20,6 +20,8 @@ import { pointGlyph, pointName, type Aspect, type NatalChart } from "@/lib/natal
  */
 
 const SIZE = 100;
+
+const r3 = (v: number) => Math.round(v * 1000) / 1000;
 const CENTER = SIZE / 2;
 
 /** Радиусы колец в единицах viewBox. */
@@ -60,7 +62,11 @@ export function NatalWheel({ chart, active = null, onActivate, className }: Nata
    */
   const point = (longitude: number, radius: number) => {
     const a = (norm360(longitude - rotation) * Math.PI) / 180;
-    return [CENTER - radius * Math.cos(a), CENTER + radius * Math.sin(a)] as const;
+    // До тысячных: `Math.cos`/`Math.sin` у Node и у браузера расходятся в
+    // последнем знаке, и React при гидратации видел в путях круга
+    // «9.296806022131399» против «9.296806022131392». При viewBox в сто
+    // единиц тысячная доля — меньше пикселя на любом экране.
+    return [r3(CENTER - radius * Math.cos(a)), r3(CENTER + radius * Math.sin(a))] as const;
   };
 
   const arcPath = (from: number, to: number, rOuter: number, rInner: number) => {

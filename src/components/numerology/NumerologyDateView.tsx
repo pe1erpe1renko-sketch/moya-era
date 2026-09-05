@@ -187,7 +187,7 @@ export function NumerologyDateView({
                   const locked = value && "locked" in value;
                   const isOpen = open === slot.id;
                   return (
-                    <div key={slot.id} className="rounded-[14px] border border-border bg-surface-1" style={{ padding: "16px 18px" }}>
+                    <div key={slot.id} className="rounded-[14px] border border-border bg-surface-1" style={{ padding: "0 18px" }}>
                       <button
                         type="button"
                         onClick={() => {
@@ -196,7 +196,7 @@ export function NumerologyDateView({
                           if (next) load([slot.id]);
                           if (next && value && "locked" in value) setPaywall(true);
                         }}
-                        className="flex w-full items-center justify-between gap-4 text-left"
+                        className="flex w-full items-center justify-between gap-4 py-4 text-left"
                         aria-expanded={isOpen}
                       >
                         <span className="text-text-primary" style={{ fontSize: "clamp(15px, 1.15vw, 17px)", lineHeight: 1.4 }}>
@@ -213,7 +213,7 @@ export function NumerologyDateView({
                       </button>
 
                       {isOpen && (
-                        <div className="mt-3">
+                        <div className="pb-4">
                           {busy.has(slot.id) ? (
                             <p className="text-text-secondary" style={{ fontSize: 15 }}>
                               Пишем разбор…

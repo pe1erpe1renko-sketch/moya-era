@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FullReadingButton } from "@/components/direction/FullReadingButton";
 import { toIsoDate } from "@/lib/pendingBirth";
-import { arcana, MONTHS, centralArcanum, isValidDate } from "@/lib/arcana";
+import { arcana, MONTHS, centralArcanum, isFutureDate, isValidDate } from "@/lib/arcana";
 import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { Orbits } from "./Orbits";
@@ -68,9 +68,10 @@ export function QuickCalc({
 
   const complete = day !== "" && month !== "" && year !== "";
   const dateInvalid = complete && !isValidDate(Number(day), Number(month), Number(year));
+  const dateFuture = complete && !dateInvalid && isFutureDate(Number(day), Number(month), Number(year));
 
   const handleSubmit = () => {
-    if (!complete || dateInvalid) return;
+    if (!complete || dateInvalid || dateFuture) return;
     const value = centralArcanum(Number(day), Number(month), Number(year));
     setStage("loading");
     if (!reduced) setFast(true);
@@ -216,13 +217,18 @@ export function QuickCalc({
                   Такой даты не существует — проверь день и месяц
                 </p>
               )}
+              {dateFuture && (
+                <p className="mt-3 text-[15px] text-text-danger">
+                  Эта дата ещё не наступила
+                </p>
+              )}
 
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={!complete || dateInvalid || stage === "loading"}
+                disabled={!complete || dateInvalid || dateFuture || stage === "loading"}
                 className="qc-focus mt-5 h-14 rounded-[12px] bg-accent px-10 text-[17px] font-medium text-primary-foreground transition-opacity disabled:cursor-not-allowed"
-                style={{ opacity: !complete || dateInvalid || stage === "loading" ? 0.4 : 1 }}
+                style={{ opacity: !complete || dateInvalid || dateFuture || stage === "loading" ? 0.4 : 1 }}
               >
                 {stage === "loading" ? "Считаем" : "Показать"}
               </button>

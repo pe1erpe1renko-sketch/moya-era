@@ -144,7 +144,7 @@ export async function GET(req: Request) {
   const slug = url.searchParams.get("type") ?? "";
   const dates = (url.searchParams.get("dates") ?? "").split(",").filter(Boolean);
   const type = ALL_CALC_TYPES.find((t) => t.slug === slug);
-  const iso = dates.map(urlDateToIso);
+  const iso = dates.map((d) => urlDateToIso(d));
   let title = "Моя Эра";
   let sub = "";
   let core = 0;
