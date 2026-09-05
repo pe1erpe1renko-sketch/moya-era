@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { afterGreeting, briefSlots, buildNumerology, numerologySections, type NumerologyChart } from "@/lib/numerology";
 import { buildNameQuery, parseNameQuery } from "@/lib/chartUrl";
 import { AddName } from "./AddName";
+import { MakeImageButton } from "@/components/image/MakeImageButton";
 import { BriefList, type BriefItem } from "@/components/chart/BriefList";
 import { useSlotTexts } from "@/components/chart/useSlotTexts";
 import { Paywall } from "@/components/reading/Paywall";
@@ -139,6 +140,17 @@ export function NumerologyDateView({
               : "Число судьбы считается по полному имени, а не по дате, — поэтому его здесь пока нет. Без имени считается всё остальное"}
           </p>
           <AddName name={chart.name} onApply={applyName} />
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <div className="flex flex-wrap items-center" style={{ gap: 12 }}>
+          {/* Образ по этой дате. Имя берём то, что человек назвал здесь же:
+              на карточку оно попадает только по его галочке. */}
+          <MakeImageButton birthIso={chart.date} name={chart.name} theme="core" />
+          <span className="text-text-secondary" style={{ fontSize: 13 }}>
+            Карточка со своим арканом — сохранить и выложить
+          </span>
         </div>
       </section>
 

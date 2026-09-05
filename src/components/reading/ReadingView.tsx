@@ -10,6 +10,7 @@ import type { SectionData } from "@/lib/matrix/contentPositions";
 import { CALC_TYPES } from "@/lib/matrix/contentPositions";
 import { arcanaLine, arcanaName, formatDateLong, formatDateDots, readingPath } from "@/lib/matrix";
 import { ArcanaImage } from "@/components/arcana/ArcanaImage";
+import { MakeImageButton } from "@/components/image/MakeImageButton";
 import { useAuth } from "@/lib/useAuth";
 import { backend } from "@/lib/backend";
 import { Octagram } from "./Octagram";
@@ -126,6 +127,8 @@ export function ReadingView(props: ReadingViewProps) {
               {isPair ? "Ядро пары" : "Центральный аркан"} — {core.C}, {arcanaName(core.C)}
             </h1>
             <p className="mt-3 max-w-[720px] text-[clamp(16px,1.3vw,20px)] leading-[1.55] text-text-secondary">{arcanaLine(core.C)}</p>
+            {/* Образ — рядом с центральным арканом, обычной кнопкой. */}
+            {single && <MakeImageButton birthIso={single.birthDate} theme="core" style={{ height: 46, marginTop: 20 }} />}
           </div>
         </div>
         {type.note && <p className="mt-3 max-w-[720px] text-[14px] text-text-secondary/80">{type.note}</p>}
