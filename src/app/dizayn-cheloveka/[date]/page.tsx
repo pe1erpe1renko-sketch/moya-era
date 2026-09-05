@@ -7,6 +7,7 @@ import { answerHdSlots, briefHdSlotIds, resolveHdChart } from "@/server/hdTexts"
 import { ChartCrossLinks } from "@/components/chart/ChartCrossLinks";
 import { HdDateView } from "@/components/humandesign/HdDateView";
 import { SITE_URL } from "@/lib/env";
+import { HintBubble } from "@/components/hint/HintBubble";
 
 /**
  * ПОСТОЯННЫЙ АДРЕС ДИЗАЙНА ЧЕЛОВЕКА — /dizayn-cheloveka/26-07-1990
@@ -108,6 +109,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
             initialVariation={{ preliminary: !variation.stable, facts: variation.facts }}
           />
           <ChartCrossLinks system="humandesign" iso={iso} />
+          <HintBubble place="humandesign" iso={iso} />
         </div>
       </section>
     </>

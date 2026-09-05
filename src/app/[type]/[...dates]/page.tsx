@@ -14,6 +14,7 @@ import { resolveReading, answerSlots } from "@/server/readingTexts";
 import { ReadingView } from "@/components/reading/ReadingView";
 import type { SlotText } from "@/components/reading/useReadingTexts";
 import { SITE_URL } from "@/lib/env";
+import { HintBubble } from "@/components/hint/HintBubble";
 
 /**
  * ПОСТОЯННЫЕ АДРЕСА РАЗБОРОВ
@@ -126,6 +127,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         freeCount={free}
         totalCount={total}
       />
+      <HintBubble place="matrix" iso={parsed.isoDates[0]} />
     </>
   );
 }

@@ -16,6 +16,7 @@ import { answerSlots, resolveReading } from "@/server/readingTexts";
 import type { SlotText } from "@/components/reading/useReadingTexts";
 import { PairPage } from "@/components/pair/PairPage";
 import { SITE_URL } from "@/lib/env";
+import { HintBubble } from "@/components/hint/HintBubble";
 
 /**
  * ПОСТОЯННЫЙ АДРЕС РАЗБОРА ПАРЫ
@@ -147,6 +148,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
               totalCount: total,
             }}
           />
+          <HintBubble place="pair" iso={dates[0]} />
         </div>
       </section>
     </>

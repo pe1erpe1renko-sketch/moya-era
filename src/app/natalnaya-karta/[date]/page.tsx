@@ -7,6 +7,7 @@ import { answerNatalSlots, briefNatalSlotIds, resolveNatalChart } from "@/server
 import { ChartCrossLinks } from "@/components/chart/ChartCrossLinks";
 import { NatalDateView } from "@/components/natal/NatalDateView";
 import { SITE_URL } from "@/lib/env";
+import { HintBubble } from "@/components/hint/HintBubble";
 
 /**
  * ПОСТОЯННЫЙ АДРЕС НАТАЛЬНОЙ КАРТЫ — /natalnaya-karta/26-07-1990
@@ -111,6 +112,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
             initialVariation={{ preliminary: !variation.stable, facts: variation.facts }}
           />
           <ChartCrossLinks system="natal" iso={iso} />
+          <HintBubble place="natal" iso={iso} />
         </div>
       </section>
     </>

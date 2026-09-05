@@ -7,6 +7,7 @@ import { answerNumerologySlots, freeNumerologySlotIds, resolveNumerology } from 
 import { ChartCrossLinks } from "@/components/chart/ChartCrossLinks";
 import { NumerologyDateView } from "@/components/numerology/NumerologyDateView";
 import { SITE_URL } from "@/lib/env";
+import { HintBubble } from "@/components/hint/HintBubble";
 
 /**
  * ПОСТОЯННЫЙ АДРЕС НУМЕРОЛОГИИ — /numerologiya/26-07-1990
@@ -93,6 +94,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         <div id="free" className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
           <NumerologyDateView chart={chart} initialTexts={initialTexts} />
           <ChartCrossLinks system="numerology" iso={iso} />
+          <HintBubble place="numerology" iso={iso} />
         </div>
       </section>
     </>

@@ -8,6 +8,7 @@ import { DayCardView } from "@/components/tarot/DayCardView";
 import { TarotCrossLinks } from "@/components/tarot/TarotCrossLinks";
 import { SITE_URL } from "@/lib/env";
 import { MONTHS } from "@/lib/arcana";
+import { HintBubble } from "@/components/hint/HintBubble";
 
 /**
  * ПОСТОЯННЫЙ АДРЕС КАРТЫ ДНЯ — /taro/26-07-1990
@@ -120,6 +121,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         <div id="free" className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
           <DayCardView card={card} initialText={initialText} changesAt={changesAtLabel()} />
           <TarotCrossLinks iso={iso} />
+          <HintBubble place="tarot" iso={iso} />
         </div>
       </section>
     </>
