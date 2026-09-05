@@ -14,6 +14,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { calculateMatrix, dailyTextKey, arcanaName } from "../matrix";
 import { dayCardArcanum, moscowDay } from "../tarot";
+import { dayArcana } from "../matrix";
 import { personalDay } from "../numerology";
 import {
   batchSize,
@@ -40,6 +41,7 @@ import {
   SEND_GAP_MS,
   toggleTopic,
   BUTTONS,
+  digestButtons,
   INVITE_EVERY,
   REPLIES,
   showsInvite,
@@ -401,5 +403,75 @@ describe("что бот говорит", () => {
 
   it("незнакомый пояс подписывается сам собой, а не пустотой", () => {
     assert.equal(zoneLabel("Asia/Nowhere"), "Asia/Nowhere");
+  });
+});
+
+describe("кнопки под сводкой", () => {
+  const SITE = "https://moya-era.vercel.app";
+
+  it("три кнопки: разбор, наставник, образ", () => {
+    const rows = digestButtons(SITE, "1998-07-13", false);
+    assert.equal(rows.length, 3);
+    assert.deepEqual(rows.flat().map((b) => b.text), [BUTTONS.reading, BUTTONS.mentor, BUTTONS.image]);
+  });
+
+  it("адреса ведут на постоянные страницы этой даты", () => {
+    const rows = digestButtons(SITE, "1998-07-13", false).flat();
+    assert.equal(rows[0].url, `${SITE}/matrica/13-07-1998`);
+    assert.equal(rows[2].url, `${SITE}/taro/13-07-1998`);
+    for (const b of rows) assert.ok(b.url.startsWith(SITE), b.url);
+  });
+
+  it("адрес сайта подставляется, а не вписан в кнопки", () => {
+    const rows = digestButtons("https://moyaera.ru", "1998-07-13", false).flat();
+    for (const b of rows) assert.ok(b.url.startsWith("https://moyaera.ru"), b.url);
+  });
+
+  it("приглашение на сайт появляется только когда положено", () => {
+    assert.equal(digestButtons(SITE, "1998-07-13", false).length, 3);
+    const withInvite = digestButtons(SITE, "1998-07-13", true);
+    assert.equal(withInvite.length, 4);
+    assert.equal(withInvite[3][0].text, BUTTONS.fullReading);
+  });
+
+  it("картинки в сообщении нет — только кнопка", () => {
+    // Кнопки — это только ссылки; вложений здесь не бывает по устройству.
+    for (const b of digestButtons(SITE, "1998-07-13", true).flat()) {
+      assert.ok(typeof b.url === "string" && b.url.length > 0, b.text);
+    }
+  });
+});
+
+describe("потолок генерации на сутки", () => {
+  const day = "2026-09-06";
+
+  /** Тот же список, что прогревает задача подготовки, но без сервера. */
+  const keysForDay = (d: string) => {
+    const keys: string[] = [];
+    for (let period = 1; period <= 22; period++) keys.push(dailyTextKey(dayArcana(d, period), period, d));
+    for (let n = 1; n <= 22; n++) keys.push(`taro_day_${n}`);
+    for (let n = 1; n <= 9; n++) keys.push(`num_brief_dayn_${n}`);
+    return keys;
+  };
+
+  it("на сутки ровно 53 ключа, и из них новых — только 22", () => {
+    const keys = new Set(keysForDay(day));
+    assert.equal(keys.size, 53, `вышло ${keys.size} ключей`);
+    // Тарошные и числовые пишутся один раз навсегда: они одни и те же в
+    // любой день, а значит после первого дня уже лежат в базе.
+    const another = new Set(keysForDay("2027-03-01"));
+    const shared = [...keys].filter((k) => another.has(k));
+    assert.equal(shared.length, 31, "переиспользуются 22 карты таро и 9 чисел дня");
+    assert.equal(keys.size - shared.length, 22, "каждый день добавляется ровно 22 аркана дня");
+  });
+
+  it("ключ, который прогревают, — тот же, по которому пойдёт рассылка", () => {
+    const prepared = new Set(keysForDay(day));
+    for (const birth of ["1998-07-13", "1960-01-05", "2004-12-31", "1975-06-30"]) {
+      const src = buildDigestSource(birth, null, new Date(`${day}T09:00:00Z`))!;
+      for (const key of digestKeys(src, ["matrix", "tarot", "numerology"])) {
+        assert.ok(prepared.has(key), `ключ ${key} не готовится заранее`);
+      }
+    }
   });
 });

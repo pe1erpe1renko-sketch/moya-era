@@ -27,7 +27,6 @@ import {
   setZone,
   type LinkRow,
 } from "@/server/botStore";
-import { isoToChartUrlDate } from "@/lib/chartUrl";
 import { personBirth } from "@/server/botPeople";
 
 export const runtime = "nodejs";
@@ -225,20 +224,6 @@ async function mainButtons(chatId: number): Promise<Button[][]> {
 async function personName(link: { personId: string }): Promise<string | null> {
   const person = await personBirth(link.personId);
   return person?.name ?? null;
-}
-
-/** Кнопки под сводкой. Собираются здесь же, чтобы адреса были едиными. */
-export function digestButtons(birthDate: string, invite: boolean): Button[][] {
-  const url = isoToChartUrlDate(birthDate);
-  const rows: Button[][] = [
-    [{ text: BUTTONS.reading, url: `${SITE_URL}/matrica/${url}` }],
-    [{ text: BUTTONS.mentor, url: `${SITE_URL}/nastavnik` }],
-    // Картинку в сообщение не вкладываем: ежедневная картинка каждому —
-    // это лишний трафик при той же пользе. Только по нажатию.
-    [{ text: BUTTONS.image, url: `${SITE_URL}/taro/${url}` }],
-  ];
-  if (invite) rows.push([{ text: BUTTONS.fullReading, url: `${SITE_URL}/matrica-sudby` }]);
-  return rows;
 }
 
 /** Имя бота для ссылок привязки. Пусто — ссылку показать нельзя. */

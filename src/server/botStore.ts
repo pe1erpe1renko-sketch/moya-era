@@ -165,6 +165,15 @@ export async function recordDigest(link: LinkRow, day: string, body: string): Pr
     );
 }
 
+/**
+ * Отмечает день без записи в архив: направления выключены, слать нечего.
+ * Без отметки такая привязка попадала бы в очередь на каждом запуске.
+ */
+export async function markDay(id: string, day: string): Promise<void> {
+  const sb = supabaseService();
+  await sb?.from("bot_links").update({ last_sent_day: day }).eq("id", id);
+}
+
 /** Архив сводок этого чата — от новых к старым. */
 export async function digestArchive(chatId: number, limit = 10): Promise<Array<{ day: string; body: string }>> {
   const sb = supabaseService();

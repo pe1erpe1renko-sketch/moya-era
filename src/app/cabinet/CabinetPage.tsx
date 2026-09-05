@@ -16,6 +16,7 @@ import { DEMO_MODE } from "@/lib/env";
 import { peopleLeft, isSubscriptionActive } from "@/lib/access";
 import { formatRub } from "@/lib/plansDefault";
 import { ArcanaImage } from "@/components/arcana/ArcanaImage";
+import { BotPanel } from "@/components/bot/BotPanel";
 import { MakeImageButton } from "@/components/image/MakeImageButton";
 import { calculateMatrix, dayArcana, arcanaName, arcanaLine, readingPath, formatDateDots, urlDateToIso, CALC_TYPES, FORECAST_VIEW } from "@/lib/matrix";
 import { ArcanaCard } from "@/components/reading/Spheres";
@@ -153,6 +154,9 @@ export default function CabinetPage() {
             }}
           />
         </div>
+
+        {/* Телеграм-бот — единственное место на сайте, где о нём сказано */}
+        <BotPanel people={people.map((p) => ({ id: p.id, name: p.name }))} />
 
         {/* Шесть систем */}
         <div className="mt-8">
