@@ -12,6 +12,8 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { calculateMatrix, dailyTextKey, arcanaName } from "../matrix";
 import { dayCardArcanum, moscowDay } from "../tarot";
 import { dayArcana } from "../matrix";
@@ -49,6 +51,7 @@ import {
   zoneLabel,
   isKnownZone,
   type BotLink,
+  DAILY_RUN_UTC_HOUR,
 } from "./index";
 
 const link = (over: Partial<BotLink> = {}): BotLink => ({
@@ -225,6 +228,42 @@ describe("когда слать", () => {
 
   it("час рассылки — восемь утра", () => {
     assert.equal(DIGEST_HOUR, 8);
+  });
+
+  it("один запуск в сутки покрывает все пояса из списка бота — и зимой, и летом", () => {
+    // Бесплатный тариф Vercel даёт один запуск в день. Догоняющее правило
+    // выдерживает это, только если в час запуска во всех поясах уже
+    // восемь: кто не успел — ждал бы до завтра и снова не успел бы.
+    for (const day of ["2026-01-15", "2026-07-15"]) {
+      const run = new Date(`${day}T${String(DAILY_RUN_UTC_HOUR).padStart(2, "0")}:00:00Z`);
+      for (const { tz } of ZONES) {
+        assert.equal(isDue({ tz, lastSentDay: null }, run), true, `${tz} в ${day}`);
+        // после отправки день отмечен местной датой — второй раз в этот запуск не уйдёт
+        const { date } = localParts(run, tz);
+        assert.equal(isDue({ tz, lastSentDay: date }, run), false, `${tz}: повтор`);
+        // а завтрашний запуск снова отправит
+        const next = new Date(run.getTime() + 86_400_000);
+        assert.equal(isDue({ tz, lastSentDay: date }, next), true, `${tz}: завтра`);
+      }
+    }
+  });
+
+  it("раньше нельзя: на час раньше самый западный пояс зимой ещё спит", () => {
+    // Это причина, по которой запуск стоит в 07:00 UTC, а не «утром по
+    // Москве» в 05:00: Берлин зимой — UTC+1.
+    const earlier = new Date(`2026-01-15T${String(DAILY_RUN_UTC_HOUR - 1).padStart(2, "0")}:00:00Z`);
+    assert.ok(ZONES.some(({ tz }) => !isDue({ tz, lastSentDay: null }, earlier)), "тогда можно и раньше — пересмотреть час");
+  });
+
+  it("в vercel.json стоит именно этот час, раз в сутки", () => {
+    const cfg = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "vercel.json"), "utf8")) as { crons: Array<{ path: string; schedule: string }> };
+    const digest = cfg.crons.find((c) => c.path === "/api/cron/digest");
+    assert.ok(digest, "нет задачи рассылки");
+    assert.equal(digest.schedule, `0 ${DAILY_RUN_UTC_HOUR} * * *`);
+    // Любое расписание чаще раза в сутки роняет деплой на бесплатном тарифе целиком.
+    for (const c of cfg.crons) {
+      assert.match(c.schedule, /^\d{1,2} \d{1,2} \* \* \*$/, `${c.path}: расписание чаще раза в сутки — бесплатный тариф Vercel не развернёт сайт`);
+    }
   });
 });
 
