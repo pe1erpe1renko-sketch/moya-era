@@ -4,22 +4,18 @@
  * Случайный, а не выведенный из даты рождения. Из адреса не должно
  * восстанавливаться ничего о человеке: адресами делятся в открытую.
  *
- * Алфавит без похожих букв: ни нуля с буквой «o», ни единицы с «l». Код
- * читают вслух и переписывают руками, и «o» вместо «0» — это чужая
- * карточка или ошибка 404 на ровном месте.
- *
- * Длина 10 при алфавите из 31 знака — это больше 8×10¹⁴ вариантов.
- * Перебором чужую карточку не найти, а на глаз код остаётся коротким.
+ * Алфавит и сама выдача кодов — общие с ботом, см. `lib/shortCode`.
+ * Длина 10 при алфавите из 31 знака — это больше 8×10¹⁴ вариантов:
+ * перебором чужую карточку не найти, а на глаз код остаётся коротким.
  */
 
-const ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
-export const CODE_LENGTH = 10;
+import { isShortCode, randomCode } from "@/lib/shortCode";
 
-const CODE_RE = new RegExp(`^[${ALPHABET}]{${CODE_LENGTH}}$`);
+export const CODE_LENGTH = 10;
 
 /** Годится ли строка как код. Проверяется до похода в базу. */
 export function isImageCode(value: string): boolean {
-  return CODE_RE.test(value);
+  return isShortCode(value, CODE_LENGTH);
 }
 
 /**
@@ -27,11 +23,7 @@ export function isImageCode(value: string): boolean {
  * @param random источник случайности; в тестах подменяется на свой
  */
 export function newImageCode(random: () => number = Math.random): string {
-  let out = "";
-  for (let i = 0; i < CODE_LENGTH; i++) {
-    out += ALPHABET[Math.floor(random() * ALPHABET.length) % ALPHABET.length];
-  }
-  return out;
+  return randomCode(CODE_LENGTH, random);
 }
 
 /** Адрес карточки. */

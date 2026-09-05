@@ -20,7 +20,7 @@ import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 // Импортируем конкретные модули, а не общий index: под tsx этот файл
 // становится CommonJS, и реэкспорты через `export *` теряют имена.
-import { NUMBER_VALUES, YEAR_VALUES, MAX_CELL_BUCKET } from "../src/lib/numerology/numbers.ts";
+import { NUMBER_VALUES, YEAR_VALUES, DAY_VALUES, MAX_CELL_BUCKET } from "../src/lib/numerology/numbers.ts";
 import { NUMEROLOGY_NUMBERS } from "../src/lib/numerology/sections.ts";
 import { squareLabels } from "../src/lib/numerology/texts.ts";
 import { buildNumRequest, NUM_PROMPT_VERSION } from "../src/lib/numerology/prompts.ts";
@@ -50,8 +50,11 @@ const jobs = [];
 const push = (key, ctx, group) => jobs.push({ key, ctx, group });
 const want = (group) => ONLY === "all" || ONLY === group;
 
-/** Личный год живёт в цикле из девяти фаз, у остальных чисел бывают мастера. */
-const valuesFor = (id) => (id === "year" ? YEAR_VALUES : NUMBER_VALUES);
+/**
+ * Личный год и число дня живут в цикле из девяти ступеней, у остальных
+ * чисел бывают мастера.
+ */
+const valuesFor = (id) => (id === "year" ? YEAR_VALUES : id === "dayn" ? DAY_VALUES : NUMBER_VALUES);
 
 if (want("free")) {
   for (const n of NUMEROLOGY_NUMBERS) {

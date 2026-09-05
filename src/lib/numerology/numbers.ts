@@ -82,6 +82,28 @@ export function personalYear(day: number, month: number, year: number): number {
   });
 }
 
+/**
+ * Число дня: день, месяц рождения и сегодняшняя дата целиком.
+ *
+ * Это следующая ступень после личного года — не свойство человека, а
+ * окраска одних суток. Мастер-числа здесь не сохраняются по той же
+ * причине, что и в личном годе: цикл дней устроен из девяти ступеней, и
+ * одиннадцатой в нём быть неоткуда.
+ *
+ * @param day    день рождения
+ * @param month  месяц рождения
+ * @param today  сегодняшняя дата, YYYY-MM-DD
+ */
+export function personalDay(day: number, month: number, today: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(today);
+  if (!m) return null;
+  const digits2 = [...digits(String(day)), ...digits(String(month)), ...digits(m[1]), ...digits(String(Number(m[2]))), ...digits(String(Number(m[3])))];
+  return reduceNumber(sum(digits2), { masters: false });
+}
+
+/** Значения числа дня: девять ступеней, как и у личного года. */
+export const DAY_VALUES = YEAR_VALUES;
+
 export type PythagorasResult = {
   /** сумма всех цифр даты */
   first: number;

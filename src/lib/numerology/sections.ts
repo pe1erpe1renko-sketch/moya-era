@@ -25,7 +25,7 @@
 import { cellBucket, MAX_CELL_BUCKET, type NumerologyChart } from "./numbers";
 import { squareLabels } from "./texts";
 
-export type NumerologyNumberId = "path" | "birthday" | "attitude" | "year" | "destiny";
+export type NumerologyNumberId = "path" | "birthday" | "attitude" | "year" | "destiny" | "dayn";
 
 export type NumerologySlotKind = "brief" | "number" | "cell";
 
@@ -84,6 +84,12 @@ export const NUMEROLOGY_NUMBERS: Array<{
     question: "Личный год: что это за фаза и чем она занята",
   },
   {
+    id: "dayn",
+    title: "Число дня",
+    about: "чем окрашены сегодняшние сутки",
+    question: "Число дня: чем окрашен сегодняшний день",
+  },
+  {
     id: "destiny",
     title: "Число судьбы",
     about: "задача, которую несёт ваше имя",
@@ -91,8 +97,12 @@ export const NUMEROLOGY_NUMBERS: Array<{
   },
 ];
 
-/** Числа, которые считаются по одной дате. Число судьбы требует имени. */
-export const DATE_NUMBERS = NUMEROLOGY_NUMBERS.filter((n) => n.id !== "destiny");
+/**
+ * Числа, которые считаются по одной дате рождения и не меняются.
+ * Числа судьбы здесь нет: оно требует имени. Числа дня — тоже: оно
+ * зависит от сегодняшней даты и завтра будет другим.
+ */
+export const DATE_NUMBERS = NUMEROLOGY_NUMBERS.filter((n) => n.id !== "destiny" && n.id !== "dayn");
 
 /** Значение числа в конкретном расчёте. null — считать его пока нечем. */
 export function numberValue(chart: NumerologyChart, id: NumerologyNumberId): number | null {
@@ -100,6 +110,9 @@ export function numberValue(chart: NumerologyChart, id: NumerologyNumberId): num
   if (id === "birthday") return chart.birthday;
   if (id === "attitude") return chart.attitude;
   if (id === "year") return chart.personalYear;
+  // Число дня в расчёт по дате рождения не входит: оно меняется каждые
+  // сутки и живёт там, где есть сегодняшняя дата, — в кабинете и в боте.
+  if (id === "dayn") return null;
   return chart.destiny;
 }
 
