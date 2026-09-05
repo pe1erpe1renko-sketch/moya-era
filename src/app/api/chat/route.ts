@@ -4,6 +4,7 @@ import { buildRequest, MENTOR_HINTS } from "@/lib/matrix/prompts";
 import { LLM_ENABLED, MODEL_CHAT, stream } from "@/server/llm";
 import { supabaseService } from "@/server/supabase";
 import { loadAccess } from "@/server/entitlements";
+import { refundCredits, spendCredits } from "@/server/credits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,20 +84,23 @@ export async function POST(req: Request) {
   const history = ((historyRows as Array<{ role: "user" | "assistant"; content: string }> | null) ?? []).reverse();
 
   /* ── кредит ── */
-  const { data: left, error: spendErr } = await sb.rpc("spend_credit", { _user: userId, _reason: "chat_message", _ref: threadId });
-  if (spendErr) return NextResponse.json({ error: "credits" }, { status: 500 });
-  if (Number(left) < 0) {
-    return NextResponse.json({ error: "no_credits", threadId }, { status: 402 });
+  // Та же механика, что у живого расклада: списать до генерации, вернуть
+  // при неудаче. Одна реализация на двоих — см. `server/credits`.
+  const spent = await spendCredits(userId, 1, "chat_message", threadId);
+  if (!spent.ok) {
+    if (spent.reason === "no_credits") return NextResponse.json({ error: "no_credits", threadId }, { status: 402 });
+    return NextResponse.json({ error: "credits" }, { status: 500 });
   }
+  const left = spent.left;
 
   /* ── сохраняем вопрос ── */
   await sb.from("chat_messages").insert({ thread_id: threadId, user_id: userId, role: "user", content: message });
 
   if (!LLM_ENABLED) {
     const text = "Нейросеть пока не подключена. Кредит возвращён.";
-    await sb.from("credits_ledger").insert({ user_id: userId, delta: 1, reason: "refund", ref: threadId });
+    await refundCredits(userId, 1, threadId);
     await sb.from("chat_messages").insert({ thread_id: threadId, user_id: userId, role: "assistant", content: text });
-    return new Response(text, { headers: { "Content-Type": "text/plain; charset=utf-8", "X-Thread-Id": threadId, "X-Credits-Left": String(Number(left) + 1) } });
+    return new Response(text, { headers: { "Content-Type": "text/plain; charset=utf-8", "X-Thread-Id": threadId, "X-Credits-Left": String(left + 1) } });
   }
 
   /* ── контекст ── */
@@ -127,7 +131,7 @@ export async function POST(req: Request) {
       } catch (e) {
         const msg = "\n\nНе удалось получить ответ. Кредит возвращён — попробуйте ещё раз.";
         controller.enqueue(encoder.encode(msg));
-        await sb.from("credits_ledger").insert({ user_id: userId, delta: 1, reason: "refund", ref: threadId });
+        await refundCredits(userId, 1, threadId);
         full = full || String(e instanceof Error ? e.message : e);
       } finally {
         if (full.trim()) {

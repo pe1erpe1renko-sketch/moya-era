@@ -17,6 +17,7 @@ import { peopleLeft, isSubscriptionActive } from "@/lib/access";
 import { formatRub } from "@/lib/plansDefault";
 import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { BotPanel } from "@/components/bot/BotPanel";
+import { SpreadsPanel } from "@/components/tarot/SpreadsPanel";
 import { MakeImageButton } from "@/components/image/MakeImageButton";
 import { calculateMatrix, dayArcana, arcanaName, arcanaLine, readingPath, formatDateDots, urlDateToIso, CALC_TYPES, FORECAST_VIEW } from "@/lib/matrix";
 import { ArcanaCard } from "@/components/reading/Spheres";
@@ -203,6 +204,9 @@ export default function CabinetPage() {
             </div>
           </div>
         )}
+
+        {/* Расклады таро — сделанные остаются и без подписки */}
+        <SpreadsPanel />
 
         {/* Подписка и кредиты */}
         <div className="mt-10">

@@ -58,6 +58,12 @@ export function TarotCrossLinks({ iso }: { iso: string }) {
         <Link href="/taro" className={linkClass} style={{ fontSize: 15 }}>
           Посчитать по своей дате
         </Link>
+        {/* Живой расклад — единственный вход в него с публичных страниц
+            таро. Карта дня отвечает на «что сегодня», расклад — на
+            заданный вопрос, и путать их не надо. */}
+        <Link href="/taro/rasklad" className={linkClass} style={{ fontSize: 15 }}>
+          Расклад на свой вопрос
+        </Link>
       </div>
     </nav>
   );

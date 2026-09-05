@@ -13,7 +13,7 @@ declare global {
 /**
  * События воронки. Имена — стабильные, по ним строятся цели в Метрике:
  *   calc_submit, reading_view, paywall_open, signup, login, person_add,
- *   checkout_open, checkout_pay, chat_message
+ *   checkout_open, checkout_pay, chat_message, spread_draw
  */
 export function track(event: string, params: Params = {}) {
   if (typeof window === "undefined") return;
