@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { CreditReason } from "@/lib/creditReasons";
 import { supabaseService } from "@/server/supabase";
 
 /**
@@ -27,12 +28,15 @@ export type SpendResult =
 
 /**
  * Списывает кредиты.
+ *
+ * @param reason из списка `CREDIT_REASONS`, а не любая строка: в базе на
+ *   причину стоит CHECK, и незнакомая ей строка не запишется вовсе.
  * @param ref на что списано: id треда или расклада — по нему находится возврат
  */
 export async function spendCredits(
   userId: string,
   amount: number,
-  reason: string,
+  reason: CreditReason,
   ref: string,
 ): Promise<SpendResult> {
   const sb = supabaseService();

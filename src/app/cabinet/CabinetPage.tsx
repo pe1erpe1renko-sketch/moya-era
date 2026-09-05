@@ -18,6 +18,7 @@ import { formatRub } from "@/lib/plansDefault";
 import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { BotPanel } from "@/components/bot/BotPanel";
 import { SpreadsPanel } from "@/components/tarot/SpreadsPanel";
+import { AutoRenewPanel } from "@/components/billing/AutoRenewPanel";
 import { MakeImageButton } from "@/components/image/MakeImageButton";
 import { calculateMatrix, dayArcana, arcanaName, arcanaLine, readingPath, formatDateDots, urlDateToIso, CALC_TYPES, FORECAST_VIEW } from "@/lib/matrix";
 import { ArcanaCard } from "@/components/reading/Spheres";
@@ -209,7 +210,7 @@ export default function CabinetPage() {
         <SpreadsPanel />
 
         {/* Подписка и кредиты */}
-        <div className="mt-10">
+        <div className="mt-10" id="plan">
           <PlanBlock plan={plan} plans={plans} sub={sub} active={active} credits={credits} />
         </div>
 
@@ -616,6 +617,8 @@ function PlanBlock({ plan, plans, sub, active, credits }: { plan: Plan | null; p
           <Link href="/tarify" className="mt-4 inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">
             {active ? "Сменить тариф" : "Выбрать тариф"}
           </Link>
+          {/* Автопродление: что спишется, когда, и видная кнопка отказа */}
+          {active && <AutoRenewPanel />}
         </div>
         <div>
           <div className="text-text-secondary" style={capStyle}>Кредиты наставника</div>

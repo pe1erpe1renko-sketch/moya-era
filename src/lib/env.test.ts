@@ -12,7 +12,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { SITE_HOST, SITE_URL } from "./env";
+import { envFlag, SITE_HOST, SITE_URL } from "./env";
 
 /** То же правило, что в `env.ts`: пустая строка считается незаданной. */
 const siteUrl = (raw: string | undefined) => (raw || "").trim() || "https://moya-era.vercel.app";
@@ -47,5 +47,25 @@ describe("адрес сайта", () => {
     assert.ok(!SITE_HOST.includes("://"), SITE_HOST);
     assert.ok(SITE_URL.startsWith("http"), SITE_URL);
     assert.ok(SITE_URL.endsWith(SITE_HOST), `${SITE_URL} и ${SITE_HOST} разошлись`);
+  });
+});
+
+/* ─── переключатели ──────────────────────────────────────────────── */
+
+describe("переключатель из переменной окружения", () => {
+  it("не задана — выключено", () => {
+    // От этого зависит автосписание с карт: по умолчанию оно обязано
+    // быть выключено, пока в оферте нет его условий.
+    for (const off of [undefined, "", "   "]) assert.equal(envFlag(off), false, `«${off}»`);
+  });
+
+  it("«0», «false», «off» и «no» — тоже выключено", () => {
+    // `Boolean(process.env.X)` вернул бы здесь true и начал списывать
+    // деньги у того, кто ставил переменную именно чтобы это выключить.
+    for (const off of ["0", "false", "FALSE", "off", "No", " 0 "]) assert.equal(envFlag(off), false, off);
+  });
+
+  it("«1», «true», «on» — включено", () => {
+    for (const on of ["1", "true", "TRUE", "on", "yes", " 1 "]) assert.equal(envFlag(on), true, on);
   });
 });
