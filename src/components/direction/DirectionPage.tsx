@@ -282,10 +282,6 @@ export function DirectionPage<R>({
 
       <DirectionFaq title={faqTitle} items={faq} />
 
-      {/* Блок отзывов убран до появления настоящих: шесть выдуманных отзывов с
-          сгенерированными портретами — риск по закону о рекламе. Компонент
-          сохранён в components/landing/Reviews.tsx. */}
-
       <Pricing />
 
       <OtherDirections

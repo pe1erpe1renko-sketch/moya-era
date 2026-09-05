@@ -49,9 +49,6 @@ export default function HomePage() {
       <DirectionsGrid />
       <NotFortuneTelling />
       <WhatsNext />
-      {/* Блок отзывов убран до появления настоящих: шесть выдуманных отзывов с
-          сгенерированными портретами — риск по закону о рекламе. Компонент
-          сохранён в components/landing/Reviews.tsx. */}
       <Pricing />
       <Faq />
       <QuickCalc
