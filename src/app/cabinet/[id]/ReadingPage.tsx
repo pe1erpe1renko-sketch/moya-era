@@ -9,6 +9,7 @@ import { OtherDirections } from "@/components/landing/OtherDirections";
 import { directions, type Direction } from "@/lib/directions";
 import { directionLines } from "@/lib/directionLines";
 import { arcana, centralArcanum } from "@/lib/arcana";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { lifePath, lifePathNumber } from "@/lib/numerology";
 import { sunSign } from "@/lib/natal";
 import { dayCardArcanum, moscowDay } from "@/lib/tarot";
@@ -39,7 +40,7 @@ function parseDate(iso: string | null) {
 }
 
 type Head =
-  | { kind: "value"; number: string | null; name: string }
+  | { kind: "value"; number: string | null; name: string; arcanum?: number }
   | { kind: "note"; note: string };
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -53,7 +54,7 @@ function buildReading(
     const n = centralArcanum(birth.day, birth.month, birth.year);
     const card = arcana.find((a) => a.n === n);
     return {
-      head: { kind: "value", number: String(n), name: card?.name ?? "" },
+      head: { kind: "value", number: String(n), name: card?.name ?? "", arcanum: n },
       openText: card?.detail ?? null,
     };
   }
@@ -77,7 +78,7 @@ function buildReading(
     const n = dayCardArcanum(birthIso(birth), moscowDay());
     const card = arcana.find((a) => a.n === n);
     return {
-      head: { kind: "value", number: String(n), name: card?.name ?? "" },
+      head: { kind: "value", number: String(n), name: card?.name ?? "", arcanum: n },
       openText: card?.draw ?? null,
     };
   }
@@ -215,7 +216,8 @@ export default function ReadingPage() {
             </h1>
 
             {reading && reading.head.kind === "value" ? (
-              <div className="flex items-baseline gap-4" style={{ marginTop: 14 }}>
+              <div className="flex items-center gap-4" style={{ marginTop: 14 }}>
+                {reading.head.arcanum && <ArcanaImage n={reading.head.arcanum} width={72} rounded={10} />}
                 {reading.head.number && (
                   <span
                     className="text-text-accent"

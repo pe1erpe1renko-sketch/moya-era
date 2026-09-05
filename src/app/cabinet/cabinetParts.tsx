@@ -9,10 +9,11 @@ import { DateSelects, type DateParts } from "@/components/direction/DateCalculat
 import { directions } from "@/lib/directions";
 import { formatBirthDate, takeProfileSaveError, toIsoDate } from "@/lib/pendingBirth";
 import { arcana, centralArcanum, isValidDate, MONTHS } from "@/lib/arcana";
+import { arcanumInfo, dayCardArcanum, moscowDay } from "@/lib/tarot";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { lifePath, lifePathNumber } from "@/lib/numerology";
 import { sunSign } from "@/lib/natal";
 import { backend } from "@/lib/backend";
-import { dayArcanum, todayIso } from "@/lib/dayCard";
 import { useAuth } from "@/lib/useAuth";
 import { referralLink } from "@/lib/referral";
 import { TarotFlipCard } from "@/components/tarot/TarotFlipCard";
@@ -268,9 +269,19 @@ export function ProfileCard({
   );
 }
 
-function tileResult(id: string, birth: Birth): { value: string; mono?: boolean } | { status: string } {
-  if (id === "tarot") return { status: "Расклад доступен" };
+function tileResult(
+  id: string,
+  birth: Birth,
+): { value: string; mono?: boolean; arcanum?: number } | { status: string } {
   if (!birth) return { status: "Заполни дату рождения" };
+
+  if (id === "tarot") {
+    // Карта дня считается из даты рождения и московских суток — та же,
+    // что на /taro/<дата>. Раньше плитка писала «расклад доступен»: тогда
+    // карта тянулась случайно и показывать было нечего.
+    const n = dayCardArcanum(toIsoDate(birth.day, birth.month, birth.year), moscowDay());
+    return { value: `${n} · ${arcanumInfo(n).name}`, mono: true, arcanum: n };
+  }
 
   if (id === "humandesign") {
     // Тип зависит от времени рождения, поэтому здесь только приглашение
@@ -281,7 +292,7 @@ function tileResult(id: string, birth: Birth): { value: string; mono?: boolean }
   if (id === "matrix") {
     const n = centralArcanum(birth.day, birth.month, birth.year);
     const card = arcana.find((a) => a.n === n);
-    return { value: `${n} · ${card?.name ?? ""}`, mono: true };
+    return { value: `${n} · ${card?.name ?? ""}`, mono: true, arcanum: n };
   }
   if (id === "numerology") {
     const n = lifePathNumber(birth.day, birth.month, birth.year);
@@ -314,7 +325,8 @@ export function DirectionTile({
       <div className="font-display text-text-primary" style={{ fontSize: "clamp(18px, 1.4vw, 24px)" }}>
         {title}
       </div>
-      <div className="mt-3">
+      <div className="mt-3 flex items-center gap-3">
+        {"arcanum" in res && res.arcanum ? <ArcanaImage n={res.arcanum} width={48} rounded={8} /> : null}
         {"value" in res ? (
           <span
             className="text-text-accent"

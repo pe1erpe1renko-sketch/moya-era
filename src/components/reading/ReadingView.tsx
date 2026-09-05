@@ -9,6 +9,7 @@ import { POINT_CODES, buildToday } from "@/lib/matrix/matrixEngine";
 import type { SectionData } from "@/lib/matrix/contentPositions";
 import { CALC_TYPES } from "@/lib/matrix/contentPositions";
 import { arcanaLine, arcanaName, formatDateLong, formatDateDots, readingPath } from "@/lib/matrix";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { useAuth } from "@/lib/useAuth";
 import { backend } from "@/lib/backend";
 import { Octagram } from "./Octagram";
@@ -115,10 +116,18 @@ export function ReadingView(props: ReadingViewProps) {
         <div className="text-[13px] uppercase tracking-[0.1em] text-text-accent">
           {type.title} · {isoDates.map(formatDateDots).join(" + ")}
         </div>
-        <h1 className="mt-3 font-display text-[clamp(32px,5vw,64px)] leading-[1.05] text-text-primary">
-          {isPair ? "Ядро пары" : "Центральный аркан"} — {core.C}, {arcanaName(core.C)}
-        </h1>
-        <p className="mt-3 max-w-[720px] text-[clamp(16px,1.3vw,20px)] leading-[1.55] text-text-secondary">{arcanaLine(core.C)}</p>
+        {/* Иллюстрация центрального аркана — на первом экране, поэтому
+            грузится сразу, а не по прокрутке. На телефоне встаёт над
+            заголовком, на широком экране — слева от него. */}
+        <div className="mt-3 flex flex-col gap-5 sm:flex-row sm:items-start">
+          <ArcanaImage n={core.C} width={132} rounded={14} priority />
+          <div className="min-w-0">
+            <h1 className="font-display text-[clamp(32px,5vw,64px)] leading-[1.05] text-text-primary">
+              {isPair ? "Ядро пары" : "Центральный аркан"} — {core.C}, {arcanaName(core.C)}
+            </h1>
+            <p className="mt-3 max-w-[720px] text-[clamp(16px,1.3vw,20px)] leading-[1.55] text-text-secondary">{arcanaLine(core.C)}</p>
+          </div>
+        </div>
         {type.note && <p className="mt-3 max-w-[720px] text-[14px] text-text-secondary/80">{type.note}</p>}
         {single && (
           <p className="mt-4 text-[15px] text-text-secondary">
@@ -134,10 +143,15 @@ export function ReadingView(props: ReadingViewProps) {
         {/* Ключевые числа */}
         <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
           {(["W", "N", "E", "S", "C"] as const).map((k) => (
-            <div key={k} className={`rounded-[14px] border border-border/60 bg-surface-1/40 p-4 ${k === "C" ? "col-span-2 border-text-accent/40 sm:col-span-1" : ""}`}>
-              <div className="text-[12px] uppercase tracking-[0.08em] text-text-secondary">{POINT_CODES[k].title}</div>
-              <div className="mt-1 font-display text-[28px] leading-none text-text-primary">{core[k]}</div>
-              <div className="mt-1 text-[13px] text-text-accent">{arcanaName(core[k])}</div>
+            // На узком экране картинка встаёт над текстом: в ряд рядом с
+            // ней «Перерождение» не помещается и упирается в край карточки.
+            <div key={k} className={`flex flex-col gap-3 rounded-[14px] border border-border/60 bg-surface-1/40 p-4 sm:flex-row sm:items-center ${k === "C" ? "col-span-2 border-text-accent/40 sm:col-span-1" : ""}`}>
+              <ArcanaImage n={core[k]} width={44} rounded={8} />
+              <div className="min-w-0">
+                <div className="text-[12px] uppercase tracking-[0.08em] text-text-secondary">{POINT_CODES[k].title}</div>
+                <div className="mt-1 font-display text-[28px] leading-none text-text-primary">{core[k]}</div>
+                <div className="mt-1 text-[13px] text-text-accent">{arcanaName(core[k])}</div>
+              </div>
             </div>
           ))}
         </div>

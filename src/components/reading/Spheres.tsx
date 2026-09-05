@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type { SectionData } from "@/lib/matrix/contentPositions";
-import { arcanaImage } from "@/lib/matrix/contentPositions";
 import { arcanaName } from "@/lib/matrix";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import type { SlotText } from "./useReadingTexts";
 import { ResearchCard, type ResearchCardProps } from "./ResearchCard";
 
@@ -144,26 +144,11 @@ function QuestionRow({
   );
 }
 
-/** Иллюстрация аркана с запасным вариантом, если файла ещё нет. */
+/** Иллюстрация аркана с подписью. Запасной вариант — внутри `ArcanaImage`. */
 export function ArcanaCard({ n, size = 120 }: { n: number; size?: number }) {
-  const [missing, setMissing] = useState(false);
-  // Ошибка загрузки может случиться до гидратации — React её не увидит.
-  // Проверяем состояние картинки после монтирования.
-  const imgRef = useCallback((el: HTMLImageElement | null) => {
-    if (el && el.complete && el.naturalWidth === 0) setMissing(true);
-  }, []);
   return (
     <div className="flex-shrink-0" style={{ width: size }}>
-      <div className="overflow-hidden rounded-[12px] border border-border/60 bg-surface-1" style={{ width: size, height: Math.round(size * 1.5) }}>
-        {missing ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-center">
-            <span className="font-display text-[28px] text-text-accent">{n}</span>
-            <span className="px-2 text-[11px] leading-tight text-text-secondary">{arcanaName(n)}</span>
-          </div>
-        ) : (
-          <img ref={imgRef} src={arcanaImage(n)} alt={`Аркан ${n} — ${arcanaName(n)}`} className="h-full w-full object-cover" onError={() => setMissing(true)} loading="lazy" />
-        )}
-      </div>
+      <ArcanaImage n={n} width={size} />
       <div className="mt-1.5 text-[12px] text-text-secondary">
         {n} · {arcanaName(n)}
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
+import { arcanaImage } from "@/lib/arcanaImage";
 const cardBack = "/images/card-back.jpg";
 
 const ROMAN: [number, string][] = [
@@ -51,6 +52,12 @@ export function TarotFlipCard({
   hint = true,
 }: Props) {
   const [flipped, setFlipped] = useState(initialFlipped);
+  const [missing, setMissing] = useState(false);
+
+  // Ошибка загрузки может случиться до гидратации — React её не увидит.
+  const imgRef = useCallback((el: HTMLImageElement | null) => {
+    if (el && el.complete && el.naturalWidth === 0) setMissing(true);
+  }, []);
 
   useEffect(() => {
     setFlipped(initialFlipped);
@@ -109,6 +116,19 @@ export function TarotFlipCard({
               className="tarot-side tarot-face"
               style={{ background: "linear-gradient(to bottom, var(--surface-1), #000000)" }}
             >
+              {/* Иллюстрация аркана во всю карту. Не загрузилась — под ней
+                  остаётся прежнее лицо, нарисованное кодом. */}
+              {!missing && (
+                <img
+                  ref={imgRef}
+                  src={arcanaImage(n, "lg")}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  onError={() => setMissing(true)}
+                  decoding="async"
+                />
+              )}
               <span
                 className="pointer-events-none absolute rounded-[8px]"
                 style={{
@@ -119,30 +139,40 @@ export function TarotFlipCard({
 
               <div className="relative flex h-full flex-col items-center justify-between">
                 <span
-                  className="font-display text-text-accent"
+                  className="font-display"
                   style={{
                     marginTop: 26,
                     fontSize: "clamp(16px, 1.3vw, 22px)",
                     letterSpacing: "0.14em",
+                    color: "#e6d9ff",
+                    textShadow: "0 1px 6px rgba(0,0,0,0.85)",
                   }}
                 >
                   {toRoman(n)}
                 </span>
 
-                <span
-                  className="text-text-accent"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "clamp(64px, 7vw, 120px)",
-                    lineHeight: 1,
-                  }}
-                >
-                  {n}
-                </span>
+                {missing && (
+                  <span
+                    className="text-text-accent"
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "clamp(64px, 7vw, 120px)",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {n}
+                  </span>
+                )}
 
                 <div
                   className="flex w-full flex-col items-center"
-                  style={{ paddingBottom: 26, paddingLeft: 22, paddingRight: 22 }}
+                  style={{
+                    paddingBottom: 26,
+                    paddingTop: 26,
+                    paddingLeft: 22,
+                    paddingRight: 22,
+                    background: missing ? "none" : "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0))",
+                  }}
                 >
                   <span
                     aria-hidden="true"
@@ -156,8 +186,13 @@ export function TarotFlipCard({
                     }}
                   />
                   <span
-                    className="text-center font-display text-text-primary"
-                    style={{ fontSize: "clamp(18px, 1.5vw, 26px)", letterSpacing: "0.08em" }}
+                    className="text-center font-display"
+                    style={{
+                      fontSize: "clamp(18px, 1.5vw, 26px)",
+                      letterSpacing: "0.08em",
+                      color: "#f4f1ea",
+                      textShadow: "0 1px 8px rgba(0,0,0,0.9)",
+                    }}
                   >
                     {name}
                   </span>

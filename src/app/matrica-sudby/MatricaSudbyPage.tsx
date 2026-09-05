@@ -273,7 +273,7 @@ export default function MatricaSudbyPage() {
       finalSubtitle="Центральный аркан бесплатно, прямо сейчас"
       calculator={(api) => <MatrixCalculator {...api} />}
       resultVisual={({ result, fast, reduced }) => (
-        <OrbitStage value={result.numbers.e} speedFactor={fast ? 4 : 1} still={reduced} />
+        <OrbitStage value={result.numbers.e} speedFactor={fast ? 4 : 1} still={reduced} arcanum />
       )}
       resultContent={(ctx) => <MatrixResultContent {...ctx} />}
       explainBlock={(ctx) => (

@@ -6,6 +6,7 @@ import {
 } from "@/components/direction/DirectionPage";
 import { DateCalculator } from "@/components/direction/DateCalculator";
 import { DayCardFace } from "@/components/tarot/DayCardFace";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { FullReadingButton } from "@/components/direction/FullReadingButton";
 import { arcanumInfo, dayCardArcanum, moscowDay } from "@/lib/tarot";
 import { centralArcanum } from "@/lib/arcana";
@@ -120,7 +121,8 @@ export default function TaroPage() {
               {result.n} · {info.name}
             </h2>
 
-            <p className="text-text-secondary" style={{ marginTop: 10, fontSize: 14 }}>
+            <p className="flex items-center gap-2 text-text-secondary" style={{ marginTop: 10, fontSize: 14 }}>
+              <ArcanaImage n={result.birthArcanum} width={36} rounded={7} />
               Ваш аркан рождения — {result.birthArcanum}, {birth.name}
             </p>
 

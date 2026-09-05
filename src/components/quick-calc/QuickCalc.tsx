@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FullReadingButton } from "@/components/direction/FullReadingButton";
 import { toIsoDate } from "@/lib/pendingBirth";
 import { arcana, MONTHS, centralArcanum, isValidDate } from "@/lib/arcana";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { Orbits } from "./Orbits";
 import { ARC_H, arcTransitionStyle } from "@/components/common/ArcTransition";
@@ -290,16 +291,20 @@ export function QuickCalc({
                 className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center"
                 style={{ animation: reduced ? "none" : "qc-result-in 800ms ease-out both" }}
               >
-                <div className="qc-numeral font-mono text-text-accent">{card?.n}</div>
+                {/* Иллюстрация вместо огромной цифры: это и есть тот
+                    момент, ради которого человек нажал кнопку. Номер
+                    остаётся рядом с названием, а если картинки нет —
+                    возвращается прежняя цифра во весь круг. */}
+                {card && <ArcanaImage n={card.n} width="min(46%, 240px)" size="lg" rounded={14} />}
                 <div
-                  className="mt-2 font-display text-text-primary"
+                  className="mt-4 font-display text-text-primary"
                   style={{
-                    fontSize: "clamp(32px, 3.6vw, 68px)",
+                    fontSize: "clamp(28px, 3.2vw, 56px)",
                     letterSpacing: "0.01em",
                     lineHeight: 1.08,
                   }}
                 >
-                  {card?.name}
+                  {card?.n} · {card?.name}
                 </div>
                 <p
                   className="mt-4 max-w-[420px] text-text-secondary"

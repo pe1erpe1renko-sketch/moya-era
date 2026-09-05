@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/useAuth";
 import { DEMO_MODE } from "@/lib/env";
 import { peopleLeft, isSubscriptionActive } from "@/lib/access";
 import { formatRub } from "@/lib/plansDefault";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { calculateMatrix, dayArcana, arcanaName, arcanaLine, readingPath, formatDateDots, urlDateToIso, CALC_TYPES, FORECAST_VIEW } from "@/lib/matrix";
 import { ArcanaCard } from "@/components/reading/Spheres";
 import { DateField } from "@/components/reading/DateField";
@@ -160,8 +161,11 @@ export default function CabinetPage() {
               d.id === "matrix" && self ? (
                 <Link key={d.id} href={readingPath("matrica", [self.birth_date])} className="group relative block w-full text-left transition-all duration-300 hover:-translate-y-1" style={{ ...cardStyle, padding: 24, borderRadius: 18 }}>
                   <div className="font-display text-text-primary" style={{ fontSize: "clamp(18px, 1.4vw, 24px)" }}>{d.title}</div>
-                  <div className="mt-3 text-text-accent" style={{ fontSize: "clamp(20px, 1.7vw, 28px)", fontFamily: "var(--font-mono)" }}>
-                    {calculateMatrix(self.birth_date).core.C} · {arcanaName(calculateMatrix(self.birth_date).core.C)}
+                  <div className="mt-3 flex items-center gap-3">
+                    <ArcanaImage n={calculateMatrix(self.birth_date).core.C} width={48} rounded={8} />
+                    <span className="text-text-accent" style={{ fontSize: "clamp(20px, 1.7vw, 28px)", fontFamily: "var(--font-mono)" }}>
+                      {calculateMatrix(self.birth_date).core.C} · {arcanaName(calculateMatrix(self.birth_date).core.C)}
+                    </span>
                   </div>
                   <div className="mt-2 text-[13px] text-text-secondary">12 сфер · 92 вопроса · постоянная ссылка</div>
                   <span aria-hidden="true" className="absolute bottom-4 right-5 text-text-accent opacity-0 transition-opacity duration-300 group-hover:opacity-100">→</span>

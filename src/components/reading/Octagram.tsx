@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MatrixBase } from "@/lib/matrix/matrixEngine";
 import { findSectionForPoint } from "@/lib/matrix/contentPositions";
 import { arcanaName } from "@/lib/matrix";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import {
   OCTA_POINTS,
   SQUARE,
@@ -244,10 +245,15 @@ export function Octagram({ matrix, showTimeline = true, age = null, onSelect, hi
         ) : (
           <div>
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-accent font-display text-[22px] text-primary-foreground">{activeValue}</div>
+              {/* Иллюстрация выбранной точки. Кружок с номером остаётся
+                  рядом: на схеме человек нажал именно на номер, и потерять
+                  его связь с картинкой нельзя. */}
+              <ArcanaImage n={activeValue} width={64} rounded={10} />
               <div className="min-w-0">
                 <div className="text-[13px] uppercase tracking-[0.08em] text-text-secondary">{active.label}</div>
-                <div className="font-display text-[22px] leading-tight text-text-primary">{arcanaName(activeValue)}</div>
+                <div className="font-display text-[22px] leading-tight text-text-primary">
+                  {activeValue} · {arcanaName(activeValue)}
+                </div>
               </div>
             </div>
             <p className="mt-3 min-h-[44px] text-[15px] leading-[1.6] text-text-secondary">

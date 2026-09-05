@@ -1,3 +1,6 @@
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
+import { arcanaName } from "@/lib/matrix";
+
 type OrbitSpec = {
   /** radius in % of area width */
   r: number;
@@ -89,10 +92,20 @@ export function OrbitStage({
   value,
   speedFactor,
   still,
+  arcanum = false,
 }: {
   value: number | null;
   speedFactor: number;
   still: boolean;
+  /**
+   * Показывать ли иллюстрацию аркана вместо цифры.
+   *
+   * Опция, а не догадка по числу: эта же сцена показывает число
+   * жизненного пути, а оно от 1 до 22 и на аркан похоже, но арканом не
+   * является. Картинка тринадцатого аркана рядом с числом пути 13 была
+   * бы прямым враньём.
+   */
+  arcanum?: boolean;
 }) {
   return (
     <div className="relative mx-auto aspect-square w-full">
@@ -107,14 +120,26 @@ export function OrbitStage({
 
       <Orbits speedFactor={speedFactor} dim={value !== null} still={still} />
 
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span
-          className="qc-numeral font-mono text-text-accent"
-          aria-hidden={value === null ? true : undefined}
-          style={{ animation: still || value === null ? "none" : "qc-result-in 800ms ease-out both" }}
-        >
-          {value === null ? "?" : value}
-        </span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+        {arcanum && value !== null ? (
+          <div
+            className="flex w-full flex-col items-center gap-3"
+            style={{ animation: still ? "none" : "qc-result-in 800ms ease-out both" }}
+          >
+            <ArcanaImage n={value} width="min(46%, 240px)" size="lg" rounded={14} />
+            <span className="font-display text-text-primary" style={{ fontSize: "clamp(20px, 2vw, 32px)" }}>
+              {value} · {arcanaName(value)}
+            </span>
+          </div>
+        ) : (
+          <span
+            className="qc-numeral font-mono text-text-accent"
+            aria-hidden={value === null ? true : undefined}
+            style={{ animation: still || value === null ? "none" : "qc-result-in 800ms ease-out both" }}
+          >
+            {value === null ? "?" : value}
+          </span>
+        )}
       </div>
     </div>
   );

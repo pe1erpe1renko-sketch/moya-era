@@ -10,6 +10,7 @@ import {
 import { FullReadingButton } from "@/components/direction/FullReadingButton";
 import { PairForm } from "@/components/pair/PairForm";
 import { arcana, centralArcanum, reduceTo22 } from "@/lib/arcana";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 const synastryAsset = "/images/synastry2.png";
 import { SYNASTRY_LINES } from "@/lib/directionLines";
 
@@ -112,12 +113,21 @@ function SynastryResultContent({ result }: ResultCtx<SynastryResult>) {
         {pair?.n} · {pair?.name}
       </h2>
 
-      <p
-        className="text-text-secondary"
-        style={{ marginTop: 12, fontSize: "clamp(14px, 1.05vw, 17px)" }}
-      >
-        Ты — {you?.n} · {you?.name} · Партнёр — {partner?.n} · {partner?.name}
-      </p>
+      {/* Два личных аркана рядом: из них и складывается аркан пары. */}
+      <div className="flex flex-wrap items-center" style={{ marginTop: 12, gap: 14 }}>
+        {you && (
+          <span className="flex items-center gap-2 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 17px)" }}>
+            <ArcanaImage n={you.n} width={40} rounded={7} />
+            Ты — {you.n} · {you.name}
+          </span>
+        )}
+        {partner && (
+          <span className="flex items-center gap-2 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 17px)" }}>
+            <ArcanaImage n={partner.n} width={40} rounded={7} />
+            Партнёр — {partner.n} · {partner.name}
+          </span>
+        )}
+      </div>
 
       <div className="relative overflow-hidden" style={{ marginTop: 20, height: 240 }}>
         <p
@@ -284,7 +294,7 @@ export default function SovmestimostPage() {
       otherSubtitle="Совместимость смотрит на двоих. Остальные пять описывают тебя одного и складываются с ней в один профиль"
       calculator={(api) => <SynastryCalculator {...api} />}
       resultVisual={({ result, fast, reduced }) => (
-        <OrbitStage value={result.pair} speedFactor={fast ? 4 : 1} still={reduced} />
+        <OrbitStage value={result.pair} speedFactor={fast ? 4 : 1} still={reduced} arcanum />
       )}
       resultContent={(ctx) => <SynastryResultContent {...ctx} />}
       explainBlock={(ctx) => <PairChain ctx={ctx} />}
