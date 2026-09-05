@@ -34,3 +34,23 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "").trim() || "http
 export const SITE_HOST = SITE_URL.replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
 export const METRIKA_ID = process.env.NEXT_PUBLIC_METRIKA_ID ?? "";
+
+/**
+ * ТЕЛЕГРАМ-БОТ. Нет токена — бот выключен, и сайт работает как обычно:
+ * вебхук отвечает «выключено», рассылка ничего не делает. Это рабочее
+ * состояние до передачи программистам, а не запасной путь.
+ *
+ * BOT_NAME нужен только для ссылок вида t.me/<имя>?start=КОД: сам
+ * телеграм имя из токена не отдаёт без запроса, а показывать ссылку надо
+ * сразу.
+ *
+ * BOT_WEBHOOK_SECRET сверяется с заголовком, которым телеграм подписывает
+ * каждый запрос. Без него адрес вебхука мог бы дёрнуть кто угодно.
+ */
+export const BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || "").trim();
+export const BOT_NAME = (process.env.TELEGRAM_BOT_NAME || "").trim();
+export const BOT_WEBHOOK_SECRET = (process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+export const HAS_BOT = Boolean(BOT_TOKEN);
+
+/** Ключ, которым подписана задача по расписанию. Без него рассылку не запустить. */
+export const CRON_SECRET = (process.env.CRON_SECRET || "").trim();

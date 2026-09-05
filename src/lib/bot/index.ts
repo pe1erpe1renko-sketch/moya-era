@@ -15,3 +15,4 @@ export * from "./topics";
 export * from "./schedule";
 export * from "./digest";
 export * from "./source";
+export * from "./replies";

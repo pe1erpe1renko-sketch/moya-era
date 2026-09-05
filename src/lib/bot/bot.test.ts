@@ -39,6 +39,13 @@ import {
   receivesDigest,
   SEND_GAP_MS,
   toggleTopic,
+  BUTTONS,
+  INVITE_EVERY,
+  REPLIES,
+  showsInvite,
+  ZONES,
+  zoneLabel,
+  isKnownZone,
   type BotLink,
 } from "./index";
 
@@ -322,5 +329,77 @@ describe("сборка сводки", () => {
 
   it("негодная дата рождения не даёт сводки", () => {
     for (const bad of ["", "13-07-1998", "не дата"]) assert.equal(buildDigestSource(bad, null, NOW), null, bad);
+  });
+});
+
+describe("что бот говорит", () => {
+  const all = Object.values(REPLIES).map((v) => (typeof v === "function" ? v("Пётр") : v));
+
+  it("ни срочности, ни обещаний событий", () => {
+    // Запрещено не слово «осталось» само по себе — оно обычный глагол
+    // («всё, что приходило раньше, осталось у вас»), — а фальшивый
+    // дефицит: «осталось три места», таймеры, скидки, обещания событий.
+    const forbidden: Array<[RegExp, string]> = [
+      [/осталось\s+\d|осталось\s+мест|мест\s+осталось/i, "осталось N мест"],
+      [/успей|поспеш|спешите|не упусти/i, "подгоняем"],
+      [/только сегодня|последний день|до конца дня/i, "срочность"],
+      [/скидк|зачёркн|акци[яи]\b/i, "торговля"],
+      [/таймер|обратный отсчёт/i, "таймер"],
+      [/вас ждёт|вам предстоит|обязательно случится|гарантируем/i, "обещание событий"],
+    ];
+    for (const text of all) {
+      for (const [re, what] of forbidden) {
+        assert.ok(!re.test(text), `в реплике «${what}»: ${text.slice(0, 70)}`);
+      }
+    }
+  });
+
+  it("обращение на «вы», без панибратства", () => {
+    for (const text of all) {
+      assert.ok(!/\bты\b|\bтебе\b|\bтвой\b|привет!|дружище/i.test(text), text.slice(0, 60));
+    }
+  });
+
+  it("отказ второму объясняет причину, а не просто отказывает", () => {
+    assert.ok(REPLIES.taken.includes("одна ссылка"), REPLIES.taken);
+    assert.ok(REPLIES.taken.length > 80, "объяснение должно быть человеческим");
+  });
+
+  it("при отписке сказано, что архив остаётся", () => {
+    assert.ok(/остал|никуда не денется/i.test(REPLIES.unsubscribed), REPLIES.unsubscribed);
+  });
+
+  it("отписка есть кнопкой в самом боте", () => {
+    assert.equal(BUTTONS.unsubscribe, "Отписаться");
+    assert.equal(BUTTONS.subscribe, "Включить сводку");
+  });
+
+  it("под сводкой обещаны три кнопки", () => {
+    assert.equal(BUTTONS.reading, "Открыть разбор");
+    assert.equal(BUTTONS.mentor, "Спросить наставника");
+    assert.equal(BUTTONS.image, "Сделать образ дня");
+  });
+
+  it("приглашение на сайт — не чаще раза в десять сообщений", () => {
+    assert.equal(INVITE_EVERY, 10);
+    const shown = Array.from({ length: 100 }, (_, i) => showsInvite(i)).filter(Boolean).length;
+    assert.equal(shown, 9, `за сто сводок приглашение показалось ${shown} раз`);
+    assert.equal(showsInvite(0), false, "в первой сводке звать некуда — человек только что подключился");
+    assert.equal(showsInvite(10), true);
+    assert.equal(showsInvite(11), false);
+  });
+
+  it("все пояса в кнопках настоящие", () => {
+    assert.ok(ZONES.length >= 10);
+    for (const z of ZONES) {
+      assert.ok(isKnownZone(z.tz), `${z.tz} не знает даже браузер`);
+      assert.ok(z.label.length > 0);
+      assert.equal(zoneLabel(z.tz), z.label);
+    }
+    assert.equal(new Set(ZONES.map((z) => z.tz)).size, ZONES.length, "пояса повторяются");
+  });
+
+  it("незнакомый пояс подписывается сам собой, а не пустотой", () => {
+    assert.equal(zoneLabel("Asia/Nowhere"), "Asia/Nowhere");
   });
 });
