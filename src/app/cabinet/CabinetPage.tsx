@@ -16,6 +16,7 @@ import { DEMO_MODE } from "@/lib/env";
 import { peopleLeft, isSubscriptionActive } from "@/lib/access";
 import { formatRub } from "@/lib/plansDefault";
 import { ArcanaImage } from "@/components/arcana/ArcanaImage";
+import { MakeImageButton } from "@/components/image/MakeImageButton";
 import { calculateMatrix, dayArcana, arcanaName, arcanaLine, readingPath, formatDateDots, urlDateToIso, CALC_TYPES, FORECAST_VIEW } from "@/lib/matrix";
 import { ArcanaCard } from "@/components/reading/Spheres";
 import { DateField } from "@/components/reading/DateField";
@@ -310,9 +311,17 @@ function TodayBlock({ person }: { person: Person }) {
 
       {calendar && <MonthCalendar periodArcana={t.arcana} today={t.date} />}
 
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-5 flex flex-wrap items-center gap-2">
         <Link href={readingPath("prognoz", [person.birth_date])} className="rounded-full border border-text-accent/50 px-4 py-2 text-[14px] text-text-primary hover:bg-accent/10">Прогноз и личный год</Link>
         <Link href="/nastavnik" className="rounded-full border border-border px-4 py-2 text-[14px] text-text-secondary hover:border-text-accent/60 hover:text-text-primary">Спросить наставника</Link>
+        {/* Образ по любой из семи тем. «Я» — это подпись строки в списке
+            людей, а не имя: на карточку такое не ставим. */}
+        <MakeImageButton
+          birthIso={person.birth_date}
+          name={person.name && person.name !== "Я" ? person.name : null}
+          className="qc-focus rounded-full border border-border px-4 text-[14px] text-text-secondary transition-colors hover:border-text-accent/60 hover:text-text-primary"
+          style={{ height: 38 }}
+        />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { useSlotTexts } from "@/components/chart/useSlotTexts";
 import { Paywall } from "@/components/reading/Paywall";
 import { formatBirthDate } from "@/lib/pendingBirth";
 import { DayCardFace } from "./DayCardFace";
+import { MakeImageButton } from "@/components/image/MakeImageButton";
 
 /**
  * СТРАНИЦА КАРТЫ ДНЯ — /taro/26-07-1990
@@ -128,6 +129,11 @@ export function DayCardView({
             Карта выбрана по дате рождения и сегодняшнему дню, не наугад: у всех, кто открыл эту дату сегодня, она одна
             и та же. Следующая — {changesAt} по московскому времени
           </p>
+
+          {/* Образ по сегодняшней карте: завтра она сменится, а карточка останется. */}
+          <div className="mt-5">
+            <MakeImageButton birthIso={card.birth} theme="day" />
+          </div>
         </div>
       </div>
 

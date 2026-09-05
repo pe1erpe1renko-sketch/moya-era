@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { formatDateLong } from "@/lib/matrix";
 import {
   buildAllImageData,
@@ -49,6 +50,7 @@ export function ImageDialog({
   const [preview, setPreview] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [locked, setLocked] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const all = useMemo(() => buildAllImageData(birthIso), [birthIso]);
@@ -111,7 +113,12 @@ export function ImageDialog({
       if (res.ok) {
         const { path } = (await res.json()) as { path: string };
         setLink(`${window.location.origin}${path}`);
+        setLocked(null);
         setCopied(false);
+      } else if (res.status === 402) {
+        // Картинка уже скачана — это главное. Страницы у неё не будет.
+        const { message } = (await res.json()) as { message?: string };
+        setLocked(message ?? "Следующие карточки открывает подписка");
       }
     } catch (e) {
       setError((e as Error).message);
@@ -251,6 +258,22 @@ export function ImageDialog({
                 {busy ? "Сохраняем…" : "Скачать картинку"}
               </button>
             </div>
+
+            {locked && (
+              <div className="mt-4 rounded-[12px] border border-border bg-surface-1" style={{ padding: "12px 14px" }}>
+                <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.55 }}>
+                  Картинка сохранена — она ваша, и выложить её можно прямо сейчас. {locked}: своя страница с превьюшкой
+                  появляется у каждой следующей карточки
+                </p>
+                <Link
+                  href="/tarify"
+                  className="qc-focus mt-3 inline-flex items-center rounded-[10px] border border-text-accent/50 px-4 text-[14px] text-text-primary transition-colors hover:bg-accent/10"
+                  style={{ height: 36 }}
+                >
+                  Что входит в подписку
+                </Link>
+              </div>
+            )}
 
             {link && (
               <div className="mt-4 rounded-[12px] border border-border bg-surface-1" style={{ padding: "12px 14px" }}>
