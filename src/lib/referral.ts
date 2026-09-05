@@ -1,3 +1,5 @@
+import { SITE_HOST } from "@/lib/env";
+
 const KEY = "pendingRef";
 
 /** Сохраняет код пригласившего (параметр ref) на время сессии. */
@@ -32,5 +34,7 @@ export function clearPendingRef(): void {
 
 /** Ссылка-приглашение для блока «Пригласить друга». */
 export function referralLink(code: string): string {
-  return `moyaera.ru/register?ref=${code}`;
+  // Адрес из настройки, а не вписанный руками: приглашение по ссылке в
+  // никуда — это потерянный друг, а домен ещё не куплен.
+  return `${SITE_HOST}/register?ref=${code}`;
 }

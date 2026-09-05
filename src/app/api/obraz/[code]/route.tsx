@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { loadImage, type StoredImage } from "@/server/imageStore";
 import { arcanaImage } from "@/lib/arcanaImage";
+import { SITE_HOST } from "@/lib/env";
 
 export const runtime = "nodejs";
 
@@ -151,7 +152,7 @@ function card(image: StoredImage, origin: string, k: number) {
 
         <div style={{ marginTop: px(44), width: px(720), height: 1, background: "rgba(159,186,185,0.25)" }} />
         <div style={{ marginTop: px(22), fontSize: px(38), fontWeight: 500, letterSpacing: px(2), color: INK }}>
-          moyaera.ru
+          {SITE_HOST}
         </div>
         <div style={{ marginTop: px(10), fontSize: px(26), color: MUTED }}>Матрица судьбы по дате рождения</div>
       </div>

@@ -26,7 +26,7 @@
 
 | Переменная | Откуда | Где нужна |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | боевой домен, `https://moyaera.ru` | canonical, OG, sitemap |
+| `NEXT_PUBLIC_SITE_URL` | боевой домен, `https://moyaera.ru` | canonical, OG, карты сайта, **подпись на карточке образа** и ссылка приглашения. Пока не задан — везде подставляется рабочий адрес на Vercel, чтобы ссылки вели не в никуда |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API → Project URL | клиент и сервер |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | там же → `anon` `public` | клиент и сервер |
 | `SUPABASE_SERVICE_ROLE_KEY` | там же → `service_role` **secret** | **только сервер**. Никогда не добавлять префикс `NEXT_PUBLIC_` |

@@ -15,6 +15,7 @@
  */
 
 import { arcanaImage } from "@/lib/arcanaImage";
+import { SITE_HOST } from "@/lib/env";
 import { CARD_HEIGHT, CARD_WIDTH, PAD, contentBottom, fit, layout, type CardFields } from "./layout";
 
 const DISPLAY = '"Forum", serif';
@@ -24,7 +25,12 @@ const INK = "#f4f1ea";
 const MUTED = "#9fbab9";
 const ACCENT = "#c9b6f0";
 
-export const SITE_LABEL = "moyaera.ru";
+/**
+ * Подпись внизу карточки. Берётся из настройки адреса сайта, а не
+ * вписана руками: иначе на карточке однажды окажется адрес, которого
+ * нет, и весь смысл образа пропадёт — по ссылке никто не придёт.
+ */
+export const SITE_LABEL = SITE_HOST;
 export const SITE_TAGLINE = "Матрица судьбы по дате рождения";
 
 /** Ширина строки этим шрифтом — измеряется самим canvas. */
