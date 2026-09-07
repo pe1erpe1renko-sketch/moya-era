@@ -116,7 +116,12 @@ export default function MentorPage() {
       </div>
 
       <div className="mx-auto w-[min(1100px,92vw)] pb-16 pt-6 md:pt-10">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        {/* Путь назад над чатом: из разговора должно быть видно, куда
+            вернуться, а не только пункт в шапке. */}
+        <Link href="/cabinet" className="inline-flex items-center py-2 text-[14px] text-text-secondary transition-colors hover:text-text-primary">
+          ← В кабинет
+        </Link>
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-text-primary" style={{ fontSize: "clamp(30px, 3vw, 48px)", lineHeight: 1.08 }}>Наставник</h1>
             <p className="mt-2 max-w-[640px] text-[15px] text-text-secondary">Видит ваши числа и отвечает на вопрос, а не на аркан. Не врач, не психолог и не юрист — и скажет об этом прямо.</p>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ChartShell } from "@/components/chart/ChartShell";
 import { chartPath, chartUrlDateToIso } from "@/lib/chartUrl";
 import { formatDateDots } from "@/lib/matrix";
 import { lifePath } from "@/lib/numerology";
@@ -88,15 +89,17 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   };
 
   return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <section className="relative w-full" style={{ paddingTop: "clamp(40px, 5vh, 80px)", paddingBottom: "clamp(64px, 8vh, 120px)" }}>
-        <div id="free" className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
-          <NumerologyDateView chart={chart} initialTexts={initialTexts} />
-          <ChartCrossLinks system="numerology" iso={iso} />
-          <HintBubble place="numerology" iso={iso} />
-        </div>
-      </section>
-    </>
+    <ChartShell>
+      <>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <section className="relative w-full" style={{ paddingTop: "clamp(40px, 5vh, 80px)", paddingBottom: "clamp(64px, 8vh, 120px)" }}>
+          <div id="free" className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
+            <NumerologyDateView chart={chart} initialTexts={initialTexts} />
+            <ChartCrossLinks system="numerology" iso={iso} />
+            <HintBubble place="numerology" iso={iso} />
+          </div>
+        </section>
+      </>
+    </ChartShell>
   );
 }

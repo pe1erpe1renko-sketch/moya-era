@@ -114,10 +114,7 @@ export function ReadingView(props: ReadingViewProps) {
   const otherTypes = CALC_TYPES.filter((t) => t.slug !== type.slug && t.pair === isPair);
 
   return (
-    <main className="relative min-h-screen w-full bg-bg-page">
-      <div className="relative h-[90px] w-full md:h-[110px]">
-        <Header />
-      </div>
+    <Root embedded={Boolean(props.embedded)}>
 
       {/* Первый экран */}
       <section className="mx-auto w-full max-w-[1200px] px-[5vw] pb-10 pt-4 md:px-6 md:pt-8">
@@ -249,9 +246,26 @@ export function ReadingView(props: ReadingViewProps) {
         )}
       </section>
 
-      <Footer />
+      {!props.embedded && <Footer />}
 
       <Paywall open={paywall} onClose={() => setPaywall(false)} date={myDate} freeCount={freeCount} totalCount={totalCount} reason={lockReason ?? undefined} />
+    </Root>
+  );
+}
+
+/**
+ * Самостоятельная страница — со своей шапкой; встроенная в другую (разбор
+ * пары) — только содержимое: шапку и подвал даёт та страница, и вторая
+ * шапка посреди экрана никому не нужна.
+ */
+function Root({ embedded, children }: { embedded: boolean; children: React.ReactNode }) {
+  if (embedded) return <div className="relative w-full">{children}</div>;
+  return (
+    <main className="relative min-h-screen w-full bg-bg-page">
+      <div className="relative h-[90px] w-full md:h-[110px]">
+        <Header />
+      </div>
+      {children}
     </main>
   );
 }

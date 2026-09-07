@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ChartShell } from "@/components/chart/ChartShell";
 import {
   ALL_CALC_TYPES,
   arcanaLine,
@@ -129,28 +130,30 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   };
 
   return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <section className="relative w-full" style={{ paddingTop: "clamp(40px, 5vh, 80px)", paddingBottom: "clamp(64px, 8vh, 120px)" }}>
-        <div id="free" className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
-          <PairPage
-            isoDates={dates}
-            initialTexts={initialTexts}
-            matrixReading={{
-              type: { id: type.id, slug: type.slug, title: type.title, lead: type.lead, note: type.note, pair: type.pair, full: type.full },
-              urlDates: [p.first, p.second],
-              isoDates: dates,
-              matrix: resolved.reading.matrix,
-              sections,
-              sectionsOpen,
-              initialTexts: matrixTexts,
-              freeCount: free,
-              totalCount: total,
-            }}
-          />
-          <HintBubble place="pair" iso={dates[0]} />
-        </div>
-      </section>
-    </>
+    <ChartShell>
+      <>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <section className="relative w-full" style={{ paddingTop: "clamp(40px, 5vh, 80px)", paddingBottom: "clamp(64px, 8vh, 120px)" }}>
+          <div id="free" className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
+            <PairPage
+              isoDates={dates}
+              initialTexts={initialTexts}
+              matrixReading={{
+                type: { id: type.id, slug: type.slug, title: type.title, lead: type.lead, note: type.note, pair: type.pair, full: type.full },
+                urlDates: [p.first, p.second],
+                isoDates: dates,
+                matrix: resolved.reading.matrix,
+                sections,
+                sectionsOpen,
+                initialTexts: matrixTexts,
+                freeCount: free,
+                totalCount: total,
+              }}
+            />
+            <HintBubble place="pair" iso={dates[0]} />
+          </div>
+        </section>
+      </>
+    </ChartShell>
   );
 }

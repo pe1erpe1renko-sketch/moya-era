@@ -215,6 +215,8 @@ export function Header() {
   const target = useDirectionTarget();
   const pathname = usePathname();
 
+  const solid = scrolled || pathname !== "/";
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
     onScroll();
@@ -239,10 +241,12 @@ export function Header() {
           height: "clamp(76px, 6.5vh, 104px)",
           paddingLeft: "clamp(20px, 4vw, 64px)",
           paddingRight: "clamp(20px, 4vw, 64px)",
-          background: scrolled ? "rgba(3, 25, 30, 0.85)" : "transparent",
-          backdropFilter: scrolled ? "blur(10px)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(10px)" : "none",
-          borderColor: scrolled
+          // Плотный фон, а не полупрозрачный с размытием: сквозь него
+          // просвечивал текст страницы и путался с пунктами меню.
+          // Прозрачной шапка остаётся только на самом верху главной —
+          // там под ней звёздное небо первого экрана.
+          background: solid ? "var(--bg-page)" : "transparent",
+          borderColor: solid
             ? "color-mix(in srgb, var(--border) 40%, transparent)"
             : "transparent",
         }}
