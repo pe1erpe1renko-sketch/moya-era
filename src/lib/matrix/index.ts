@@ -163,6 +163,13 @@ export function arcanaLine(n: number): string {
   return arcanaList.find((a) => a.n === n)?.line ?? "";
 }
 
+/** Первое предложение парного текста аркана: кто эти двое друг для друга. */
+export function arcanaPairLine(n: number): string {
+  const text = arcanaList.find((a) => a.n === n)?.pair ?? "";
+  const m = /^(.+?[.!?])(\s|$)/.exec(text);
+  return m ? m[1] : text;
+}
+
 /** «13 июля 1998» */
 const MONTHS_GEN = [
   "января", "февраля", "марта", "апреля", "мая", "июня",

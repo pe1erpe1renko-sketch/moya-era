@@ -17,17 +17,23 @@ import { buildNatalChart } from "@/lib/natal";
 import { buildHumanDesignChart, CHANNELS, channelCenters, type HumanDesignChart } from "@/lib/humandesign";
 import {
   BRIEF_POINTS,
+  CHANNEL_THEMES,
   SYNASTRY_POINTS,
+  THEMES,
   buildComposite,
   buildSynastry,
   buildPairRequest,
+  channelTheme,
   compositeSections,
+  compositeSummary,
   countKinds,
   findPairSlot,
   matrixBriefKey,
   synastryBriefKey,
   synastryPairAllowed,
   synastrySections,
+  synastrySummary,
+  synastryTheme,
   viewByAnchor,
   PAIR_VIEWS,
 } from "./index";
@@ -244,5 +250,66 @@ describe("три взгляда и ключи", () => {
     const r = buildPairRequest({ kind: "syn_brief", slotLabel: "", a: null, b: null, aspect: null });
     assert.ok(r.user.includes("нет ни одного аспекта"));
     assert.ok(!r.user.includes("null"));
+  });
+});
+
+describe("сводка и темы пары", () => {
+  const syn = buildSynastry(natal(A), natal(B));
+  const comp = buildComposite(hd(A), hd(B));
+  const clean = (lines: string[]) => {
+    for (const line of lines) {
+      assert.ok(line.length > 20, `слишком короткое предложение: «${line}»`);
+      assert.ok(!/undefined|NaN|null|\[object/.test(line), `мусор в предложении: «${line}»`);
+    }
+  };
+
+  it("сводка синастрии — пять предложений из чисел", () => {
+    const lines = synastrySummary(syn);
+    assert.equal(lines.length, 5);
+    clean(lines);
+    assert.match(lines[0], new RegExp(`${syn.aspects.length} аспект`));
+  });
+
+  it("сводка композита — пять предложений из чисел", () => {
+    const lines = compositeSummary(comp);
+    assert.equal(lines.length, 5);
+    clean(lines);
+    assert.match(lines[4], new RegExp(comp.type.name.toLowerCase()));
+  });
+
+  it("сводка не ломается без времени и места", () => {
+    const bare = { date: "1990-07-26", time: null, tz: null, latitude: null, longitude: null };
+    const bare2 = { date: "1992-04-09", time: null, tz: null, latitude: null, longitude: null };
+    const s = buildSynastry(buildNatalChart(bare), buildNatalChart(bare2));
+    const lines = synastrySummary(s);
+    assert.equal(lines.length, 5);
+    clean(lines);
+    assert.match(lines[4], /Домов пока нет/);
+    clean(compositeSummary(buildComposite(buildHumanDesignChart(bare), buildHumanDesignChart(bare2))));
+  });
+
+  it("каждый из тридцати шести каналов приписан к теме явно", () => {
+    assert.equal(CHANNEL_THEMES.length, CHANNELS.length);
+    const keys = new Set(CHANNEL_THEMES.map(([a, b]) => `${Math.min(a, b)}_${Math.max(a, b)}`));
+    for (const c of CHANNELS) assert.ok(keys.has(`${c.a}_${c.b}`), `канал ${c.a}—${c.b} без темы`);
+    const ids = new Set(THEMES.map((t) => t.id));
+    for (const c of CHANNELS) assert.ok(ids.has(channelTheme(c)));
+  });
+
+  it("аспекты, дома и каналы получают тему и пояснение", () => {
+    for (const section of synastrySections(syn)) {
+      for (const slot of section.slots.filter((x) => !x.free)) {
+        assert.ok(slot.theme, `${slot.id} без темы`);
+        assert.ok(slot.gloss && slot.gloss.includes(" — "), `${slot.id} без пояснения`);
+      }
+    }
+    const channels = compositeSections(comp).find((s) => s.id === "hdc_channels");
+    for (const slot of channels?.slots ?? []) {
+      assert.ok(slot.theme);
+      assert.ok(slot.gloss);
+    }
+    assert.equal(synastryTheme("mercury", "moon"), "talk");
+    assert.equal(synastryTheme("venus", "mars"), "passion");
+    assert.equal(synastryTheme("sun", "saturn"), "life");
   });
 });

@@ -108,12 +108,14 @@ export type BodygraphProps = {
   /** подсветить центр или канал */
   active?: string | null;
   onActivate?: (id: string | null) => void;
+  /** нажатие на центр — для пояснения рядом со схемой (на телефоне наведения нет) */
+  onSelect?: (id: string) => void;
   className?: string;
   /** показывать номера ворот у концов каналов */
   showGateNumbers?: boolean;
 };
 
-export function Bodygraph({ chart, active = null, onActivate, className, showGateNumbers = false }: BodygraphProps) {
+export function Bodygraph({ chart, active = null, onActivate, onSelect, className, showGateNumbers = false }: BodygraphProps) {
   const [hover, setHover] = useState<string | null>(null);
   const current = hover ?? active;
 
@@ -226,7 +228,7 @@ export function Bodygraph({ chart, active = null, onActivate, className, showGat
             strokeWidth: isActive ? 1.6 : 1,
             strokeOpacity: isDefined ? 1 : 0.6,
             style: {
-              cursor: onActivate ? "pointer" : "default",
+              cursor: onActivate || onSelect ? "pointer" : "default",
               transition: "fill 250ms, stroke 250ms, filter 250ms",
               filter: isActive ? "drop-shadow(0 0 5px rgba(122, 93, 168, 0.5))" : "none",
             },
@@ -238,6 +240,7 @@ export function Bodygraph({ chart, active = null, onActivate, className, showGat
               setHover(null);
               onActivate?.(null);
             },
+            onClick: () => onSelect?.(`center:${id}`),
           };
 
           return (

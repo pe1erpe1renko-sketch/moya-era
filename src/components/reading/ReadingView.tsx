@@ -124,39 +124,45 @@ export function ReadingView(props: ReadingViewProps) {
   return (
     <Root embedded={Boolean(props.embedded)}>
 
-      {/* Первый экран */}
-      <section className="mx-auto w-full max-w-[1200px] px-[5vw] pb-10 pt-4 md:px-6 md:pt-8">
-        <div className="text-[13px] uppercase tracking-[0.1em] text-text-accent">
-          {type.title} · {isoDates.map(formatDateDots).join(" + ")}
-        </div>
-        {/* Иллюстрация центрального аркана — на первом экране, поэтому
-            грузится сразу, а не по прокрутке. На телефоне встаёт над
-            заголовком, на широком экране — слева от него. */}
-        <div className="mt-3 flex flex-col gap-5 sm:flex-row sm:items-start">
-          <ArcanaImage n={core.C} width={132} rounded={14} priority />
-          <div className="min-w-0">
-            <Heading embedded={Boolean(props.embedded)} className="font-display text-[clamp(32px,5vw,64px)] leading-[1.05] text-text-primary">
-              {isPair ? "Ядро пары" : "Центральный аркан"} — {core.C}, {arcanaName(core.C)}
-            </Heading>
-            <p className="mt-3 max-w-[720px] text-[clamp(16px,1.3vw,20px)] leading-[1.55] text-text-secondary">{arcanaLine(core.C)}</p>
-            {/* Образ — рядом с центральным арканом, обычной кнопкой. */}
-            {single && <MakeImageButton birthIso={single.birthDate} theme="core" style={{ height: 46, marginTop: 20 }} />}
-          </div>
-        </div>
-        {type.note && <p className="mt-3 max-w-[720px] text-[14px] text-text-secondary/80">{type.note}</p>}
-        {single && (
-          <p className="mt-4 text-[15px] text-text-secondary">
-            Дата рождения — {formatDateLong(single.birthDate)}. Расчёт арифметический: одна и та же дата всегда даёт одну и ту же матрицу.
-          </p>
-        )}
-        {pair && (
-          <p className="mt-4 text-[15px] text-text-secondary">
-            Матрица пары строится сложением двух личных: {formatDateLong(pair.dates[0])} и {formatDateLong(pair.dates[1])}.
-          </p>
+      {/* Первый экран. Встроенному в страницу пары разбору шапка не нужна:
+          та страница уже показала аркан пары крупно, с иллюстрацией и
+          строкой о том, кто эти двое друг для друга. */}
+      <section className={`mx-auto w-full max-w-[1200px] px-[5vw] pb-10 md:px-6 ${props.embedded ? "pt-0" : "pt-4 md:pt-8"}`}>
+        {!props.embedded && (
+          <>
+            <div className="text-[13px] uppercase tracking-[0.1em] text-text-accent">
+              {type.title} · {isoDates.map(formatDateDots).join(" + ")}
+            </div>
+            {/* Иллюстрация центрального аркана — на первом экране, поэтому
+                грузится сразу, а не по прокрутке. На телефоне встаёт над
+                заголовком, на широком экране — слева от него. */}
+            <div className="mt-3 flex flex-col gap-5 sm:flex-row sm:items-start">
+              <ArcanaImage n={core.C} width={132} rounded={14} priority />
+              <div className="min-w-0">
+                <h1 className="font-display text-[clamp(32px,5vw,64px)] leading-[1.05] text-text-primary">
+                  {isPair ? "Ядро пары" : "Центральный аркан"} — {core.C}, {arcanaName(core.C)}
+                </h1>
+                <p className="mt-3 max-w-[720px] text-[clamp(16px,1.3vw,20px)] leading-[1.55] text-text-secondary">{arcanaLine(core.C)}</p>
+                {/* Образ — рядом с центральным арканом, обычной кнопкой. */}
+                {single && <MakeImageButton birthIso={single.birthDate} theme="core" style={{ height: 46, marginTop: 20 }} />}
+              </div>
+            </div>
+            {type.note && <p className="mt-3 max-w-[720px] text-[14px] text-text-secondary/80">{type.note}</p>}
+            {single && (
+              <p className="mt-4 text-[15px] text-text-secondary">
+                Дата рождения — {formatDateLong(single.birthDate)}. Расчёт арифметический: одна и та же дата всегда даёт одну и ту же матрицу.
+              </p>
+            )}
+            {pair && (
+              <p className="mt-4 text-[15px] text-text-secondary">
+                Матрица пары строится сложением двух личных: {formatDateLong(pair.dates[0])} и {formatDateLong(pair.dates[1])}.
+              </p>
+            )}
+          </>
         )}
 
         {/* Ключевые числа */}
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+        <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 ${props.embedded ? "" : "mt-8"}`}>
           {(["W", "N", "E", "S", "C"] as const).map((k) => (
             // На узком экране картинка встаёт над текстом: в ряд рядом с
             // ней «Перерождение» не помещается и упирается в край карточки.
@@ -187,17 +193,30 @@ export function ReadingView(props: ReadingViewProps) {
         {/* min-w-0 на обеих колонках обязателен: без него таблица чакр
             со своей минимальной шириной распирала единственную колонку на
             телефоне на 12px за край экрана. */}
-        <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-start">
+        {/* У личного разбора правая колонка заполнена: карточка дня и
+            чакры. У пары там были бы одни чакры и дыра под ними — поэтому
+            в паре схема стоит одна, а чакры свёрнуты под ней. */}
+        <div className={`grid gap-8 md:items-start ${single ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : ""}`}>
           <div className="min-w-0">
             <h2 className="font-display text-[clamp(24px,2.6vw,36px)] text-text-primary">Схема матрицы</h2>
             <p className="mt-2 text-[15px] text-text-secondary">25 точек, каждая — своё число. Внешние восемь и центр — основа, промежуточные считаются из них. Нажмите на точку — увидите, что она значит.</p>
-            <div className="mt-5">
+            <div className={`mt-5 ${single ? "" : "mx-auto max-w-[720px]"}`}>
               <Octagram matrix={matrix} showTimeline={!isPair} age={single?.today.age ?? null} onSelect={onSelectPoint} hints={hints} loading={busy} onGoToSection={goToSection} />
             </div>
           </div>
           <div className="min-w-0 space-y-4">
             {single && <TodayCard matrix={single} texts={texts} onLoad={() => load(["day_energy"])} />}
-            <ChakraTable matrix={matrix} />
+            {single ? (
+              <ChakraTable matrix={matrix} />
+            ) : (
+              <details className="rounded-[20px] border border-border/60 bg-surface-1/40">
+                <summary className="qc-focus flex cursor-pointer list-none items-center justify-between gap-4 rounded-[20px] px-5 py-4 text-[15px] text-text-primary md:px-6">
+                  Карта здоровья пары по чакрам
+                  <span className="text-[13px] text-text-accent">показать</span>
+                </summary>
+                <ChakraTable matrix={matrix} bare />
+              </details>
+            )}
           </div>
         </div>
       </section>
@@ -268,9 +287,6 @@ function Root({ embedded, children }: { embedded: boolean; children: React.React
 }
 
 /** h1 у самостоятельной страницы, h2 — когда разбор встроен в другую. */
-function Heading({ embedded, className, children }: { embedded: boolean; className: string; children: React.ReactNode }) {
-  return embedded ? <h2 className={className}>{children}</h2> : <h1 className={className}>{children}</h1>;
-}
 
 /* ─── Сегодня ───────────────────────────────────────────────────── */
 
@@ -307,11 +323,12 @@ function TodayCard({ matrix, texts, onLoad }: { matrix: Matrix; texts: Record<st
 
 /* ─── Чакральная таблица ────────────────────────────────────────── */
 
-function ChakraTable({ matrix }: { matrix: Matrix | PairMatrix }) {
+/** `bare` — без своей рамки и заголовка: таблица уже стоит внутри свёрнутого блока. */
+function ChakraTable({ matrix, bare = false }: { matrix: Matrix | PairMatrix; bare?: boolean }) {
   const ch = matrix.chakras;
   return (
-    <div className="rounded-[20px] border border-border/60 bg-surface-1/40 p-5 md:p-6">
-      <div className="text-[13px] uppercase tracking-[0.08em] text-text-secondary">Карта здоровья по чакрам</div>
+    <div className={bare ? "px-5 pb-5 md:px-6" : "rounded-[20px] border border-border/60 bg-surface-1/40 p-5 md:p-6"}>
+      {!bare && <div className="text-[13px] uppercase tracking-[0.08em] text-text-secondary">Карта здоровья по чакрам</div>}
       {/* Без min-width: четыре колонки коротких чисел и названий чакр
           помещаются и в 311 точек, а принудительные 340 давали +12px к
           ширине страницы на телефоне. Прокрутка остаётся на случай очень

@@ -1213,3 +1213,96 @@ div:has(> [data-taro-pre]) > .uppercase {
   color: var(--text-primary);
   text-decoration: underline;
 }
+
+/* ===== Страница пары =====
+   Вкладки закреплены под шапкой при прокрутке; первый экран — результат:
+   аркан пары с иллюстрацией, как карта на столе. Служебные тексты
+   свёрнуты в <details>. */
+.pair-tabs {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 30;
+  display: flex;
+  gap: 8px;
+  margin: 0 -4vw;
+  padding: 10px 4vw;
+  /* Плотный фон, как у шапки: сквозь полупрозрачный просвечивал текст
+     страницы и путался с подписями вкладок. */
+  background: var(--bg-page);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+@media (min-width: 768px) {
+  .pair-tabs {
+    margin: 0;
+    padding: 12px 0;
+  }
+}
+.pair-tab {
+  flex: 1 1 0;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 15px;
+  transition: color 200ms, border-color 200ms, background-color 200ms;
+}
+@media (min-width: 640px) {
+  .pair-tab {
+    flex: 0 0 auto;
+    padding: 0 24px;
+  }
+}
+.pair-tab[aria-selected="true"] {
+  border-color: var(--text-accent);
+  color: var(--text-primary);
+  background: rgba(122, 93, 168, 0.12);
+}
+.pair-hero {
+  display: grid;
+  gap: 24px 36px;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+@media (min-width: 640px) {
+  .pair-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: stretch;
+  }
+}
+.pair-hero-art {
+  transform: rotate(-3deg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 6px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.pair-how > summary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-accent);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.pair-how > summary::-webkit-details-marker {
+  display: none;
+}
+.pair-how > summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 200ms;
+}
+.pair-how[open] > summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+.pair-theme {
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.pair-theme:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}

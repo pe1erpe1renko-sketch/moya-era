@@ -34,6 +34,7 @@ import {
   type Composite,
 } from "./composite";
 import { synastryAspectKey, synastryBriefKey, synastryHouseKey, type Synastry } from "./synastry";
+import { ASPECT_GLOSS, channelTheme, houseGloss, houseTheme, synastryTheme, type ThemeId } from "./themes";
 
 export type PairSlotKind =
   | "brief"
@@ -55,6 +56,10 @@ export type PairSlot = {
   key: string;
   /** наложение домов: чья планета и в какой дом попала */
   overlay?: { body: BodyId; bodyName: string; house: number };
+  /** житейская тема для группировки: чувства, общение, страсть, быт, деньги */
+  theme?: ThemeId;
+  /** термин человеческим языком: «квадрат — трение, которое растит» */
+  gloss?: string;
 };
 
 export type PairSection = {
@@ -106,6 +111,8 @@ export function synastrySections(synastry: Synastry): PairSection[] {
         kind: "syn_aspect" as const,
         free: false,
         key: synastryAspectKey(x.a, x.b, x.aspect.key),
+        theme: synastryTheme(x.a, x.b),
+        gloss: ASPECT_GLOSS[x.aspect.key],
       })),
     });
   }
@@ -122,6 +129,8 @@ export function synastrySections(synastry: Synastry): PairSection[] {
         free: false,
         key: synastryHouseKey(o.body, o.house),
         overlay: { body: o.body, bodyName: BODIES[o.body].name, house: o.house },
+        theme: houseTheme(o.house),
+        gloss: `${o.house} дом — ${houseGloss(o.house)}`,
       })),
     });
   }
@@ -180,10 +189,11 @@ export function compositeSections(composite: Composite): PairSection[] {
       slots: composite.channels.map((c) => ({
         id: `hdc_channel_${c.channel.a}_${c.channel.b}`,
         label: `Канал ${c.channel.a}—${c.channel.b}: ${c.channel.name}`,
-        hint: CONNECTION_KINDS[c.kind].name.toLowerCase(),
         kind: "hdc_channel" as const,
         free: false,
         key: compositeChannelKey(c.channel.a, c.channel.b, c.kind),
+        theme: channelTheme(c.channel),
+        gloss: `${CONNECTION_KINDS[c.kind].name.toLowerCase()} — ${CONNECTION_KINDS[c.kind].about}`,
       })),
     });
   }

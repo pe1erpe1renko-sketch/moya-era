@@ -13,4 +13,6 @@ export * from "./views";
 export * from "./synastry";
 export * from "./composite";
 export * from "./sections";
+export * from "./themes";
+export * from "./summary";
 export * from "./prompts";
