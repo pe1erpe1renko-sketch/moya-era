@@ -27,10 +27,12 @@ export type DateSelectsProps = {
   value: DateParts;
   onChange: (value: DateParts) => void;
   gap?: number;
+  /** три поля в столбик, во всю ширину — когда рядом мало места */
+  stacked?: boolean;
 };
 
 /** Три выпадающих списка с датой — переиспользуемый ряд полей. */
-export function DateSelects({ idPrefix, value, onChange, gap = 12 }: DateSelectsProps) {
+export function DateSelects({ idPrefix, value, onChange, gap = 12, stacked = false }: DateSelectsProps) {
   const currentYear = new Date().getFullYear();
   const years = useMemo(
     () => Array.from({ length: currentYear - 1930 + 1 }, (_, i) => currentYear - i),
@@ -38,7 +40,7 @@ export function DateSelects({ idPrefix, value, onChange, gap = 12 }: DateSelects
   );
 
   return (
-    <div className="flex flex-col md:flex-row" style={{ gap }}>
+    <div className={stacked ? "flex flex-col" : "flex flex-col md:flex-row"} style={{ gap }}>
       <div className="relative flex-1">
         <label className="sr-only" htmlFor={`${idPrefix}-day`}>
           День

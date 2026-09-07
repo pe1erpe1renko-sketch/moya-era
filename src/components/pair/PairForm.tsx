@@ -61,6 +61,9 @@ export function PairForm({
   const [people, setPeople] = useState<Person[]>([]);
   const [sides, setSides] = useState<[Side, Side]>([emptySide(), emptySide()]);
   const [busy, setBusy] = useState(false);
+  // Время и место раскрыты у каждого отдельно; выбранный из своих людей
+  // с временем — раскрывается сам, чтобы было видно, что подставилось.
+  const [extra, setExtra] = useState<[boolean, boolean]>([false, false]);
 
   useEffect(() => {
     // Список нужен только вошедшему; после выхода его не показывает
@@ -92,6 +95,7 @@ export function PairForm({
     if (!person) return;
     const [y, m, d] = person.birth_date.split("-");
     const [hh, mm] = (person.birth_time ?? "").split(":");
+    if (hh || person.birth_place) setExtra((prev) => (who === 0 ? [true, prev[1]] : [prev[0], true]));
     update(who, {
       date: { day: String(Number(d)), month: String(Number(m)), year: y },
       hour: hh ?? "",
@@ -140,18 +144,25 @@ export function PairForm({
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      {/* Два человека — две отдельные карточки с заметным зазором и своим
+          значком: по обрезанным полям в одной строке не было видно, что
+          людей двое. В каждой по умолчанию только дата, три поля во всю
+          ширину, чтобы читалось «День · Месяц · Год». Время и место
+          свёрнуты: они нужны только синастрии и композиту. */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
         {sides.map((side, index) => {
           const who = index as 0 | 1;
+          const more = extra[who];
           return (
-            <div key={who}>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-text-secondary" style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                  {who === 0 ? "Первый" : "Второй"}
+            <div key={who} className="rounded-[18px] border border-border bg-surface-1" style={{ padding: "clamp(16px, 2vw, 22px)" }}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="flex items-center gap-3 text-text-primary" style={{ fontSize: 16 }}>
+                  <PersonBadge who={who} />
+                  {who === 0 ? "Первый человек" : "Второй человек"}
                 </span>
                 {isAuthenticated && people.length > 0 && (
                   <select
-                    className="qc-focus rounded-[10px] border border-border bg-surface-1 px-2 py-1 text-[13px] text-text-secondary"
+                    className="qc-focus rounded-[10px] border border-border bg-bg-page px-2 py-1 text-[13px] text-text-secondary"
                     aria-label={who === 0 ? "Выбрать первого из своих людей" : "Выбрать второго из своих людей"}
                     defaultValue=""
                     onChange={(e) => pickPerson(who, e.target.value)}
@@ -166,55 +177,70 @@ export function PairForm({
                 )}
               </div>
 
-              <div className="mt-2.5">
-                <DateSelects idPrefix={`pair-${who}`} value={side.date} onChange={(d) => update(who, { date: d })} gap={10} />
+              <div className="mt-4">
+                <span className="mb-1.5 block text-[13px] text-text-secondary">Дата рождения</span>
+                <DateSelects idPrefix={`pair-${who}`} value={side.date} onChange={(d) => update(who, { date: d })} gap={10} stacked />
               </div>
 
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <span className="mb-1.5 block text-[13px] text-text-secondary">Время рождения</span>
-                  <div className="flex gap-2">
-                    <select
-                      className={selectClass}
-                      value={side.hour}
-                      onChange={(e) => update(who, { hour: e.target.value })}
-                      aria-label={`Час рождения, ${who === 0 ? "первый" : "второй"}`}
-                    >
-                      <option value="">Час</option>
-                      {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      className={selectClass}
-                      value={side.minute}
-                      onChange={(e) => update(who, { minute: e.target.value })}
-                      aria-label={`Минуты рождения, ${who === 0 ? "первый" : "второй"}`}
-                    >
-                      <option value="">Мин</option>
-                      {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
+              <button
+                type="button"
+                onClick={() => setExtra((prev) => (who === 0 ? [!prev[0], prev[1]] : [prev[0], !prev[1]]))}
+                aria-expanded={more}
+                className="qc-focus mt-4 inline-flex items-center gap-2 py-1 text-[14px] text-text-accent underline-offset-4 hover:underline"
+              >
+                <span aria-hidden="true" style={{ display: "inline-block", transform: more ? "rotate(90deg)" : "none", transition: "transform 150ms" }}>
+                  ›
+                </span>
+                {more ? "Скрыть время и место" : "Добавить время и место — по желанию"}
+              </button>
+
+              {more && (
+                <div className="mt-3 grid grid-cols-1 gap-3">
+                  <div>
+                    <span className="mb-1.5 block text-[13px] text-text-secondary">Время рождения</span>
+                    <div className="flex gap-2">
+                      <select
+                        className={selectClass}
+                        value={side.hour}
+                        onChange={(e) => update(who, { hour: e.target.value })}
+                        aria-label={`Час рождения, ${who === 0 ? "первый" : "второй"}`}
+                      >
+                        <option value="">Час</option>
+                        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        className={selectClass}
+                        value={side.minute}
+                        onChange={(e) => update(who, { minute: e.target.value })}
+                        aria-label={`Минуты рождения, ${who === 0 ? "первый" : "второй"}`}
+                      >
+                        <option value="">Минуты</option>
+                        {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0">
+                    <span className="mb-1.5 block text-[13px] text-text-secondary">Место рождения</span>
+                    <PlaceField
+                      value={side.place}
+                      text={side.placeText}
+                      onChange={({ value, text }) => update(who, { place: value, placeText: text })}
+                      hint={false}
+                      ariaLabel={`Место рождения, ${who === 0 ? "первый" : "второй"}`}
+                      className="qc-focus h-12 w-full rounded-[12px] border border-border bg-bg-page px-3 text-[16px] text-text-primary transition-colors focus:border-text-accent"
+                    />
                   </div>
                 </div>
-
-                <div className="min-w-0">
-                  <span className="mb-1.5 block text-[13px] text-text-secondary">Место рождения</span>
-                  <PlaceField
-                    value={side.place}
-                    text={side.placeText}
-                    onChange={({ value, text }) => update(who, { place: value, placeText: text })}
-                    hint={false}
-                    ariaLabel={`Место рождения, ${who === 0 ? "первый" : "второй"}`}
-                    className="qc-focus h-12 w-full rounded-[12px] border border-border bg-surface-1 px-3 text-[16px] text-text-primary transition-colors focus:border-text-accent"
-                  />
-                </div>
-              </div>
+              )}
             </div>
           );
         })}
@@ -237,5 +263,25 @@ export function PairForm({
         часть связей не определяются, и мы честно об этом пишем
       </p>
     </div>
+  );
+}
+
+/** Значок человека в карточке: у первого и второго свой, чтобы не путать. */
+function PersonBadge({ who }: { who: 0 | 1 }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex shrink-0 items-center justify-center rounded-full font-mono"
+      style={{
+        width: 30,
+        height: 30,
+        fontSize: 14,
+        border: "1px solid var(--text-accent)",
+        color: who === 0 ? "var(--text-primary)" : "var(--text-accent)",
+        background: who === 0 ? "color-mix(in srgb, var(--accent) 35%, transparent)" : "transparent",
+      }}
+    >
+      {who === 0 ? "1" : "2"}
+    </span>
   );
 }
