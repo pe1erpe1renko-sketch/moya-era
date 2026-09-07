@@ -220,8 +220,13 @@ export function PairView({
 
       {view === "synastry" && synastry && (
         <section className="mt-8" aria-labelledby="pair-result">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:items-start">
-            <SynastryWheel synastry={synastry} className="mx-auto w-full max-w-[460px]" />
+          {/* Схема слева, её расшифровка справа — читаются вместе. На
+              широком экране схема закреплена: пока человек идёт по темам,
+              колесо остаётся перед глазами. */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start">
+            <div className="pair-scheme">
+              <SynastryWheel synastry={synastry} className="mx-auto w-full max-w-[420px]" />
+            </div>
             <div className="min-w-0">
               <div className="text-[13px] uppercase tracking-[0.1em] text-text-accent">Синастрия</div>
               <h2 id="pair-result" className="mt-2 font-display text-text-primary" style={{ fontSize: "clamp(28px, 3vw, 44px)", lineHeight: 1.08 }}>
@@ -231,32 +236,32 @@ export function PairView({
               </h2>
               <Summary sentences={synastrySummary(synastry)} />
               <HowToRead paragraphs={HOW_TO_READ.synastry} />
+
+              <PairPeople people={people} loading={loading} onRefine={onRefine} view={view} peopleLeft={peopleLeft} loggedIn={loggedIn} />
+
+              <div className="mt-8">
+                <Brief
+                  title={sections[0]?.slots[0]?.label ?? "Что вас связывает"}
+                  text={briefText("syn_brief")}
+                  busy={busy.has("syn_brief")}
+                />
+              </div>
+
+              <ThemedSections
+                title="Аспекты и дома по темам"
+                lead="Планета одного и планета другого, а при известном времени рождения — и дома. Каждая связь разбирается отдельно; полный разбор открывает подписка."
+                sections={sections}
+                {...locked}
+              />
             </div>
           </div>
-
-          <PairPeople people={people} loading={loading} onRefine={onRefine} view={view} peopleLeft={peopleLeft} loggedIn={loggedIn} />
-
-          <div className="mt-8">
-            <Brief
-              title={sections[0]?.slots[0]?.label ?? "Что вас связывает"}
-              text={briefText("syn_brief")}
-              busy={busy.has("syn_brief")}
-            />
-          </div>
-
-          <ThemedSections
-            title="Аспекты и дома по темам"
-            lead="Планета одного и планета другого, а при известном времени рождения — и дома. Каждая связь разбирается отдельно; полный разбор открывает подписка."
-            sections={sections}
-            {...locked}
-          />
         </section>
       )}
 
       {view === "composite" && composite && (
         <section className="mt-8" aria-labelledby="pair-result">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start">
-            <div className="min-w-0">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:items-start">
+            <div className="pair-scheme">
               <Bodygraph
                 chart={{
                   gates: [...composite.first.gates, ...composite.second.gates],
@@ -265,20 +270,12 @@ export function PairView({
                 }}
                 active={center ? `center:${center}` : null}
                 onSelect={(id) => setCenter(id.replace("center:", "") as CenterId)}
-                className="mx-auto w-full max-w-[230px] lg:max-w-[300px]"
+                className="mx-auto w-full max-w-[240px] lg:max-w-[280px]"
               />
               <p className="mt-3 text-text-secondary" style={{ fontSize: 13, lineHeight: 1.55 }}>
                 Бодиграф пары: два человека на одной схеме. Закрашенные центры определены вдвоём, пустые открыты у обоих,
                 горящие линии — каналы пары. Нажмите на центр — увидите, откуда он взялся и о чём он.
               </p>
-              {center && (
-                <div className="mt-4">
-                  <CenterExplain composite={composite} id={center} onClose={() => setCenter(null)} />
-                </div>
-              )}
-              <div className="mt-4">
-                <CompositeCenters composite={composite} active={center} onSelect={setCenter} />
-              </div>
             </div>
             <div className="min-w-0">
               <div className="text-[13px] uppercase tracking-[0.1em] text-text-accent">Композит</div>
@@ -290,25 +287,41 @@ export function PairView({
                 <ConnectionSummary composite={composite} />
               </div>
               <HowToRead paragraphs={HOW_TO_READ.composite} />
+
+              {/* Центры — рядом со схемой по смыслу, но в правой колонке:
+                  нажатие в списке подсвечивает центр на схеме слева. */}
+              <div className="mt-8">
+                <div className="text-text-secondary" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Центры пары
+                </div>
+                {center && (
+                  <div className="mt-3">
+                    <CenterExplain composite={composite} id={center} onClose={() => setCenter(null)} />
+                  </div>
+                )}
+                <div className="mt-3">
+                  <CompositeCenters composite={composite} active={center} onSelect={setCenter} />
+                </div>
+              </div>
+
+              <PairPeople people={people} loading={loading} onRefine={onRefine} view={view} peopleLeft={peopleLeft} loggedIn={loggedIn} />
+
+              <div className="mt-8">
+                <Brief
+                  title={`${composite.first.type.name} и ${composite.second.type.name}`}
+                  text={briefText("hdc_brief")}
+                  busy={busy.has("hdc_brief")}
+                />
+              </div>
+
+              <ThemedSections
+                title="Каналы по темам"
+                lead="Каждый горящий канал пары — отдельный вид связи. Электромагнитные существуют только вдвоём: это и притяжение, и трение. Полный разбор открывает подписка."
+                sections={sections}
+                {...locked}
+              />
             </div>
           </div>
-
-          <PairPeople people={people} loading={loading} onRefine={onRefine} view={view} peopleLeft={peopleLeft} loggedIn={loggedIn} />
-
-          <div className="mt-8">
-            <Brief
-              title={`${composite.first.type.name} и ${composite.second.type.name}`}
-              text={briefText("hdc_brief")}
-              busy={busy.has("hdc_brief")}
-            />
-          </div>
-
-          <ThemedSections
-            title="Каналы по темам"
-            lead="Каждый горящий канал пары — отдельный вид связи. Электромагнитные существуют только вдвоём: это и притяжение, и трение. Полный разбор открывает подписка."
-            sections={sections}
-            {...locked}
-          />
         </section>
       )}
 

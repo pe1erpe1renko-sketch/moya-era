@@ -1298,6 +1298,14 @@ div:has(> [data-taro-pre]) > .uppercase {
 .pair-how[open] > summary::after {
   transform: translateY(2px) rotate(-135deg);
 }
+/* Схема пары (колесо, бодиграф) закреплена под вкладками, пока справа
+   читают расшифровку. Только на широком экране: на телефоне колонка одна. */
+@media (min-width: 1024px) {
+  .pair-scheme {
+    position: sticky;
+    top: calc(var(--header-h) + 84px);
+  }
+}
 .pair-theme {
   border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
