@@ -4,8 +4,8 @@
  * Первый экран таро — вопрос и четыре расклада. Вопрос и выбранный вид
  * живут в адресе, чтобы человек ничего не терял по дороге:
  *  - гость написал вопрос, нажал «Разложить», ушёл входить и вернулся
- *    (`?next=/taro?vid=…`, вопрос — из sessionStorage) — поле заполнено,
- *    расклад выбран;
+ *    (`?next=/taro?vid=…`, вопрос — из черновика в localStorage) — поле
+ *    заполнено, расклад выбран, кнопка в фокусе;
  *  - витрина на странице пары ведёт на `/taro?vid=love` — расклад об
  *    отношениях выбран сразу;
  *  - наставник предлагает «на этот вопрос можно сделать расклад» — и
@@ -18,12 +18,18 @@
  */
 
 import { SPREADS, type SpreadId } from "./spreads";
+import { authHref, type ReturnStore } from "@/lib/returnTo";
 
 /** Длина вопроса — та же, что принимает сервер расклада. */
 export const ASK_MAX = 500;
 
-/** Запасная копия вопроса на время входа: адрес может потеряться по дороге. */
+/**
+ * Черновик вопроса и выбранного вида — в localStorage, на сутки.
+ * Переживает вход, регистрацию с подтверждением почты в другой вкладке
+ * и просто уход со страницы: вернулся — вопрос на месте.
+ */
 export const ASK_STORAGE_KEY = "era_taro_ask";
+export const ASK_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Приветственные кредиты новому аккаунту. Начисляет база триггером
@@ -69,11 +75,60 @@ export function askPath(ask: { vid?: string | null; q?: string | null }): string
  *
  * В адрес возврата кладётся только вид расклада. Сам вопрос — личный
  * текст, и через адреса входа и заголовки Referer ему ходить незачем:
- * страница кладёт его в sessionStorage (`ASK_STORAGE_KEY`) и забирает
- * оттуда после возвращения.
+ * страница держит его в черновике (`rememberAsk`) и забирает оттуда
+ * после возвращения.
  */
 export function askReturnPath(vid: string | null | undefined, to: "login" | "register"): string {
-  return `/${to}?next=${encodeURIComponent(askPath({ vid }))}`;
+  return authHref(to, askPath({ vid }));
+}
+
+/** Черновик: вопрос, вид и признак «ушёл на вход — по возвращении подсветить кнопку». */
+export type AskDraft = { vid: SpreadId | null; q: string; returning: boolean };
+
+function browserStore(): ReturnStore | null {
+  try {
+    return typeof window === "undefined" ? null : window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+/** Сохранить черновик. Пустой черновик без вида — снять запись. */
+export function rememberAsk(
+  draft: { vid?: string | null; q?: string | null; returning?: boolean },
+  store: ReturnStore | null = browserStore(),
+  now: number = Date.now(),
+): void {
+  if (!store) return;
+  const q = cleanQuestion(draft.q);
+  const vid = spreadIdOf(draft.vid);
+  try {
+    if (!q && !vid) {
+      store.removeItem(ASK_STORAGE_KEY);
+      return;
+    }
+    store.setItem(ASK_STORAGE_KEY, JSON.stringify({ vid, q, returning: Boolean(draft.returning), at: now }));
+  } catch {
+    /* приватный режим — вопрос вернётся хотя бы из адреса */
+  }
+}
+
+/** Забрать черновик и снять запись. null — черновика нет или он старше суток. */
+export function takeAsk(store: ReturnStore | null = browserStore(), now: number = Date.now()): AskDraft | null {
+  if (!store) return null;
+  try {
+    const raw = store.getItem(ASK_STORAGE_KEY);
+    store.removeItem(ASK_STORAGE_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as { vid?: unknown; q?: unknown; returning?: unknown; at?: unknown };
+    if (typeof v.at !== "number" || now - v.at > ASK_TTL_MS) return null;
+    const q = cleanQuestion(typeof v.q === "string" ? v.q : "");
+    const vid = spreadIdOf(typeof v.vid === "string" ? v.vid : null);
+    if (!q && !vid) return null;
+    return { vid, q, returning: v.returning === true };
+  } catch {
+    return null;
+  }
 }
 
 /**

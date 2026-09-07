@@ -12,7 +12,9 @@ import { useAuth } from "@/lib/useAuth";
 import { arcanaImage } from "@/lib/arcanaImage";
 import { isoToUrlDate } from "@/lib/matrix";
 import { SPREADS, type DrawnCard, type SpreadId } from "@/lib/tarot";
-import { ASK_MAX, ASK_STORAGE_KEY, askReturnPath, bridgeText, cleanQuestion, parseAsk, spreadIdOf } from "@/lib/tarot/ask";
+import { ASK_MAX, askPath, askReturnPath, bridgeText, cleanQuestion, parseAsk, rememberAsk, takeAsk } from "@/lib/tarot/ask";
+import { rememberReturn } from "@/lib/returnTo";
+import { justReturned } from "@/lib/nextPath";
 import type { NextShowcase } from "@/lib/nextSteps";
 
 /**
@@ -25,10 +27,12 @@ import type { NextShowcase } from "@/lib/nextSteps";
  *
  * МОСТ К РЕГИСТРАЦИИ. Гость нажимает «Разложить карты» — это не замок,
  * а предложение: новым при регистрации начисляются пять приветственных
- * кредитов, первого расклада хватает. Вопрос и выбранный вид на время
- * входа лежат в sessionStorage, а после возвращения снова в поле —
- * человек ничего не теряет. Сам вопрос через адрес входа не ходит: это
- * личный текст.
+ * кредитов, первого расклада хватает. Вопрос и выбранный вид лежат в
+ * черновике (localStorage, сутки) и после возвращения снова в поле, а
+ * кнопка «Разложить карты» — в фокусе; адрес возврата едет и в `?next=`,
+ * и в хранилище (`lib/returnTo`), чтобы пережить переход со входа на
+ * регистрацию, ошибку в пароле и подтверждение почты из письма. Сам
+ * вопрос через адрес входа не ходит: это личный текст.
  *
  * Карты тянет сервер криптостойким источником, кредиты списываются там
  * же (см. `api/taro/spread`). Подписка не нужна — только кредиты.
@@ -145,30 +149,42 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
   const [error, setError] = useState<{ text: string; href?: string; link?: string } | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const resultRef = useRef<HTMLElement>(null);
+  // Черновик пишется только после того, как прочитан: иначе пустое поле
+  // при открытии затёрло бы то, с чем человек уходил на вход.
+  const restored = useRef(false);
   const placeholder = useTypedPlaceholder(question === "");
 
   // Вопрос и вид — из адреса (наставник, витрина пары, главная) или из
-  // запасной копии на время входа. Из адресной строки вопрос стирается
-  // сразу: это личный текст, и в Referer ему ходить незачем.
+  // черновика (ушёл на вход, вернулся). Из адресной строки вопрос
+  // стирается сразу: это личный текст, и в Referer ему ходить незачем.
+  // Вернулся со входа — кнопка «Разложить карты» в фокусе и на экране.
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const fromUrl = parseAsk(window.location.search);
-      let stored: { vid?: string | null; q?: string } | null = null;
-      try {
-        stored = JSON.parse(window.sessionStorage.getItem(ASK_STORAGE_KEY) ?? "null");
-        window.sessionStorage.removeItem(ASK_STORAGE_KEY);
-      } catch {
-        stored = null;
-      }
-      const q = fromUrl.q || cleanQuestion(stored?.q);
-      const vid = fromUrl.vid ?? spreadIdOf(stored?.vid);
+      const draft = takeAsk();
+      const q = fromUrl.q || draft?.q || "";
+      const vid = fromUrl.vid ?? draft?.vid ?? null;
       if (q) setQuestion(q);
       if (vid) setKindId(vid);
+      restored.current = true;
       if (window.location.search) window.history.replaceState(null, "", `/taro${window.location.hash}`);
+      // Вернулся со входа (через мост или «Войти» в шапке) — кнопка в фокусе.
+      if (justReturned() || draft?.returning) {
+        window.requestAnimationFrame(() => {
+          buttonRef.current?.focus({ preventScroll: true });
+          buttonRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+        });
+      }
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  // Черновик: ушёл со страницы — вернулся, вопрос на месте.
+  useEffect(() => {
+    if (restored.current) rememberAsk({ vid: kindId, q: question });
+  }, [kindId, question]);
 
   useEffect(() => {
     let alive = true;
@@ -189,12 +205,10 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
   const kind = kinds.find((k) => k.id === kindId) ?? kinds[0];
   const credits = state?.credits ?? null;
 
+  /** Уходим на вход: черновик с пометкой «вернуться к кнопке» и адрес возврата. */
   function remember() {
-    try {
-      window.sessionStorage.setItem(ASK_STORAGE_KEY, JSON.stringify({ vid: kindId, q: cleanQuestion(question) }));
-    } catch {
-      /* приватный режим — вопрос вернётся хотя бы из адреса */
-    }
+    rememberAsk({ vid: kindId, q: question, returning: true });
+    rememberReturn(askPath({ vid: kindId }));
   }
 
   async function ask() {
@@ -233,6 +247,7 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
         if (typeof data.left === "number") setState((s) => (s ? { ...s, credits: data.left as number } : s));
         return;
       }
+      if (res.status === 401) remember();
       setError(messageFor(res.status, String(data.error ?? ""), Number(data.price ?? 0)));
     } catch {
       setError({ text: "Не удалось связаться с сервером. Попробуйте ещё раз" });
@@ -327,7 +342,7 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
             </div>
 
             <div className="mt-8 flex flex-col items-center" style={{ gap: 12 }}>
-              <button type="submit" className="qc-focus ask-btn" disabled={busy}>
+              <button ref={buttonRef} type="submit" className="qc-focus ask-btn" disabled={busy}>
                 {busy ? "Тянем карты…" : "Разложить карты"}
               </button>
               <p className="text-center text-text-secondary" style={{ fontSize: 13.5, lineHeight: 1.5 }}>

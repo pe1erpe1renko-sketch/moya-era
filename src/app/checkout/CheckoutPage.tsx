@@ -11,6 +11,7 @@ import { formatRub, monthlyEquivalent, yearDiscountPercent } from "@/lib/plansDe
 import { DEMO_MODE } from "@/lib/env";
 import { localDemo } from "@/lib/backend.local";
 import { track } from "@/components/analytics/track";
+import { leaveForAuth } from "@/lib/returnTo";
 
 /**
  * ОФОРМЛЕНИЕ. Сумма считается на сервере из базы — здесь только показ.
@@ -36,7 +37,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       const back = search.toString() ? `/checkout?${search.toString()}` : "/checkout";
-      router.replace(`/register?next=${encodeURIComponent(back)}`);
+      leaveForAuth(router, "register", back, "replace");
     }
   }, [loading, isAuthenticated, router, search]);
 

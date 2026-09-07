@@ -10,7 +10,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { ASK_MAX, WELCOME_CREDITS, askPath, askReturnPath, bridgeText, cleanQuestion, parseAsk } from "./ask";
+import { ASK_MAX, ASK_TTL_MS, WELCOME_CREDITS, askPath, askReturnPath, bridgeText, cleanQuestion, parseAsk, rememberAsk, takeAsk } from "./ask";
 import { SPREADS } from "./spreads";
 
 describe("вопрос картам в адресе", () => {
@@ -53,5 +53,17 @@ describe("вопрос картам в адресе", () => {
       if (s.credits <= WELCOME_CREDITS) assert.ok(text.includes("хватит"), s.id);
       else assert.ok(text.includes(String(s.credits)), s.id);
     }
+  });
+
+  it("черновик переживает вход и читается один раз", () => {
+    const data = new Map<string, string>();
+    const store = { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v), removeItem: (k: string) => void data.delete(k) };
+    rememberAsk({ vid: "love", q: "  Почему мы   ходим по кругу? ", returning: true }, store, 1000);
+    assert.deepEqual(takeAsk(store, 5000), { vid: "love", q: "Почему мы ходим по кругу?", returning: true });
+    assert.equal(takeAsk(store, 5000), null, "второй раз пусто");
+    rememberAsk({ vid: "three", q: "Вопрос" }, store, 1000);
+    assert.equal(takeAsk(store, 1000 + ASK_TTL_MS + 1), null, "старше суток — не восстанавливаем");
+    rememberAsk({ vid: "tower", q: "   " }, store, 1000);
+    assert.equal(data.size, 0, "пустой черновик снимает запись");
   });
 });

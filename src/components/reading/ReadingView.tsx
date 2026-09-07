@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { MentorFab } from "@/components/chat/MentorFab";
@@ -22,6 +23,7 @@ import type { ResearchCardProps } from "./ResearchCard";
 import { track } from "@/components/analytics/track";
 import { NextSteps } from "@/components/next/NextSteps";
 import { matrixShowcase, pairShowcase } from "@/lib/nextSteps";
+import { leaveForAuth } from "@/lib/returnTo";
 
 export type LockReason = "no_subscription" | "person_not_added" | "not_logged_in";
 
@@ -48,6 +50,7 @@ export type ReadingViewProps = {
 
 export function ReadingView(props: ReadingViewProps) {
   const { type, urlDates, isoDates, matrix, initialTexts, freeCount, totalCount } = props;
+  const router = useRouter();
   const { texts, busy, load, reset } = useReadingTexts(type.slug, urlDates, initialTexts);
   const [paywall, setPaywall] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
@@ -251,7 +254,14 @@ export function ReadingView(props: ReadingViewProps) {
           {!isAuthenticated && (
             <p className="text-[14px] text-text-secondary">
               Ссылка на эту страницу постоянная — её можно сохранить или переслать. Чтобы разбор жил в кабинете вместе с арканом дня,{" "}
-              <Link href="/register" className="text-text-accent underline-offset-4 hover:underline">
+              <Link
+                href="/register"
+                onClick={(e) => {
+                  e.preventDefault();
+                  leaveForAuth(router, "register");
+                }}
+                className="text-text-accent underline-offset-4 hover:underline"
+              >
                 создайте аккаунт
               </Link>
               .

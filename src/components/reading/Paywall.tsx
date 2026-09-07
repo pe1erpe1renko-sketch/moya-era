@@ -2,8 +2,10 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { savePendingBirth } from "@/lib/pendingBirth";
+import { leaveForAuth } from "@/lib/returnTo";
 
 export type PaywallProps = {
   open: boolean;
@@ -23,6 +25,7 @@ export type PaywallProps = {
  */
 export function Paywall({ open, onClose, date, freeCount, totalCount, reason }: PaywallProps) {
   const { isAuthenticated } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
@@ -60,7 +63,12 @@ export function Paywall({ open, onClose, date, freeCount, totalCount, reason }: 
           {why === "not_logged_in" ? (
             <Link
               href="/register"
-              onClick={() => date && savePendingBirth({ date, direction: "matrix" })}
+              onClick={(e) => {
+                // После регистрации — обратно в этот разбор, а не в кабинет.
+                e.preventDefault();
+                if (date) savePendingBirth({ date, direction: "matrix" });
+                leaveForAuth(router, "register");
+              }}
               className="inline-flex h-12 flex-1 items-center justify-center rounded-[12px] bg-accent px-5 text-[16px] font-medium text-primary-foreground"
             >
               Создать аккаунт
@@ -81,7 +89,14 @@ export function Paywall({ open, onClose, date, freeCount, totalCount, reason }: 
         {why === "not_logged_in" && (
           <p className="mt-4 text-[13px] text-text-secondary">
             Уже есть аккаунт?{" "}
-            <Link href="/login" className="text-text-accent underline-offset-4 hover:underline">
+            <Link
+              href="/login"
+              onClick={(e) => {
+                e.preventDefault();
+                leaveForAuth(router, "login");
+              }}
+              className="text-text-accent underline-offset-4 hover:underline"
+            >
               Войти
             </Link>
           </p>

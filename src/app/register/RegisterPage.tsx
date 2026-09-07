@@ -194,7 +194,15 @@ export default function RegisterPage() {
         </form>
 
         <div className="mt-[18px] text-center">
-          <Link href="/login" className="text-text-accent text-[15px] hover:underline">
+          {/* Адрес возврата едет дальше: с регистрации на вход и обратно. */}
+          <Link
+            href="/login"
+            onClick={(e) => {
+              e.preventDefault();
+              router.push(`/login${window.location.search}`);
+            }}
+            className="text-text-accent text-[15px] hover:underline"
+          >
             Уже есть профиль? Войти
           </Link>
         </div>

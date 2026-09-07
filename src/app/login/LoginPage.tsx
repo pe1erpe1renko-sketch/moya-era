@@ -107,7 +107,15 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-[18px] flex flex-col items-center gap-2">
-          <Link href="/register" className="py-2 text-text-accent text-[15px] hover:underline">
+          {/* Адрес возврата едет дальше: со входа на регистрацию и обратно. */}
+          <Link
+            href="/register"
+            onClick={(e) => {
+              e.preventDefault();
+              router.push(`/register${window.location.search}`);
+            }}
+            className="py-2 text-text-accent text-[15px] hover:underline"
+          >
             Создать профиль
           </Link>
           <button

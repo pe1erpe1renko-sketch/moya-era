@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { backend } from "@/lib/backend";
 import { directions } from "@/lib/directions";
+import { authHref, currentPath, leaveForAuth } from "@/lib/returnTo";
 const logoAsset = "/images/logo.svg";
 
 const LINKS = [
@@ -214,6 +215,7 @@ export function Header() {
   const { isAuthenticated, email, loading } = useAuth();
   const target = useDirectionTarget();
   const pathname = usePathname();
+  const router = useRouter();
 
   const solid = scrolled || pathname !== "/";
 
@@ -391,7 +393,15 @@ export function Header() {
               </button>
             </>
           ) : (
-            <Link href="/login" onClick={() => setOpen(false)} className="text-text-accent text-[20px]">
+            <Link
+              href={authHref("login", pathname)}
+              onClick={(e) => {
+                e.preventDefault();
+                setOpen(false);
+                leaveForAuth(router, "login", currentPath());
+              }}
+              className="text-text-accent text-[20px]"
+            >
               Войти
             </Link>
           )}
@@ -401,10 +411,21 @@ export function Header() {
   );
 }
 
+/**
+ * «Войти» в шапке возвращает на ту же страницу: человек читает разбор
+ * или пишет вопрос картам, входит — и продолжает там, где остановился.
+ * С главной после входа — кабинет.
+ */
 function LoginButton() {
+  const router = useRouter();
+  const pathname = usePathname();
   return (
     <Link
-      href="/login"
+      href={authHref("login", pathname)}
+      onClick={(e) => {
+        e.preventDefault();
+        leaveForAuth(router, "login", currentPath());
+      }}
       className="flex items-center justify-center text-text-accent transition-colors"
       style={{
         height: "42px",

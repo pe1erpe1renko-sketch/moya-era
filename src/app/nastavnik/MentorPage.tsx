@@ -11,6 +11,7 @@ import { DEMO_MODE } from "@/lib/env";
 import { MENTOR_HINTS } from "@/lib/matrix/prompts";
 import { track } from "@/components/analytics/track";
 import { askPath } from "@/lib/tarot/ask";
+import { leaveForAuth } from "@/lib/returnTo";
 
 type Msg = { id: string; role: "user" | "assistant"; content: string; pending?: boolean };
 
@@ -33,8 +34,9 @@ export default function MentorPage() {
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Гостя уводим на вход с возвратом сюда же: он шёл к наставнику, а не в кабинет.
   useEffect(() => {
-    if (!loading && !isAuthenticated) router.replace("/login");
+    if (!loading && !isAuthenticated) leaveForAuth(router, "login", "/nastavnik", "replace");
   }, [loading, isAuthenticated, router]);
 
   useEffect(() => {
