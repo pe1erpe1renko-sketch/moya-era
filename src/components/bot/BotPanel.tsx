@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { LockBody } from "@/components/reading/Paywall";
 
 /**
  * ПАНЕЛЬ БОТА В КАБИНЕТЕ.
@@ -171,9 +172,9 @@ export function BotPanel({ people }: { people: Array<{ id: string; name: string 
       {error && <p className="mt-3 text-[14px] text-text-danger">{error}</p>}
 
       {limit && !limit.ok && limit.reason === "no_plan" && (
-        <p className="mt-3 text-text-secondary" style={{ fontSize: 14, lineHeight: 1.55 }}>
-          Рассылка входит в подписку. Оформите тариф — и бот подключится к вашим людям
-        </p>
+        <div className="mt-4 rounded-[14px] border border-border/60" style={{ padding: "14px 16px" }}>
+          <LockBody system="bot" compact />
+        </div>
       )}
       {limit && limit.ok && (
         <p className="mt-3 text-text-secondary" style={{ fontSize: 14 }}>

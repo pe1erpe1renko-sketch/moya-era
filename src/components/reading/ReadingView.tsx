@@ -24,6 +24,8 @@ import { track } from "@/components/analytics/track";
 import { NextSteps } from "@/components/next/NextSteps";
 import { matrixShowcase, pairShowcase } from "@/lib/nextSteps";
 import { leaveForAuth } from "@/lib/returnTo";
+import { usePlans } from "@/lib/usePlans";
+import { fromPriceLine } from "@/lib/lock";
 
 export type LockReason = "no_subscription" | "person_not_added" | "not_logged_in";
 
@@ -49,7 +51,7 @@ export type ReadingViewProps = {
 };
 
 export function ReadingView(props: ReadingViewProps) {
-  const { type, urlDates, isoDates, matrix, initialTexts, freeCount, totalCount } = props;
+  const { type, urlDates, isoDates, matrix, initialTexts, totalCount } = props;
   const router = useRouter();
   const { texts, busy, load, reset } = useReadingTexts(type.slug, urlDates, initialTexts);
   const [paywall, setPaywall] = useState(false);
@@ -87,6 +89,11 @@ export function ReadingView(props: ReadingViewProps) {
   const pair = isPair ? (matrix as PairMatrix) : null;
   const core = matrix.core;
   const myDate = isoDates[0];
+  // Замок один на весь сайт: продаём подписку целиком. Цена — из
+  // таблицы тарифов, сферы и вопросы — из самого разбора.
+  const spheres = props.sections.length;
+  const { plans } = usePlans();
+  const fromPrice = fromPriceLine(plans);
 
   // История разборов в кабинете + событие аналитики
   useEffect(() => {
@@ -96,10 +103,7 @@ export function ReadingView(props: ReadingViewProps) {
     if (user?.id && !demo) backend.readings.touch(user.id, type.slug, isoDates).catch(() => {});
   }, [user?.id, type.slug, isoDates, isPair, unlocked, demo]);
 
-  const openLocked = useCallback(() => {
-    track("paywall_open", { type: type.slug });
-    setPaywall(true);
-  }, [type.slug]);
+  const openLocked = useCallback(() => setPaywall(true), []);
 
   const onSelectPoint = useCallback((pointId: string) => void load([pointId]), [load]);
   const hints = useMemo(() => {
@@ -197,10 +201,13 @@ export function ReadingView(props: ReadingViewProps) {
 
         {!unlocked && (
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button type="button" onClick={openLocked} className="inline-flex h-12 items-center justify-center rounded-[12px] bg-accent px-6 text-[16px] font-medium text-primary-foreground transition-opacity hover:opacity-90">
-              Открыть все {totalCount} {plural(totalCount, "вопрос", "вопроса", "вопросов")}
+            <button type="button" onClick={openLocked} className="qc-focus inline-flex h-12 shrink-0 items-center justify-center rounded-[12px] bg-accent px-6 text-[16px] font-medium text-primary-foreground transition-opacity hover:opacity-90">
+              Открыть всё
             </button>
-            <span className="text-[14px] text-text-secondary">Бесплатно открыто {freeCount} — по одному в каждой сфере</span>
+            <span className="text-[14px] leading-[1.5] text-text-secondary">
+              Сейчас открыт первый вопрос в каждой сфере. Подписка открывает весь разбор — {spheres} {plural(spheres, "сфера", "сферы", "сфер")}, {totalCount}{" "}
+              {plural(totalCount, "вопрос", "вопроса", "вопросов")} — и всё остальное на сайте{fromPrice ? `, ${fromPrice}` : ""}
+            </span>
           </div>
         )}
         {demo && <p className="mt-4 text-[13px] text-text-danger">Демо-режим: база не подключена, все разборы открыты, тексты — заглушки.</p>}
@@ -289,7 +296,7 @@ export function ReadingView(props: ReadingViewProps) {
       {!props.embedded && <Footer />}
       {!props.embedded && <MentorFab />}
 
-      <Paywall open={paywall} onClose={() => setPaywall(false)} date={myDate} freeCount={freeCount} totalCount={totalCount} reason={lockReason ?? undefined} />
+      <Paywall open={paywall} onClose={() => setPaywall(false)} date={myDate} system={props.embedded ? "pair" : "matrix"} counts={{ spheres, questions: totalCount }} reason={lockReason ?? undefined} />
     </Root>
   );
 }

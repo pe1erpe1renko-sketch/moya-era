@@ -8,6 +8,7 @@ import { MakeImageButton } from "@/components/image/MakeImageButton";
 import { BriefList, type BriefItem } from "@/components/chart/BriefList";
 import { useSlotTexts } from "@/components/chart/useSlotTexts";
 import { Paywall } from "@/components/reading/Paywall";
+import { LockNote } from "@/components/reading/LockNote";
 import { formatBirthDate } from "@/lib/pendingBirth";
 import { NumbersSchema, PythagorasSquare, WorkingNumbers } from "./NumbersSchema";
 
@@ -188,7 +189,7 @@ export function NumerologyDateView({
           Полный разбор
         </h2>
         <p className="mt-2 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
-          {brief.length + 9} вопросов: каждое число подробно и каждая ячейка квадрата. Открывает подписка
+          {brief.length + 9} вопросов: каждое число подробно и каждая ячейка квадрата. Открывает подписка — одна на все шесть систем
         </p>
 
         <div className="mt-6 flex flex-col" style={{ gap: 28 }}>
@@ -238,16 +239,7 @@ export function NumerologyDateView({
                               Пишем разбор…
                             </p>
                           ) : locked ? (
-                            <p className="text-text-secondary" style={{ fontSize: 15, lineHeight: 1.6 }}>
-                              Этот вопрос открывается по подписке.{" "}
-                              <button
-                                type="button"
-                                onClick={() => setPaywall(true)}
-                                className="text-text-accent underline-offset-4 hover:underline"
-                              >
-                                Что входит
-                              </button>
-                            </p>
+                            <LockNote onOpen={() => setPaywall(true)} />
                           ) : value && "text" in value ? (
                             <div className="flex flex-col" style={{ gap: 12 }}>
                               {value.text.split("\n\n").map((p, i) => (
@@ -272,13 +264,7 @@ export function NumerologyDateView({
         </div>
       </section>
 
-      <Paywall
-        open={paywall}
-        onClose={() => setPaywall(false)}
-        date={chart.date}
-        freeCount={brief.length}
-        totalCount={brief.length + sections.reduce((n, s) => n + s.slots.length, 0)}
-      />
+      <Paywall open={paywall} onClose={() => setPaywall(false)} date={chart.date} system="numerology" />
     </div>
   );
 }

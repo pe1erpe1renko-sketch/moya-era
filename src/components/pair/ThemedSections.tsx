@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { THEMES, type PairSection, type PairSlot, type ThemeId } from "@/lib/pair";
 import type { SlotText } from "@/components/reading/useReadingTexts";
+import { LockNote } from "@/components/reading/LockNote";
 
 /**
  * РАЗБОР ПАРЫ ПО ТЕМАМ.
@@ -213,12 +214,7 @@ function SlotRow({
               Пишем разбор…
             </p>
           ) : locked ? (
-            <p className="text-text-secondary" style={{ fontSize: 15, lineHeight: 1.6 }}>
-              Этот вопрос открывается по подписке.{" "}
-              <button type="button" onClick={onPaywall} className="text-text-accent underline-offset-4 hover:underline">
-                Что входит
-              </button>
-            </p>
+            <LockNote onOpen={onPaywall} />
           ) : value && "text" in value ? (
             <div className="flex flex-col" style={{ gap: 12 }}>
               {value.text.split("\n\n").map((p, i) => (

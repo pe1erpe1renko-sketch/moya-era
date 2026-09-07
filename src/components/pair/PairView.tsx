@@ -327,14 +327,7 @@ export function PairView({
 
       <NextSteps showcase={showcase} />
 
-      <Paywall
-        open={paywall}
-        onClose={() => setPaywall(false)}
-        date={isoDates[0]}
-        freeCount={1}
-        totalCount={sections.reduce((n, s) => n + s.slots.length, 0)}
-        reason={reason ?? undefined}
-      />
+      <Paywall open={paywall} onClose={() => setPaywall(false)} date={isoDates[0]} system="pair" reason={reason ?? undefined} />
     </div>
   );
 }

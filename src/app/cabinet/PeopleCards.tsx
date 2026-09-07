@@ -6,7 +6,9 @@ import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { DateSelects, type DateParts } from "@/components/direction/DateCalculator";
 import { PlaceField } from "@/components/common/PlaceField";
 import { useGoToReading } from "@/components/reading/CalcTheater";
-import { RELATION_LABELS, type Person, type PersonInsert, type PersonPatch, type Relation } from "@/lib/backend";
+import { RELATION_LABELS, type Person, type PersonInsert, type PersonPatch, type Plan, type Relation } from "@/lib/backend";
+import { LockBody } from "@/components/reading/Paywall";
+import { biggerPlansLine } from "@/lib/lock";
 import { arcanaName, calculateMatrix, readingPath } from "@/lib/matrix";
 import { buildChartQuery, buildNameQuery, buildPairQuery, chartPath, isoToChartUrlDate } from "@/lib/chartUrl";
 import { isFutureDate, isValidDate } from "@/lib/arcana";
@@ -443,17 +445,22 @@ function OwnerEmptyCard({ onCreate }: { onCreate: (draft: Draft) => Promise<stri
 function AddCard({
   canAdd,
   hasPlan,
+  planId,
   planTitle,
+  plans,
   prefill,
   onAdd,
 }: {
   canAdd: boolean;
   hasPlan: boolean;
+  planId: string | null;
   planTitle: string | null;
+  plans: Plan[];
   prefill: string | null;
   onAdd: (row: PersonInsert) => Promise<string | null>;
 }) {
   const [open, setOpen] = useState(Boolean(prefill));
+  const bigger = biggerPlansLine(plans, planId);
   const initial = draftFrom(null);
   if (prefill) {
     const d = parseDate(prefill);
@@ -482,19 +489,34 @@ function AddCard({
         <div className="text-text-secondary" style={capStyle}>
           Добавить человека
         </div>
-        <p className="mt-3 text-text-primary" style={{ fontSize: 15, lineHeight: 1.6 }}>
-          {hasPlan
-            ? `На тарифе «${planTitle}» все места заняты. «Семейный» открывает пятерых — партнёра, детей, родителей; «Практик» — без ограничений.`
-            : "Люди рядом — по подписке. «Семейный» открывает пятерых — партнёра, детей, родителей — и совместимость между ними; «Практик» — без ограничений."}
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/tarify" className="qc-focus inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">
-            {hasPlan ? "Сменить тариф" : "Тарифы"}
-          </Link>
-          <button type="button" onClick={() => setOpen(false)} className="qc-focus py-2 text-[15px] text-text-secondary hover:text-text-primary">
-            Закрыть
-          </button>
-        </div>
+        {hasPlan ? (
+          <>
+            {/* Подписка уже есть — места кончились. Куда расти, говорят
+                сами тарифы из базы, а не текст в коде. */}
+            <p className="mt-3 text-text-primary" style={{ fontSize: 15, lineHeight: 1.6 }}>
+              На тарифе «{planTitle}» все места заняты.{bigger ? ` Больше людей: ${bigger}.` : ""}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/tarify" className="qc-focus inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">
+                Сменить тариф
+              </Link>
+              <button type="button" onClick={() => setOpen(false)} className="qc-focus py-2 text-[15px] text-text-secondary hover:text-text-primary">
+                Закрыть
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Без подписки — тот же замок, что и в разборах: продаём
+                подписку целиком, первой строкой — близкие. */}
+            <div className="mt-3">
+              <LockBody system="people" compact />
+            </div>
+            <button type="button" onClick={() => setOpen(false)} className="qc-focus mt-3 py-2 text-[15px] text-text-secondary hover:text-text-primary">
+              Закрыть
+            </button>
+          </>
+        )}
       </div>
     );
   }
@@ -528,7 +550,9 @@ export function PeopleCards({
   self,
   left,
   active,
+  planId,
   planTitle,
+  plans,
   prefillDate,
   editingId,
   onEditingChange,
@@ -541,7 +565,10 @@ export function PeopleCards({
   self: Person | null;
   left: number | null;
   active: boolean;
+  planId: string | null;
   planTitle: string | null;
+  /** тарифы из базы — чтобы карточка «места заняты» знала, куда расти */
+  plans: Plan[];
   prefillDate: string | null;
   /** чья карточка в режиме правки — состояние живёт у страницы */
   editingId: string | null;
@@ -566,7 +593,7 @@ export function PeopleCards({
             ? left === null
               ? `Тариф «${planTitle}»: без ограничений`
               : `Тариф «${planTitle}»: можно добавить ещё ${left}`
-            : "По подписке открываются полные разборы людей из этого списка и совместимости между ними"}
+            : "Подписка открывает полные разборы людей из этого списка и совместимость между ними"}
         </p>
       </div>
 
@@ -593,7 +620,7 @@ export function PeopleCards({
             }}
           />
         ))}
-        <AddCard canAdd={canAdd} hasPlan={active} planTitle={planTitle} prefill={prefillDate} onAdd={onAdd} />
+        <AddCard canAdd={canAdd} hasPlan={active} planId={planId} planTitle={planTitle} plans={plans} prefill={prefillDate} onAdd={onAdd} />
       </div>
     </div>
   );

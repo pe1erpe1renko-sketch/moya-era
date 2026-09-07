@@ -117,7 +117,7 @@ function NatalResultContent({ result, update }: ResultCtx<BirthValue>) {
       ) : (
         <p className="text-text-secondary" style={{ marginTop: 20, fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
           Разбор карты — ниже. Солнце, Луна и асцендент читаются бесплатно, остальные позиции и аспекты открывает
-          подписка
+          подписка — одна на все шесть систем
         </p>
       )}
     </>

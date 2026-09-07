@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { useAuth } from "@/lib/useAuth";
-import { usePlans } from "@/components/landing/Pricing";
+import { usePlans } from "@/lib/usePlans";
+import { PLAN_COMMON, planRows } from "@/lib/lock";
 import { formatRub, monthlyEquivalent, yearDiscountPercent } from "@/lib/plansDefault";
 import { DEMO_MODE } from "@/lib/env";
 import { localDemo } from "@/lib/backend.local";
@@ -91,8 +92,8 @@ export default function CheckoutPage() {
       <div className="checkout-grid">
         <section className="checkout-card">
           <div className="text-[13px] uppercase tracking-[0.08em] text-text-secondary">{plan ? "Тариф" : "Пакет кредитов"}</div>
-          <h2 className="mt-2 font-display text-[clamp(24px,2.6vw,34px)] text-text-primary">{plan ? plan.title : `${pack!.credits} сообщений наставнику`}</h2>
-          <p className="mt-2 text-[15px] text-text-secondary">{plan ? plan.subtitle : "Кредиты не сгорают и не зависят от подписки."}</p>
+          <h2 className="mt-2 font-display text-[clamp(24px,2.6vw,34px)] text-text-primary">{plan ? plan.title : `${pack!.credits} кредитов`}</h2>
+          <p className="mt-2 text-[15px] text-text-secondary">{plan ? plan.subtitle : "Наставник и расклады таро. Кредиты не сгорают и не зависят от подписки."}</p>
 
           {plan && (
             <>
@@ -107,8 +108,17 @@ export default function CheckoutPage() {
                   </button>
                 ))}
               </div>
-              <ul className="mt-6 space-y-2 text-[15px] text-text-secondary">
-                {plan.features.map((f) => (
+              {/* То же, что на странице тарифов: отличия из таблицы, общий список один */}
+              <dl className="plan-diff mt-6">
+                {planRows(plan).map((row) => (
+                  <div key={row.id} className="plan-diff-row">
+                    <dt className="text-text-secondary">{row.label}</dt>
+                    <dd className="text-text-primary">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <ul className="mt-4 space-y-1.5 text-[14px] leading-[1.45] text-text-secondary">
+                {PLAN_COMMON.map((f) => (
                   <li key={f}>· {f}</li>
                 ))}
               </ul>

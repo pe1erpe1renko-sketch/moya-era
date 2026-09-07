@@ -16,6 +16,7 @@ import { moscowClock } from "@/lib/geo/dayScan";
 import { RefineBirth } from "@/components/common/RefineBirth";
 import { formatBirthDate } from "@/lib/pendingBirth";
 import { Paywall } from "@/components/reading/Paywall";
+import { LockNote } from "@/components/reading/LockNote";
 import { NatalPositions, NatalWheel } from "./NatalWheel";
 import { useNatalTexts } from "./useNatalTexts";
 import type { BirthValue } from "./BirthForm";
@@ -267,12 +268,7 @@ export function NatalReading({
                               Пишем разбор…
                             </p>
                           ) : locked ? (
-                            <p className="text-text-secondary" style={{ fontSize: 15, lineHeight: 1.6 }}>
-                              Этот вопрос открывается по подписке.{" "}
-                              <button type="button" onClick={() => setPaywall(true)} className="text-text-accent underline-offset-4 hover:underline">
-                                Что входит
-                              </button>
-                            </p>
+                            <LockNote onOpen={() => setPaywall(true)} />
                           ) : value && "text" in value ? (
                             <div className="flex flex-col" style={{ gap: 12 }}>
                               {value.text.split("\n\n").map((p, i) => (
@@ -296,14 +292,7 @@ export function NatalReading({
         ))}
       </div>
 
-      <Paywall
-        open={paywall}
-        onClose={() => setPaywall(false)}
-        date={local.date}
-        freeCount={3}
-        totalCount={sections.reduce((n, s) => n + s.slots.length, 0)}
-        reason={reason ?? undefined}
-      />
+      <Paywall open={paywall} onClose={() => setPaywall(false)} date={local.date} system="natal" reason={reason ?? undefined} />
     </div>
   );
 }

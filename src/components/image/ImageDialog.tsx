@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { LockBody } from "@/components/reading/Paywall";
 import { formatDateLong } from "@/lib/matrix";
 import {
   buildAllImageData,
@@ -265,13 +265,9 @@ export function ImageDialog({
                   Картинка сохранена — она ваша, и выложить её можно прямо сейчас. {locked}: своя страница с превьюшкой
                   появляется у каждой следующей карточки
                 </p>
-                <Link
-                  href="/tarify"
-                  className="qc-focus mt-3 inline-flex items-center rounded-[10px] border border-text-accent/50 px-4 text-[14px] text-text-primary transition-colors hover:bg-accent/10"
-                  style={{ height: 36 }}
-                >
-                  Что входит в подписку
-                </Link>
+                <div className="mt-3">
+                  <LockBody system="image" compact />
+                </div>
               </div>
             )}
 

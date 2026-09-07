@@ -10,7 +10,7 @@ import { backend, type Person, type PersonPatch, type Plan, type Subscription, t
 import { useAuth } from "@/lib/useAuth";
 import { DEMO_MODE } from "@/lib/env";
 import { peopleLeft, isSubscriptionActive } from "@/lib/access";
-import { formatRub } from "@/lib/plansDefault";
+import { fromPriceLine } from "@/lib/lock";
 import { BotPanel } from "@/components/bot/BotPanel";
 import { SpreadsPanel } from "@/components/tarot/SpreadsPanel";
 import { AutoRenewPanel } from "@/components/billing/AutoRenewPanel";
@@ -209,7 +209,9 @@ export default function CabinetPage() {
               self={self}
               left={left}
               active={active}
+              planId={plan?.id ?? null}
               planTitle={plan?.title ?? null}
+              plans={plans}
               prefillDate={addDate}
               editingId={editingId}
               onEditingChange={setEditingId}
@@ -491,13 +493,11 @@ function PlanBlock({
               ? canceled
                 ? `Отменена. Доступ сохраняется до ${endLabel}, дальше — бесплатный режим. Всё накопленное остаётся.`
                 : `Действует до ${endLabel}. Отменить можно в любой день.`
-              : plans.length
-                ? `От ${formatRub(Math.min(...plans.map((p) => p.price_month)))} в месяц. Открывает все системы, все типы разбора и аркан дня.`
-                : ""}
+              : `Подписка открывает всё: шесть систем, каждый вопрос в каждом разборе, карту дня, сводку в Telegram и архив${fromPriceLine(plans) ? ` — ${fromPriceLine(plans)}` : ""}. Отменить можно в любой день.`}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/tarify" className="inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">
-              {active ? "Сменить тариф" : "Выбрать тариф"}
+              {active ? "Сменить тариф" : "Открыть всё"}
             </Link>
             {/* Кнопка отмены — видная, рядом со сменой тарифа, а не
                 спрятанная. Слова «отменить можно в любой день» без
@@ -550,9 +550,9 @@ function PlanBlock({
           {active && !canceled && <AutoRenewPanel />}
         </div>
         <div>
-          <div className="text-text-secondary" style={capStyle}>Кредиты наставника</div>
+          <div className="text-text-secondary" style={capStyle}>Кредиты</div>
           <div className="mt-1 font-display text-text-primary" style={{ fontSize: "clamp(20px, 1.6vw, 28px)" }}>{credits}</div>
-          <p className="mt-2 text-[14px] text-text-secondary">Один кредит — одно сообщение наставнику. Чтение разборов кредитов не тратит.</p>
+          <p className="mt-2 text-[14px] text-text-secondary">Кредиты тратятся на сообщения наставнику и расклады таро. Чтение разборов кредитов не тратит.</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/nastavnik" className="inline-flex h-11 items-center rounded-[12px] border border-text-accent/50 px-5 text-[15px] text-text-primary hover:bg-accent/10">Открыть чат</Link>
             <Link href="/tarify#credits" className="inline-flex h-11 items-center rounded-[12px] border border-border px-5 text-[15px] text-text-secondary hover:text-text-primary">Докупить</Link>

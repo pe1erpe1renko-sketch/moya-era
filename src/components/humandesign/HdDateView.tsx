@@ -123,7 +123,7 @@ export function HdDateView({
           Полный разбор бодиграфа
         </h2>
         <p className="mt-2 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
-          Тип и стратегия читаются бесплатно. Авторитет, профиль, каналы и ворота открывает подписка
+          Тип и стратегия читаются бесплатно. Авторитет, профиль, каналы и ворота открывает подписка — одна на все шесть систем
         </p>
         <div className="mt-2">
           <HdReading birth={birth} variant="questions" onRefine={refine} />

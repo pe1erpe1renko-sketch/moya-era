@@ -133,7 +133,7 @@ export function NatalDateView({
           Полный разбор карты
         </h2>
         <p className="mt-2 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
-          Солнце и Луна читаются бесплатно. Остальные позиции, дома и аспекты открывает подписка
+          Солнце и Луна читаются бесплатно. Остальные позиции, дома и аспекты открывает подписка — одна на все шесть систем
         </p>
         <div className="mt-2">
           <NatalReading birth={birth} variant="questions" onRefine={refine} />

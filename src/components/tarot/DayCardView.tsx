@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { arcanumInfo, moscowDay, type DayCard } from "@/lib/tarot";
 import { useSlotTexts } from "@/components/chart/useSlotTexts";
 import { Paywall } from "@/components/reading/Paywall";
+import { LockNote } from "@/components/reading/LockNote";
 import { formatBirthDate } from "@/lib/pendingBirth";
 import { DayCardFace } from "./DayCardFace";
 import { MakeImageButton } from "@/components/image/MakeImageButton";
@@ -144,7 +145,7 @@ export function DayCardView({
         <p className="mt-2 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 16px)", lineHeight: 1.6 }}>
           Один и тот же аркан дня попадает либо в то, что вам и так даётся, либо в то, чего у вас мало. Три вопроса
           считаются по двум числам сразу — аркану дня {card.arcanum} и аркану рождения {card.birthArcanum}. Открывает
-          подписка
+          подписка — одна на все шесть систем
         </p>
 
         <div className="mt-6 flex flex-col" style={{ gap: 10 }}>
@@ -185,16 +186,7 @@ export function DayCardView({
                         Пишем разбор…
                       </p>
                     ) : locked ? (
-                      <p className="text-text-secondary" style={{ fontSize: 15, lineHeight: 1.6 }}>
-                        Этот вопрос открывается по подписке.{" "}
-                        <button
-                          type="button"
-                          onClick={() => setPaywall(true)}
-                          className="text-text-accent underline-offset-4 hover:underline"
-                        >
-                          Что входит
-                        </button>
-                      </p>
+                      <LockNote onOpen={() => setPaywall(true)} />
                     ) : value && "text" in value ? (
                       <div className="flex flex-col" style={{ gap: 12 }}>
                         {value.text.split("\n\n").map((p, i) => (
@@ -220,16 +212,16 @@ export function DayCardView({
             Завтра карта сменится, и сегодняшняя пропадёт со страницы
           </p>
           <p className="mt-2 text-text-secondary" style={{ fontSize: 14, lineHeight: 1.6 }}>
-            По подписке карты не пропадают: сохраняется история за все дни, и по ней видно, какие арканы возвращаются к
-            вам чаще других.{" "}
+            Подписка сохраняет историю за все дни — по ней видно, какие арканы возвращаются к вам чаще других — и
+            открывает всё остальное на сайте.{" "}
             <button type="button" onClick={() => setPaywall(true)} className="text-text-accent underline-offset-4 hover:underline">
-              Что входит в подписку
+              Что входит
             </button>
           </p>
         </div>
       </section>
 
-      <Paywall open={paywall} onClose={() => setPaywall(false)} date={card.birth} freeCount={1} totalCount={1 + paid.length} />
+      <Paywall open={paywall} onClose={() => setPaywall(false)} date={card.birth} system="daycard" />
     </div>
   );
 }

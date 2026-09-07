@@ -1768,3 +1768,139 @@ body.has-fab .hint-card {
     transform: rotateY(180deg);
   }
 }
+
+/* ── Замок «Подписка открывает всё» — один на весь сайт ─────────────── */
+.lock-sheet {
+  max-height: min(92dvh, 100vh);
+  overflow-y: auto;
+}
+.lock-title {
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.15;
+}
+.lock--compact .lock-title {
+  font-size: 19px;
+}
+.lock-list {
+  margin-top: 16px;
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+.lock-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 40%, transparent);
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+.lock-item--here {
+  border-color: color-mix(in srgb, var(--text-accent) 55%, transparent);
+  color: var(--text-primary);
+}
+.lock-item--here .lock-text {
+  font-weight: 500;
+}
+.lock-art {
+  display: block;
+  width: 34px;
+}
+.lock--compact .lock-list {
+  margin-top: 10px;
+  gap: 4px;
+}
+.lock--compact .lock-item {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0 0 0 14px;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  line-height: 1.5;
+  position: relative;
+}
+.lock--compact .lock-item::before {
+  content: "·";
+  position: absolute;
+  left: 2px;
+  top: 0;
+  color: var(--text-accent);
+}
+.lock-price {
+  margin-top: 16px;
+  font-size: clamp(20px, 2vw, 24px);
+  line-height: 1.2;
+}
+.lock--compact .lock-price {
+  margin-top: 10px;
+  font-size: 18px;
+}
+.lock-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+.lock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-size: 16px;
+  font-weight: 500;
+  transition: opacity 200ms;
+}
+.lock-btn:hover {
+  opacity: 0.9;
+}
+.lock--compact .lock-btn {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 15px;
+}
+.lock-cancel {
+  font-size: 13px;
+}
+.lock-login {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+/* ── Тарифы: чем отличаются — люди и кредиты ───────────────────────── */
+.plan-diff {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 40%, transparent);
+}
+.plan-diff-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.plan-diff-row dt {
+  flex: 0 1 auto;
+}
+.plan-diff-row dd {
+  margin: 0;
+  flex: 0 0 auto;
+  max-width: 60%;
+  text-align: right;
+  font-weight: 500;
+}
