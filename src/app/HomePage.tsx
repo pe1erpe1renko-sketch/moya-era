@@ -8,6 +8,7 @@ import { QuickCalc } from "@/components/quick-calc/QuickCalc";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { ExampleScheme } from "@/components/landing/ExampleScheme";
 import { DirectionsGrid } from "@/components/landing/DirectionsGrid";
+import { AskCards } from "@/components/landing/AskCards";
 import { NotFortuneTelling } from "@/components/landing/NotFortuneTelling";
 import { WhatsNext } from "@/components/landing/WhatsNext";
 import { Pricing } from "@/components/landing/Pricing";
@@ -50,6 +51,7 @@ export default function HomePage() {
       <HowItWorks />
       <ExampleScheme />
       <DirectionsGrid />
+      <AskCards />
       <NotFortuneTelling />
       <WhatsNext />
       <Pricing />

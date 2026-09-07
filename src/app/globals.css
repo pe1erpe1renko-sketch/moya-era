@@ -1629,3 +1629,23 @@ body.has-fab .hint-card {
 .ask-faq {
   padding: 0 0 clamp(24px, 4vh, 48px);
 }
+/* Веер из трёх карт в блоке «Спросите карты» на главной. */
+.ask-fan {
+  position: relative;
+  width: 168px;
+  height: 150px;
+  flex-shrink: 0;
+  margin: 0 auto;
+}
+.ask-fan img {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 92px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5), 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
+  transform-origin: 50% 110%;
+  transform: translateX(-50%) rotate(calc((var(--i) - 1) * 14deg));
+}

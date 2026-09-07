@@ -10,6 +10,7 @@ import { backend, RELATION_LABELS, type ChatThread, type Person } from "@/lib/ba
 import { DEMO_MODE } from "@/lib/env";
 import { MENTOR_HINTS } from "@/lib/matrix/prompts";
 import { track } from "@/components/analytics/track";
+import { askPath } from "@/lib/tarot/ask";
 
 type Msg = { id: string; role: "user" | "assistant"; content: string; pending?: boolean };
 
@@ -108,6 +109,8 @@ export default function MentorPage() {
   }
 
   const person = people.find((p) => p.id === personId) ?? null;
+  // Последний завершённый ответ наставника — под ним предложение расклада.
+  const lastAnswer = messages.reduce((found, m, i) => (m.role === "assistant" && !m.pending && m.content ? i : found), -1);
 
   return (
     <main className="relative min-h-screen w-full bg-bg-page">
@@ -183,13 +186,28 @@ export default function MentorPage() {
                   </div>
                 </div>
               )}
-              {messages.map((m) => (
-                <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] whitespace-pre-wrap rounded-[16px] px-4 py-3 text-[15px] leading-[1.6] ${m.role === "user" ? "bg-accent/30 text-text-primary" : "bg-bg-page/60 text-text-secondary"}`}>
-                    {m.content || (m.pending ? "…" : "")}
+              {messages.map((m, i) => {
+                // Под последним готовым ответом — ненавязчивое предложение
+                // разложить карты на тот же вопрос: он уедет на /taro уже
+                // вписанным в поле.
+                const asked = i === lastAnswer ? messages.slice(0, i).reverse().find((x) => x.role === "user")?.content : null;
+                return (
+                  <div key={m.id}>
+                    <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[85%] whitespace-pre-wrap rounded-[16px] px-4 py-3 text-[15px] leading-[1.6] ${m.role === "user" ? "bg-accent/30 text-text-primary" : "bg-bg-page/60 text-text-secondary"}`}>
+                        {m.content || (m.pending ? "…" : "")}
+                      </div>
+                    </div>
+                    {asked && (
+                      <p className="mt-1.5 pl-1 text-[13px] text-text-secondary">
+                        <Link href={askPath({ q: asked })} className="text-text-accent underline-offset-4 hover:underline">
+                          На этот вопрос можно сделать расклад →
+                        </Link>
+                      </p>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {error && <p className="px-4 pb-2 text-[14px] text-text-danger md:px-6">{error}</p>}
             <form
