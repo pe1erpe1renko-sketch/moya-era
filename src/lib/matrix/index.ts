@@ -170,6 +170,24 @@ export function arcanaPairLine(n: number): string {
   return m ? m[1] : text;
 }
 
+/**
+ * Две первые фразы личного текста аркана — целые предложения, без
+ * оборванного хвоста. Для быстрого расчёта на главной: человек должен
+ * узнать себя сразу, ещё до полного разбора.
+ */
+export function arcanaIntro(n: number, sentences = 2): string {
+  const text = arcanaList.find((a) => a.n === n)?.detail ?? "";
+  const parts = text.split(/(?<=[.!?])\s+/).filter((x) => /[.!?]$/.test(x));
+  return parts.slice(0, sentences).join(" ");
+}
+
+/** Сколько сфер и вопросов в полной матрице — для честной строки под кнопкой. */
+export function matrixCounts(): { spheres: number; questions: number } {
+  const type = CALC_TYPES.find((t) => t.slug === "matrica");
+  if (!type) return { spheres: 0, questions: 0 };
+  return { spheres: type.sections.length, questions: countFreeSlots(type.sections).total };
+}
+
 /** «13 июля 1998» */
 const MONTHS_GEN = [
   "января", "февраля", "марта", "апреля", "мая", "июня",

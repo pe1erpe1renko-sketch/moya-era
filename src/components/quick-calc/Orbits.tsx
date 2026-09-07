@@ -61,9 +61,13 @@ export function Orbits({
               key={phase}
               className="absolute inset-0"
               style={{
-                animation: still
-                  ? "none"
-                  : `qc-orbit-spin ${o.period / speedFactor}s linear infinite`,
+                // Только длинные свойства: смесь `animation` и `animationDelay`
+                // при смене скорости давала предупреждение React о
+                // конфликте сокращённого и полного свойства.
+                animationName: still ? "none" : "qc-orbit-spin",
+                animationDuration: still ? undefined : `${o.period / speedFactor}s`,
+                animationTimingFunction: still ? undefined : "linear",
+                animationIterationCount: still ? undefined : "infinite",
                 animationDelay: still ? undefined : `-${(phase / 360) * (o.period / speedFactor)}s`,
                 transform: still ? `rotate(${phase}deg)` : undefined,
                 transition: "none",

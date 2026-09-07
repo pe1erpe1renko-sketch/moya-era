@@ -5,6 +5,7 @@ import { ForegroundArc } from "@/components/hero/ForegroundArc";
 import { Headline } from "@/components/hero/Headline";
 import { Grain } from "@/components/hero/Grain";
 import { QuickCalc } from "@/components/quick-calc/QuickCalc";
+import { matrixCounts } from "@/lib/matrix";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { ExampleScheme } from "@/components/landing/ExampleScheme";
 import { DirectionsGrid } from "@/components/landing/DirectionsGrid";
@@ -16,6 +17,8 @@ import { Faq } from "@/components/landing/Faq";
 import { Footer } from "@/components/landing/Footer";
 
 export default function HomePage() {
+  // Сколько сфер и вопросов в полной матрице — из карты позиций, а не с потолка.
+  const counts = matrixCounts();
   return (
     <main className="relative w-full bg-bg-page">
       {/* hero-stage: на невысоких телефонах первому экрану даётся
@@ -47,7 +50,7 @@ export default function HomePage() {
 
       </div>
 
-      <QuickCalc />
+      <QuickCalc spheres={counts.spheres} questions={counts.questions} />
       <HowItWorks />
       <ExampleScheme />
       <DirectionsGrid />
@@ -60,6 +63,8 @@ export default function HomePage() {
         id="start"
         title="Начни с даты"
         subtitle="Один аркан бесплатно, прямо сейчас"
+        spheres={counts.spheres}
+        questions={counts.questions}
       />
       <Footer />
     </main>

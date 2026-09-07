@@ -113,6 +113,21 @@ export function ReadingView(props: ReadingViewProps) {
     document.getElementById(`sphere-${sectionId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
+  // Подсказки быстрого расчёта на главной ведут сразу в сферу:
+  // /matrica/…#sphere-money. Раздел по якорю раскрывается и подъезжает.
+  useEffect(() => {
+    const open = () => {
+      const m = /^#sphere-([a-z_]+)$/.exec(window.location.hash);
+      if (m) goToSection(m[1]);
+    };
+    const t = window.setTimeout(open, 60);
+    window.addEventListener("hashchange", open);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("hashchange", open);
+    };
+  }, [goToSection]);
+
   const research = useMemo(() => buildResearch(type.slug, myDate, go), [type.slug, myDate, go]);
 
   // Витрина «Дальше»: по одной дате — совместимость, другие разборы, карта
