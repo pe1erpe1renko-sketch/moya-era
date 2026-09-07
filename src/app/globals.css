@@ -1438,3 +1438,194 @@ body.has-fab .hint-card {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--text-primary);
 }
+
+/* ===== Таро: первый экран с вопросом =====
+   Расклад — флагман: большое поле для вопроса, четыре расклада как
+   карты на столе, одна кнопка. Цена мелко у каждого расклада. */
+.ask-hero {
+  padding-top: clamp(36px, 6vh, 84px);
+  padding-bottom: clamp(48px, 7vh, 96px);
+}
+.ask-field {
+  display: block;
+  width: 100%;
+  min-height: 136px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 45%, transparent);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-size: clamp(17px, 1.4vw, 21px);
+  line-height: 1.5;
+  resize: vertical;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), 0 0 0 6px color-mix(in srgb, var(--accent) 10%, transparent);
+  transition: border-color 200ms, box-shadow 200ms;
+}
+.ask-field:focus {
+  outline: none;
+  border-color: var(--text-accent);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.ask-field::placeholder {
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+}
+.ask-kinds {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 900px) {
+  .ask-kinds {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+.ask-kind {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 200ms, background-color 200ms, box-shadow 200ms, transform 200ms;
+}
+.ask-kind:hover {
+  border-color: color-mix(in srgb, var(--text-accent) 60%, transparent);
+}
+.ask-kind[aria-checked="true"] {
+  border-color: var(--text-accent);
+  background: rgba(122, 93, 168, 0.12);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.ask-kind-art {
+  display: block;
+  width: 56px;
+  aspect-ratio: 3 / 4;
+  margin: 4px 0 0 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  transform: rotate(-4deg);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+  transition: transform 200ms;
+}
+.ask-kind[aria-checked="true"] .ask-kind-art {
+  transform: rotate(0deg);
+}
+.ask-kind-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ask-kind-title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(19px, 1.5vw, 22px);
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+.ask-kind-line {
+  display: block;
+  margin-top: 4px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.ask-kind-price {
+  display: block;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+.ask-kind[aria-checked="true"] .ask-kind-price {
+  color: var(--text-accent);
+  opacity: 1;
+}
+.ask-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 0 40px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 500;
+  transition: opacity 200ms, transform 200ms;
+}
+.ask-btn:hover {
+  opacity: 0.92;
+}
+.ask-btn:disabled {
+  opacity: 0.5;
+}
+@media (max-width: 639px) {
+  .ask-btn {
+    width: 100%;
+  }
+}
+.ask-bridge {
+  padding: 20px 22px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 50%, transparent);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--depth) 55%, var(--surface-1)) 0%, var(--surface-1) 70%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+.ask-todo {
+  margin-top: 6px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border-left: 3px solid var(--text-accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.ask-band {
+  padding: clamp(48px, 7vh, 96px) 0;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--depth) 18%, var(--bg-page)), var(--bg-page) 70%);
+}
+.ask-how {
+  padding: clamp(48px, 7vh, 96px) 0;
+}
+.ask-steps {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .ask-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 40px;
+  }
+}
+.ask-step {
+  padding-top: 18px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+.ask-day {
+  padding: 0 0 clamp(48px, 7vh, 96px);
+}
+.ask-day-card {
+  display: grid;
+  gap: 24px;
+  padding: clamp(20px, 3vw, 32px);
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .ask-day-card {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 40px;
+  }
+}
+.ask-faq {
+  padding: 0 0 clamp(24px, 4vh, 48px);
+}

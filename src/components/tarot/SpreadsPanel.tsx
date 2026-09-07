@@ -9,7 +9,7 @@ import { spreadPath } from "@/lib/tarot/spreadUrl";
  *
  * Человек заплатил кредитами и должен иметь возможность вернуться и
  * перечитать. Поэтому список показывается ВСЕГДА, в том числе без
- * подписки: подписка открывает новые расклады, а сделанные остаются
+ * подписки: расклад оплачивается кредитами, а сделанные остаются
  * сделанными — как архив сводок бота.
  *
  * Пустой раздел не прячем: это единственное место в кабинете, где о
@@ -20,16 +20,14 @@ type Row = { code: string; title: string; question: string; credits: number; cre
 
 export function SpreadsPanel() {
   const [rows, setRows] = useState<Row[] | null>(null);
-  const [plan, setPlan] = useState(false);
 
   useEffect(() => {
     let alive = true;
     fetch("/api/taro/spread", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { spreads?: Row[]; plan?: boolean } | null) => {
+      .then((d: { spreads?: Row[] } | null) => {
         if (!alive || !d) return;
         setRows(d.spreads ?? []);
-        setPlan(Boolean(d.plan));
       })
       .catch(() => undefined);
     return () => {
@@ -44,7 +42,7 @@ export function SpreadsPanel() {
           Расклады таро
         </div>
         <Link
-          href="/taro/rasklad"
+          href="/taro"
           className="qc-focus inline-flex items-center rounded-[10px] border border-text-accent/50 px-4 text-[14px] text-text-primary transition-colors hover:bg-accent/10"
           style={{ height: 36 }}
         >
@@ -56,9 +54,8 @@ export function SpreadsPanel() {
 
       {rows !== null && rows.length === 0 && (
         <p className="mt-3 text-text-secondary" style={{ fontSize: 15, lineHeight: 1.6 }}>
-          {plan
-            ? "Здесь будут ваши расклады. Вопрос задаётся своими словами, карты тянутся один раз — переиграть нельзя"
-            : "Расклады входят в подписку. Сделанные останутся у вас навсегда, даже если подписку потом отменить"}
+          Здесь будут ваши расклады. Вопрос задаётся своими словами, карты тянутся один раз — переиграть нельзя.
+          Расклад оплачивается кредитами и остаётся у вас навсегда
         </p>
       )}
 
@@ -88,7 +85,7 @@ export function SpreadsPanel() {
             ))}
           </ul>
           <p className="mt-3 text-text-secondary/80" style={{ fontSize: 13, lineHeight: 1.55 }}>
-            Расклады остаются у вас навсегда: подписка открывает новые, а сделанные не пропадают после отмены
+            Расклады остаются у вас навсегда: сделанные не пропадают и после отмены подписки
           </p>
         </>
       )}

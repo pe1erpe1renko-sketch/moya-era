@@ -75,7 +75,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
 
         <div className="mt-10 flex flex-wrap items-center" style={{ gap: 12 }}>
           <Link
-            href="/taro/rasklad"
+            href="/taro"
             className="qc-focus inline-flex items-center rounded-[12px] border border-text-accent/50 px-5 text-[15px] text-text-primary transition-colors hover:bg-accent/10"
             style={{ height: 46 }}
           >

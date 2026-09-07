@@ -35,8 +35,11 @@ export const maxDuration = 120;
  * КАРТЫ ТЯНЕТ СЕРВЕР криптостойким источником. На клиенте это было бы
  * и подделываемо, и предсказуемо, а человек за раздачу заплатил.
  *
- * БЕЗ ПОДПИСКИ РАСКЛАДОВ НЕТ. Это платная механика, а не витрина:
- * бесплатное в таро уже есть — карта дня по постоянному адресу.
+ * ПОДПИСКА НЕ НУЖНА: расклад оплачивается кредитами, как сообщение
+ * наставнику. Новому аккаунту база начисляет приветственные кредиты
+ * (`grant_welcome_credits`), и первого расклада они покрывают — на этом
+ * держится мост от гостя к регистрации на первом экране /taro
+ * (приёмка, часть 4). Бесплатное в таро — карта дня по постоянному адресу.
  */
 
 const MAX_QUESTION = 500;
@@ -51,9 +54,6 @@ export async function POST(req: Request) {
 
   const access = await loadAccess();
   if (!access.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!access.demo && !access.plan) {
-    return NextResponse.json({ error: "no_subscription" }, { status: 402 });
-  }
   if (!LLM_ENABLED) return NextResponse.json({ error: "llm_off" }, { status: 503 });
 
   const offer = await spreadOffer(kind.id as SpreadId);

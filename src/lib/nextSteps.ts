@@ -67,7 +67,7 @@ const spreadCard = (line: string): NextCard => ({
   tag: CREDITS_TAG,
   title: "Расклад таро на вопрос",
   line,
-  action: { kind: "link", href: "/taro/rasklad", label: "Задать вопрос картам" },
+  action: { kind: "link", href: "/taro", label: "Задать вопрос картам" },
 });
 
 const dayCard = (iso: string): NextCard => ({
@@ -234,7 +234,7 @@ export function pairShowcase({
       {
         ...spreadCard("Спросите карты о том, что между вами: пять позиций, от «вы в этих отношениях» до «что мешает»."),
         title: "Расклад на вопрос об этих отношениях",
-        action: { kind: "link", href: "/taro/rasklad?vid=love", label: "Задать вопрос картам" },
+        action: { kind: "link", href: "/taro?vid=love", label: "Задать вопрос картам" },
       },
       mentorCard("Наставник видит числа обоих и отвечает на вопрос о вас двоих, а не на аркан вообще."),
     ],
@@ -302,6 +302,37 @@ export function chartShowcase(system: ChartSystem, iso: string): NextShowcase {
     cards: [matrixCard(iso), natalCard(iso), spread],
     neighbors,
     also: [systemLink("humandesign", iso), dayCardLink(iso)],
+  };
+}
+
+/** Первый экран таро — без даты: матрица, натальная карта, совместимость. */
+export function tarotLandingShowcase(): NextShowcase {
+  return {
+    cards: [
+      {
+        id: "matrix",
+        art: 10,
+        title: "Матрица судьбы",
+        line: "Считается по дате рождения: двадцать два аркана и двенадцать сфер жизни, от денег до рода.",
+        action: { kind: "link", href: "/matrica-sudby", label: "Посчитать матрицу" },
+      },
+      {
+        id: "natal",
+        art: 17,
+        title: "Натальная карта",
+        line: "Где стояли планеты в момент рождения — по дате, а с часом и местом точнее.",
+        action: { kind: "link", href: "/natalnaya-karta", label: "Построить карту" },
+      },
+      {
+        id: "pair",
+        art: 6,
+        title: "Совместимость",
+        line: "Две даты — три взгляда на пару: матрица, синастрия и композит.",
+        action: { kind: "link", href: "/sovmestimost", label: "Посмотреть пару" },
+      },
+    ],
+    neighbors: [],
+    also: [],
   };
 }
 

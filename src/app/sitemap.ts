@@ -9,10 +9,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/tarify`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     ...directions.map((d) => ({ url: `${SITE_URL}${d.path}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.9 })),
-    // Витрина живого расклада. Сами расклады (/rasklad/<код>) сюда не
-    // попадают никогда: это личные вопросы людей, и они закрыты от
-    // индексации и в метаданных страницы, и в robots.txt.
-    { url: `${SITE_URL}/taro/rasklad`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.7 },
+    // Живой расклад живёт на первом экране /taro (он уже в списке
+    // направлений). Сами расклады (/rasklad/<код>) сюда не попадают
+    // никогда: это личные вопросы людей, и они закрыты от индексации и в
+    // метаданных страницы, и в robots.txt.
   ];
   // Страницы карт по датам (/natalnaya-karta/26-07-1990) перечислены в
   // отдельных файлах: /natalnaya-karta/sitemap/0.xml и /dizayn-cheloveka/…

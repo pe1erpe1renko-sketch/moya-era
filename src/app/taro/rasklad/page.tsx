@@ -1,31 +1,16 @@
-import type { Metadata } from "next";
-import { DEFAULT_OG_IMAGE } from "@/lib/seo";
-import SpreadMaker from "./SpreadMaker";
+import { permanentRedirect } from "next/navigation";
+import { askPath } from "@/lib/tarot/ask";
 
 /**
- * ЖИВОЙ РАСКЛАД — /taro/rasklad
+ * /taro/rasklad — прежний адрес мастера раскладов.
  *
- * Страница, где человек выбирает вид, пишет вопрос и тянет карты.
- * Сам расклад после этого живёт по своему адресу /rasklad/<код> и в
- * поиск не попадает; эта страница — обычная, её описание в выдаче
- * уместно.
- *
- * Статический сегмент побеждает соседний динамический `/taro/[date]`:
- * адрес «rasklad» никогда не будет разобран как дата.
+ * С приёмки (часть 4) расклад — первый экран /taro, отдельной страницы
+ * нет. Адрес остаётся как прямой вход с уже выбранным видом:
+ * /taro/rasklad?vid=love ведёт на /taro?vid=love. Переезд постоянный,
+ * чтобы поисковик склеил адреса, а старые ссылки не ломались.
  */
-export const metadata: Metadata = {
-  title: "Расклад Таро на вопрос — Моя Эра",
-  description:
-    "Четыре расклада на старших арканах: одна карта, три карты, отношения и большой расклад. Свой вопрос своими словами, разбор пишется под него.",
-  alternates: { canonical: "/taro/rasklad" },
-  openGraph: {
-    images: [DEFAULT_OG_IMAGE],
-    title: "Расклад Таро на вопрос — Моя Эра",
-    description: "Выберите вид расклада, задайте вопрос своими словами и вытяните карты.",
-    type: "website",
-  },
-};
-
-export default function Page() {
-  return <SpreadMaker />;
+export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
+  const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
+  permanentRedirect(askPath({ vid: one(sp.vid), q: one(sp.q) }));
 }

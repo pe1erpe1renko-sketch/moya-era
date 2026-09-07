@@ -15,4 +15,5 @@ export * from "./sections";
 export * from "./spreads";
 export * from "./spreadPrompts";
 export * from "./spreadUrl";
+export * from "./ask";
 export * from "./prompts";
