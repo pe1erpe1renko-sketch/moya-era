@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
+import { MentorFab } from "@/components/chat/MentorFab";
 
 /**
  * ОБЩАЯ РАМКА СТРАНИЦ ПО ДАТЕ: шапка сверху, подвал снизу.
@@ -17,11 +18,12 @@ import { Footer } from "@/components/landing/Footer";
 export function ChartShell({ children }: { children: ReactNode }) {
   return (
     <main className="relative min-h-screen w-full bg-bg-page">
-      <div className="relative h-[90px] w-full md:h-[110px]">
+      <div className="relative w-full" style={{ height: "var(--header-h)" }}>
         <Header />
       </div>
       {children}
       <Footer />
+      <MentorFab />
     </main>
   );
 }

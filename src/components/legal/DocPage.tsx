@@ -11,7 +11,7 @@ type Props = {
 export function DocPage({ title, body, draftNotice = false }: Props) {
   return (
     <main className="relative min-h-screen w-full bg-bg-page">
-      <div className="relative h-[110px] w-full">
+      <div className="relative w-full" style={{ height: "var(--header-h)" }}>
         <Header />
       </div>
 

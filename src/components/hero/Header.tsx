@@ -238,7 +238,7 @@ export function Header() {
       <header
         className="fixed inset-x-0 top-0 z-[100] flex items-center justify-between border-b transition-all duration-300"
         style={{
-          height: "clamp(76px, 6.5vh, 104px)",
+          height: "var(--header-h)",
           paddingLeft: "clamp(20px, 4vw, 64px)",
           paddingRight: "clamp(20px, 4vw, 64px)",
           // Плотный фон, а не полупрозрачный с размытием: сквозь него

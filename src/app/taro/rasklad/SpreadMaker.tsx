@@ -109,7 +109,7 @@ export default function SpreadMaker() {
 
   return (
     <main className="relative min-h-screen w-full bg-bg-page">
-      <div className="relative h-[90px] w-full md:h-[110px]">
+      <div className="relative w-full" style={{ height: "var(--header-h)" }}>
         <Header />
       </div>
 

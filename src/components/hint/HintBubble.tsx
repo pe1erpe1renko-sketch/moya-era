@@ -146,6 +146,9 @@ export function HintBubble({ place, iso }: HintContext) {
     const apply = () => {
       const need = el.offsetHeight + 16;
       document.body.style.paddingBottom = `${need}px`;
+      // Плавающая кнопка наставника читает эту переменную и встаёт над
+      // полосой, а не поверх неё.
+      document.documentElement.style.setProperty("--hint-strip", `${need - 16}px`);
       // Освободившееся место надо ещё и открыть: поднимаем страницу ровно
       // на столько, на сколько выросла полоса.
       const delta = need - reserved;
@@ -161,6 +164,7 @@ export function HintBubble({ place, iso }: HintContext) {
     return () => {
       observer.disconnect();
       document.body.style.paddingBottom = "";
+      document.documentElement.style.removeProperty("--hint-strip");
     };
   }, [hint]);
 

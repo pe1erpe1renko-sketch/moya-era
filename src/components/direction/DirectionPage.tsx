@@ -148,7 +148,7 @@ export function DirectionPage<R>({
 
   return (
     <main className="relative w-full bg-bg-page">
-      <div className="relative h-[110px] w-full">
+      <div className="relative w-full" style={{ height: "var(--header-h)" }}>
         <Header />
       </div>
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
+import { MentorFab } from "@/components/chat/MentorFab";
 import type { Matrix, PairMatrix } from "@/lib/matrix/matrixEngine";
 import { POINT_CODES, buildToday } from "@/lib/matrix/matrixEngine";
 import type { SectionData } from "@/lib/matrix/contentPositions";
@@ -247,6 +248,7 @@ export function ReadingView(props: ReadingViewProps) {
       </section>
 
       {!props.embedded && <Footer />}
+      {!props.embedded && <MentorFab />}
 
       <Paywall open={paywall} onClose={() => setPaywall(false)} date={myDate} freeCount={freeCount} totalCount={totalCount} reason={lockReason ?? undefined} />
     </Root>
@@ -262,7 +264,7 @@ function Root({ embedded, children }: { embedded: boolean; children: React.React
   if (embedded) return <div className="relative w-full">{children}</div>;
   return (
     <main className="relative min-h-screen w-full bg-bg-page">
-      <div className="relative h-[90px] w-full md:h-[110px]">
+      <div className="relative w-full" style={{ height: "var(--header-h)" }}>
         <Header />
       </div>
       {children}

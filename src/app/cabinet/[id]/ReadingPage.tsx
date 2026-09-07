@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
+import { MentorFab } from "@/components/chat/MentorFab";
 import { OtherDirections } from "@/components/landing/OtherDirections";
 import { directions, type Direction } from "@/lib/directions";
 import { directionLines } from "@/lib/directionLines";
@@ -385,6 +386,7 @@ export default function ReadingPage() {
       <OtherDirections currentId={direction.id} cabinetLinks />
 
       <Footer />
+      <MentorFab />
     </main>
   );
 }

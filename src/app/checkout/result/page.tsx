@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Оплата — Моя Эра", rob
 export default function Page() {
   return (
     <main className="relative min-h-screen w-full bg-bg-page">
-      <div className="relative h-[90px] w-full md:h-[110px]">
+      <div className="relative w-full" style={{ height: "var(--header-h)" }}>
         <Header />
       </div>
       <div className="mx-auto w-[min(720px,92vw)] pb-20 pt-10 text-center">
