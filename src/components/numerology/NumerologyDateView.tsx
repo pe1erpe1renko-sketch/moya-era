@@ -156,7 +156,9 @@ export function NumerologyDateView({
               ? `Число судьбы ${chart.destiny} посчитано по имени «${chart.name}»: сумма значений всех букв ${chart.destinyBreakdown?.sum}, свёрнутая до одного числа`
               : "Число судьбы считается по полному имени, а не по дате, — поэтому его здесь пока нет. Без имени считается всё остальное"}
           </p>
-          <AddName name={chart.name} onApply={applyName} />
+          <div id="name" className="scroll-mt-28">
+            <AddName name={chart.name} onApply={applyName} />
+          </div>
         </div>
       </section>
 

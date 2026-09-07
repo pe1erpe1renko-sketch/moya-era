@@ -165,7 +165,7 @@ function DateNote({
   const exact = chart.moment.precision === "exact";
 
   return (
-    <div className="mt-6 w-full max-w-full rounded-[14px] border border-border bg-surface-1" style={{ padding: "16px 18px" }}>
+    <div id="refine" className="mt-6 w-full max-w-full scroll-mt-28 rounded-[14px] border border-border bg-surface-1" style={{ padding: "16px 18px" }}>
       {loading ? (
         <p className="text-text-primary" style={{ fontSize: 14, lineHeight: 1.55 }}>
           Пересчитываем карту по указанным времени и месту…

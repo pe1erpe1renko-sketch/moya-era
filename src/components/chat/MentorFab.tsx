@@ -11,10 +11,11 @@ import { useAuth } from "@/lib/useAuth";
  * Только вошедшим: гостю чат всё равно ответит «войдите». Не на самой
  * странице наставника — там она вела бы на себя.
  *
- * ЧТОБЫ НИЧЕГО НЕ ЗАКРЫВАТЬ: полоса подсказки внизу страницы отдаёт свою
- * высоту в переменную --hint-strip, и кнопка поднимается над ней. А на
- * телефоне странице добавляется отступ снизу под кнопку, чтобы последняя
- * кнопка содержимого не оказалась под ней.
+ * ЧТОБЫ НИЧЕГО НЕ ЗАКРЫВАТЬ: на телефоне странице добавляется отступ
+ * снизу под кнопку (класс `has-fab` на body), чтобы последняя кнопка
+ * содержимого не оказалась под ней. Подсказка-карточка живёт в том же
+ * углу и по этому же классу поднимается над кнопкой — кнопка остаётся
+ * на месте.
  */
 export function MentorFab() {
   const { isAuthenticated } = useAuth();
@@ -34,8 +35,7 @@ export function MentorFab() {
       href="/nastavnik"
       aria-label="Спросить наставника"
       title="Спросить наставника"
-      className="qc-focus mentor-fab fixed right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-accent text-primary-foreground shadow-lg transition-transform hover:scale-105 md:right-6"
-      style={{ bottom: "calc(18px + var(--hint-strip, 0px))" }}
+      className="qc-focus mentor-fab fixed bottom-[18px] right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-accent text-primary-foreground shadow-lg transition-transform hover:scale-105 md:right-6"
     >
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z" />

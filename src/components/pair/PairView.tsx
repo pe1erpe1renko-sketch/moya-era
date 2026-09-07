@@ -78,8 +78,13 @@ export function PairView({
   const [center, setCenter] = useState<CenterId | null>(null);
 
   // Взгляд из якоря адреса — после гидратации, чтобы разметка совпала.
+  // Чужие якоря (#dalshe, #lyudi — к ним ведут подсказки) вкладку не
+  // трогают: человек остаётся там, где был.
   useEffect(() => {
-    const apply = () => setView(viewByAnchor(window.location.hash).id);
+    const apply = () => {
+      const clean = window.location.hash.replace(/^#/, "");
+      if (!clean || PAIR_VIEWS.some((v) => v.anchor === clean)) setView(viewByAnchor(clean).id);
+    };
     apply();
     window.addEventListener("hashchange", apply);
     return () => window.removeEventListener("hashchange", apply);

@@ -957,9 +957,7 @@ div:has(> [data-taro-pre]) > .uppercase {
 }
 
 /* Плавающая кнопка наставника: на телефоне странице нужен отступ снизу,
-   чтобы последняя кнопка содержимого не оказалась под ней. Инлайн-отступ
-   полосы подсказки (пока она видна) этот перекрывает — и правильно: там
-   места больше. */
+   чтобы последняя кнопка содержимого не оказалась под ней. */
 @media (max-width: 767px) {
   body.has-fab {
     padding-bottom: 84px;
@@ -1305,4 +1303,130 @@ div:has(> [data-taro-pre]) > .uppercase {
 }
 .pair-theme:last-child {
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+/* ===== Подсказка-карточка =====
+   Правый нижний угол, шириной с телефон: иллюстрация аркана, заголовок,
+   текст, кнопка, крестик. Выезжает снизу с затуханием и так же уходит.
+   На телефоне — с отступами от краёв, не полоса. Над кнопкой наставника
+   поднимается по классу has-fab на body, сама кнопка не двигается. */
+.hint-card {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 40;
+  width: min(360px, calc(100vw - 24px));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px 44px 14px 14px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 40%, transparent);
+  background: var(--surface-1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  animation: hint-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+/* На узком телефоне — ровные поля с обеих сторон. */
+@media (max-width: 419px) {
+  .hint-card {
+    width: calc(100vw - 24px);
+  }
+}
+@media (min-width: 768px) {
+  .hint-card {
+    right: 24px;
+    bottom: 24px;
+  }
+}
+body.has-fab .hint-card {
+  bottom: calc(18px + 56px + 14px);
+}
+.hint-card--out {
+  animation: hint-out 240ms ease-in both;
+}
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes hint-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint-card,
+  .hint-card--out {
+    animation: none;
+  }
+}
+.hint-card-art {
+  width: 48px;
+  aspect-ratio: 3 / 4;
+  margin: 2px 4px 0 2px;
+  border-radius: 8px;
+  overflow: hidden;
+  transform: rotate(-4deg);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+}
+.hint-card-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hint-card-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.hint-card-text {
+  margin-top: 4px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.hint-card-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  transition: opacity 200ms;
+}
+.hint-card-btn:hover {
+  opacity: 0.9;
+}
+.hint-card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  transition: background-color 200ms, color 200ms;
+}
+.hint-card-close:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text-primary);
 }

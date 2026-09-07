@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { arcanaImage } from "@/lib/arcanaImage";
 import {
   pickHints,
   HINT_DISMISSED_KEY,
@@ -15,10 +16,14 @@ import {
 } from "@/lib/hints";
 
 /**
- * ОБЛАЧКО-ПОДСКАЗКА.
+ * ПОДСКАЗКА-КАРТОЧКА.
  *
- * Небольшая карточка внизу страницы, которая помогает сделать следующий
- * шаг. Правила показа жёсткие и заданы заказчиком — это не настройки, а
+ * Карточка в правом нижнем углу шириной с телефон: маленькая
+ * иллюстрация аркана, заголовок в одну строку, текст в две, кнопка
+ * действия и крестик в углу. Выезжает снизу с затуханием и так же
+ * уходит. На телефоне — та же карточка с отступами от краёв, не полоса.
+ *
+ * Правила показа жёсткие и заданы заказчиком — это не настройки, а
  * условие того, что подсказка остаётся помощью, а не назойливостью:
  *
  *  - только на страницах разбора: компонент ставится там вручную,
@@ -29,14 +34,10 @@ import {
  *  - крестик выключает подсказки навсегда и на всех страницах;
  *  - начал прокручивать — подсказка исчезает сама.
  *
- ПОЧЕМУ ОНА НЕ ПЕРЕКРЫВАЕТ СОДЕРЖИМОЕ. Одного отступа снизу мало: он
- * позволяет долистать до конца, но пока человек читает середину, полоса
- * всё равно ложится поверх текста. Поэтому в момент появления делаются
- * два действия сразу: странице добавляется отступ снизу на высоту
- * подсказки и страница прокручивается ровно на эту же высоту. Всё, что
- * человек видел, поднимается над полосой, а полоса занимает
- * освободившееся место. Ничего не скрывается ни на телефоне, ни на
- * широком экране.
+ * НИЧЕГО НЕ ПЕРЕКРЫВАЕТ. Карточка живёт в углу, а не поперёк экрана,
+ * и уходит при первой же прокрутке. Плавающая кнопка наставника стоит
+ * в том же углу — карточка поднимается над ней (по классу `has-fab` на
+ * body), а кнопка остаётся на месте.
  *
  * ЧТО ГДЕ ЗАПОМИНАЕТСЯ. Отказ — в localStorage: он должен пережить и
  * перезагрузку, и завтрашний день. Счётчик показов и список уже
@@ -46,6 +47,9 @@ import {
 type Visit = { count: number; lastAt: number; seen: string[] };
 
 const EMPTY_VISIT: Visit = { count: 0, lastAt: 0, seen: [] };
+
+/** Сколько длится уход карточки — столько же, сколько анимация в CSS. */
+const LEAVE_MS = 240;
 
 function readVisit(): Visit {
   try {
@@ -80,37 +84,48 @@ function dismissed(): boolean {
 
 export function HintBubble({ place, iso }: HintContext) {
   const [hint, setHint] = useState<Hint | null>(null);
+  const [leaving, setLeaving] = useState(false);
   // Свойства приходят россыпью, а условие собирается заново только при их
   // смене: иначе отсчёт перезапускался бы на каждой перерисовке.
   const ctx = useMemo<HintContext>(() => ({ place, iso }), [place, iso]);
-  const box = useRef<HTMLDivElement | null>(null);
-  // Прокрутка, сделанная нами самими: свой же обработчик её игнорирует,
-  // иначе подсказка спрятала бы себя в момент появления.
-  const selfScroll = useRef(0);
   // Часы заводятся в эффекте, а не при первом рендере: `Date.now()` в теле
   // компонента React считает нечистым вызовом — и справедливо, рендер
   // может повториться.
   const openedAt = useRef(0);
   const quietSince = useRef(0);
   const shown = useRef(false);
+  const leaveTimer = useRef<number | null>(null);
 
-  const hide = useCallback(() => setHint(null), []);
+  // Уход с затуханием: сначала класс анимации, потом снятие с экрана.
+  const hide = useCallback(() => {
+    if (!shown.current) return;
+    shown.current = false;
+    setLeaving(true);
+    if (leaveTimer.current) window.clearTimeout(leaveTimer.current);
+    leaveTimer.current = window.setTimeout(() => {
+      setHint(null);
+      setLeaving(false);
+    }, LEAVE_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (leaveTimer.current) window.clearTimeout(leaveTimer.current);
+    },
+    [],
+  );
 
   // Прокрутка: и отсчёт тишины, и мгновенное исчезновение начатой прокрутки.
   useEffect(() => {
     openedAt.current = Date.now();
     quietSince.current = Date.now();
     const onScroll = () => {
-      if (Date.now() < selfScroll.current) return;
       quietSince.current = Date.now();
-      if (shown.current) {
-        shown.current = false;
-        setHint(null);
-      }
+      hide();
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [hide]);
 
   // Раз в секунду проверяем, сошлись ли все условия сразу.
   useEffect(() => {
@@ -130,43 +145,12 @@ export function HintBubble({ place, iso }: HintContext) {
       if (!next) return;
 
       shown.current = true;
+      setLeaving(false);
       setHint(next);
       writeVisit({ count: visit.count + 1, lastAt: now, seen: [...visit.seen, next.id] });
     }, 1000);
     return () => clearInterval(timer);
   }, [ctx]);
-
-  // Пока подсказка видна, страница получает отступ снизу на её высоту —
-  // тогда подсказка ничего не закрывает и до низа можно долистать.
-  useEffect(() => {
-    if (!hint) return;
-    const el = box.current;
-    if (!el) return;
-    let reserved = 0;
-    const apply = () => {
-      const need = el.offsetHeight + 16;
-      document.body.style.paddingBottom = `${need}px`;
-      // Плавающая кнопка наставника читает эту переменную и встаёт над
-      // полосой, а не поверх неё.
-      document.documentElement.style.setProperty("--hint-strip", `${need - 16}px`);
-      // Освободившееся место надо ещё и открыть: поднимаем страницу ровно
-      // на столько, на сколько выросла полоса.
-      const delta = need - reserved;
-      reserved = need;
-      if (delta > 0) {
-        selfScroll.current = Date.now() + 400;
-        window.scrollBy({ top: delta, behavior: "instant" as ScrollBehavior });
-      }
-    };
-    apply();
-    const observer = new ResizeObserver(apply);
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-      document.body.style.paddingBottom = "";
-      document.documentElement.style.removeProperty("--hint-strip");
-    };
-  }, [hint]);
 
   function dismissForever() {
     try {
@@ -174,51 +158,49 @@ export function HintBubble({ place, iso }: HintContext) {
     } catch {
       /* не запомнилось — но эту подсказку всё равно закрываем */
     }
-    shown.current = false;
     hide();
   }
 
   if (!hint) return null;
 
   const href = hint.action?.href(ctx) ?? null;
+  // Якорь на этой же странице — обычной ссылкой: браузер сам прокрутит к
+  // элементу и уважит его scroll-margin, а страница пары услышит смену
+  // якоря и переключит вкладку.
+  const anchor = href?.startsWith("#") ?? false;
 
   return (
-    <div
-      ref={box}
-      role="complementary"
-      aria-label="Подсказка"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg-page/95 backdrop-blur"
-    >
-      <div
-        className="mx-auto flex w-full max-w-[1240px] items-center gap-3 px-[4vw] py-2.5 md:gap-5 md:px-6"
-      >
-        <p className="min-w-0 flex-1 text-text-primary md:max-w-[840px]" style={{ fontSize: 13.5, lineHeight: 1.45 }}>
-          {hint.text}
-          {href && hint.action && (
-            <>
-              {" "}
-              <Link
-                href={href}
-                onClick={hide}
-                className="qc-focus whitespace-nowrap text-text-accent underline underline-offset-4"
-              >
+    <div role="complementary" aria-label="Подсказка" className={`hint-card ${leaving ? "hint-card--out" : ""}`}>
+      <div className="hint-card-art" aria-hidden="true">
+        <img src={arcanaImage(hint.art, "sm")} alt="" loading="lazy" decoding="async" />
+      </div>
+      <div className="min-w-0">
+        <div className="hint-card-title">{hint.title}</div>
+        <p className="hint-card-text">{hint.text}</p>
+        {href && hint.action && (
+          <div className="mt-2.5">
+            {anchor ? (
+              <a href={href} onClick={hide} className="qc-focus hint-card-btn">
+                {hint.action.label}
+              </a>
+            ) : (
+              <Link href={href} onClick={hide} className="qc-focus hint-card-btn">
                 {hint.action.label}
               </Link>
-            </>
-          )}
-        </p>
-
-        <button
-          type="button"
-          onClick={dismissForever}
-          aria-label="Больше не показывать подсказки"
-          title="Больше не показывать подсказки"
-          className="qc-focus flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-accent/10 hover:text-text-primary"
-          style={{ fontSize: 20, lineHeight: 1 }}
-        >
-          ×
-        </button>
+            )}
+          </div>
+        )}
       </div>
+
+      <button
+        type="button"
+        onClick={dismissForever}
+        aria-label="Больше не показывать подсказки"
+        title="Больше не показывать подсказки"
+        className="qc-focus hint-card-close"
+      >
+        ×
+      </button>
     </div>
   );
 }
