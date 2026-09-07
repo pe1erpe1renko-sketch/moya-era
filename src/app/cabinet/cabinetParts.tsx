@@ -16,6 +16,7 @@ export type Profile = {
   birth_lon: number | null;
   birth_tz: string | null;
   referral_code: string | null;
+  client_id: string | null;
 };
 
 export const cardStyle = {

@@ -7,6 +7,7 @@
  * backend.supabase.ts.
  */
 
+import { newClientId } from "@/lib/clientId";
 import {
   ok,
   fail,
@@ -67,6 +68,14 @@ function referralCode(existing: Profile[]) {
     let code = "";
     for (let i = 0; i < 8; i++) code += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
     if (!existing.some((p) => p.referral_code === code)) return code;
+  }
+}
+
+/** ID клиента: как в базе — один раз, с повтором при совпадении. */
+function clientId(existing: Profile[]) {
+  for (;;) {
+    const id = newClientId();
+    if (!existing.some((p) => p.client_id === id)) return id;
   }
 }
 
@@ -139,7 +148,15 @@ export const localBackend: Backend = {
       const own = all
         .filter((p) => p.user_id === userId && p.is_owner)
         .sort((a, b) => a.created_at.localeCompare(b.created_at));
-      return ok(own[0] ?? null);
+      const owner = own[0] ?? null;
+      // Профили, заведённые до появления ID, получают его при первом
+      // обращении — как в базе это делает миграция.
+      if (owner && !owner.client_id) {
+        const next = { ...owner, client_id: clientId(all) };
+        write(PROFILES_KEY, all.map((p) => (p.id === owner.id ? next : p)));
+        return ok(next);
+      }
+      return ok(owner);
     },
     async insert(row) {
       await delay(120);
@@ -149,6 +166,7 @@ export const localBackend: Backend = {
         id: uid(),
         created_at: new Date().toISOString(),
         referral_code: row.is_owner ? (row.referral_code ?? referralCode(all)) : null,
+        client_id: row.is_owner ? (row.client_id ?? clientId(all)) : null,
       };
       write(PROFILES_KEY, [...all, profile]);
       return ok(profile);

@@ -21,6 +21,7 @@ import { track } from "@/components/analytics/track";
 import { InviteBlock, cardStyle, capStyle, isPlaceholderName, type Profile } from "./cabinetParts";
 import { PeopleCards } from "./PeopleCards";
 import { MentorFab } from "@/components/chat/MentorFab";
+import { CopyButton } from "@/components/common/CopyButton";
 
 /* ────────────────────────────────────────────────────────────────── */
 
@@ -152,10 +153,28 @@ export default function CabinetPage() {
             <h1 className="font-display text-text-primary" style={{ fontSize: "clamp(30px, 3vw, 48px)", lineHeight: 1.08 }}>
               Мой кабинет
             </h1>
-            <p className="mt-[10px] text-text-secondary" style={{ fontSize: "clamp(14px, 1.1vw, 17px)" }}>
-              {self?.birth_date ? formatBirthDate(self.birth_date) : "Дата рождения не заполнена"}
-              {email ? ` · ${email}` : ""}
-            </p>
+            {/* Три строки под заголовком — разведены кеглем и цветом, а не
+                свалены в одну: дата крупнее и светлее, почта тише, ID —
+                моноширинным с кнопкой копирования. */}
+            <div className="mt-3 flex flex-col" style={{ gap: 4 }}>
+              <div className="text-text-primary" style={{ fontSize: "clamp(15px, 1.15vw, 17px)" }}>
+                {self?.birth_date ? formatBirthDate(self.birth_date) : "Дата рождения не заполнена"}
+              </div>
+              {email && (
+                <div className="text-text-secondary" style={{ fontSize: 14 }}>
+                  {email}
+                </div>
+              )}
+              {profile?.client_id && (
+                <div className="flex items-center gap-2 text-text-secondary" style={{ fontSize: 13 }}>
+                  <span style={{ letterSpacing: "0.08em", textTransform: "uppercase", fontSize: 11, opacity: 0.8 }}>ID</span>
+                  <span className="font-mono text-text-primary" data-copy-text={profile.client_id} style={{ fontSize: 13, letterSpacing: "0.04em", opacity: 0.85 }}>
+                    {profile.client_id}
+                  </span>
+                  <CopyButton text={profile.client_id} compact className="rounded-full px-1" />
+                </div>
+              )}
+            </div>
           </div>
           <PlanBadge plan={plan} active={active} credits={credits} />
         </div>

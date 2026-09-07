@@ -28,11 +28,14 @@ export type Profile = {
   is_owner: boolean;
   referral_code: string | null;
   referred_by: string | null;
+  /** ID клиента вида МЭ-7K3F-92QD; выдаётся базой один раз, у владельца */
+  client_id: string | null;
   created_at: string;
 };
 
-export type ProfileInsert = Omit<Profile, "id" | "created_at" | "referral_code"> & {
+export type ProfileInsert = Omit<Profile, "id" | "created_at" | "referral_code" | "client_id"> & {
   referral_code?: string | null;
+  client_id?: string | null;
 };
 export type ProfilePatch = Partial<
   Pick<Profile, "name" | "birth_date" | "birth_time" | "birth_place" | "birth_place_id" | "birth_lat" | "birth_lon" | "birth_tz">
