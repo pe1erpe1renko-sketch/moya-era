@@ -16,7 +16,7 @@ import { SpreadsPanel } from "@/components/tarot/SpreadsPanel";
 import { AutoRenewPanel } from "@/components/billing/AutoRenewPanel";
 import { MakeImageButton } from "@/components/image/MakeImageButton";
 import { calculateMatrix, dayArcana, arcanaName, arcanaLine, readingPath, formatDateDots, urlDateToIso, CALC_TYPES, FORECAST_VIEW } from "@/lib/matrix";
-import { ArcanaCard } from "@/components/reading/Spheres";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { track } from "@/components/analytics/track";
 import { InviteBlock, cardStyle, capStyle, isPlaceholderName, type Profile } from "./cabinetParts";
 import { PeopleCards } from "./PeopleCards";
@@ -297,38 +297,48 @@ function TodayBlock({ person }: { person: Person }) {
   }, [person.birth_date]);
 
   return (
-    <div style={cardStyle} className="!p-5 md:!p-7">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-text-secondary" style={capStyle}>
-          Сегодня · {formatDateDots(t.date)}
+    // «Сегодня» — сцена, а не карточка: без рамки и фона-коробки, чтобы
+    // глаз отличал информационный блок от карточек людей, с которыми
+    // работают. Свечение за иллюстрацией и линия снизу живут в CSS
+    // (.today-scene в globals.css).
+    <section className="today-scene relative">
+      <div aria-hidden="true" className="today-glow" />
+
+      <div className="relative flex flex-wrap items-baseline justify-between gap-3">
+        <div className="text-text-accent" style={capStyle}>
+          Сегодня · {formatBirthDate(t.date)}
           {!isPlaceholderName(person.name) ? ` · ${person.name}` : ""}
         </div>
         <button type="button" onClick={() => setCalendar((c) => !c)} className="text-[14px] text-text-accent underline-offset-4 hover:underline" aria-expanded={calendar}>
-          {calendar ? "Скрыть календарь" : "Календарь месяца"}
+          {calendar ? "Скрыть календарь" : "Календарь месяца →"}
         </button>
       </div>
 
-      <div className="mt-4 grid gap-5 md:grid-cols-[auto_1fr_auto] md:items-start">
-        <ArcanaCard n={t.dayArcana} size={96} />
+      <div className="relative mt-5 grid gap-6 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-8">
+        <div className="today-card justify-self-start">
+          <ArcanaImage n={t.dayArcana} width="clamp(120px, 11vw, 150px)" size="md" rounded={10} priority />
+        </div>
         <div className="min-w-0">
-          <div className="font-display text-text-primary" style={{ fontSize: "clamp(26px, 2.6vw, 40px)", lineHeight: 1.05 }}>
-            {t.dayArcana} · {arcanaName(t.dayArcana)}
-          </div>
-          <p className="mt-2 text-[16px] leading-[1.65] text-text-secondary">{text ?? arcanaLine(t.dayArcana)}</p>
-          <p className="mt-3 text-[14px] text-text-secondary/80">
-            Завтра — аркан {t.tomorrowArcana}, {arcanaName(t.tomorrowArcana)}.
+          <h2 className="font-display text-text-primary" style={{ fontSize: "clamp(34px, 4.2vw, 52px)", lineHeight: 1.05 }}>
+            <span className="text-text-accent" style={{ marginRight: "0.2em" }}>{t.dayArcana}</span>
+            {arcanaName(t.dayArcana)}
+          </h2>
+          <p className="mt-3 text-[16px] leading-[1.65] text-text-secondary" style={{ maxWidth: "56ch" }}>{text ?? arcanaLine(t.dayArcana)}</p>
+          <p className="mt-3 text-[13px] text-text-secondary/80">
+            Завтра — {t.tomorrowArcana}, {arcanaName(t.tomorrowArcana)}
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:w-[260px] md:grid-cols-1">
-          <Stat label={`Период ${t.from}–${t.to} лет`} value={`${t.arcana} · ${arcanaName(t.arcana)}`} sub={`смена через ${t.yearsToChange.toFixed(1)} г.`} />
-          <Stat label={`Личный год ${t.year}`} value={`${t.yearArcana} · ${arcanaName(t.yearArcana)}`} sub={`новый через ${yearChange} дн.`} />
+        {/* Период и личный год — две строки с тонкой чертой слева, а не две коробки */}
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:w-[250px] md:grid-cols-1">
+          <TodayStat label={`Период ${t.from}–${t.to} лет`} value={`${t.arcana} · ${arcanaName(t.arcana)}`} sub={`смена через ${t.yearsToChange.toFixed(1)} г.`} />
+          <TodayStat label={`Личный год ${t.year}`} value={`${t.yearArcana} · ${arcanaName(t.yearArcana)}`} sub={`новый через ${yearChange} дн.`} />
         </div>
       </div>
 
       {calendar && <MonthCalendar periodArcana={t.arcana} today={t.date} />}
 
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <Link href={readingPath("prognoz", [person.birth_date])} className="rounded-full border border-text-accent/50 px-4 py-2 text-[14px] text-text-primary hover:bg-accent/10">Прогноз и личный год</Link>
+      <div className="relative mt-6 flex flex-wrap items-center gap-2">
+        <Link href={readingPath("prognoz", [person.birth_date])} className="rounded-full bg-accent px-4 py-2 text-[14px] font-medium text-primary-foreground transition-opacity hover:opacity-90">Прогноз и личный год</Link>
         <Link href="/nastavnik" className="rounded-full border border-border px-4 py-2 text-[14px] text-text-secondary hover:border-text-accent/60 hover:text-text-primary">Спросить наставника</Link>
         {/* Образ по любой из семи тем. «Я» — это подпись строки в списке
             людей, а не имя: на карточку такое не ставим. */}
@@ -339,15 +349,19 @@ function TodayBlock({ person }: { person: Person }) {
           style={{ height: 38 }}
         />
       </div>
-    </div>
+
+      {/* Граница между «сегодня» и «людьми»: тонкая линия, уходящая в темноту */}
+      <div aria-hidden="true" className="today-rule" />
+    </section>
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
+/** Строка сцены «Сегодня»: тонкая черта слева, без коробки. */
+function TodayStat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="rounded-[14px] border border-border/60 bg-bg-page/40 p-3">
-      <div className="text-[11px] uppercase tracking-[0.08em] text-text-secondary">{label}</div>
-      <div className="mt-1 text-[15px] text-text-primary">{value}</div>
+    <div className="today-stat">
+      <div className="text-[10px] uppercase tracking-[0.12em] text-text-secondary">{label}</div>
+      <div className="mt-0.5 text-[15px] text-text-primary">{value}</div>
       <div className="mt-0.5 text-[12px] text-text-secondary/80">{sub}</div>
     </div>
   );

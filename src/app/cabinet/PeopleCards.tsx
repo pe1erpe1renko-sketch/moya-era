@@ -290,7 +290,12 @@ function PersonCard({
   }
 
   return (
-    <div id={`person-${person.id}`} className={`${cardClass} scroll-mt-28 ${isSelf ? "border-text-accent/40" : ""}`} style={cardPad}>
+    <div
+      id={`person-${person.id}`}
+      className={`${cardClass} scroll-mt-28 ${isSelf ? "border-text-accent/40" : ""}`}
+      // Карточка владельца чуть светлее остальных — первая в ряду, и это видно
+      style={isSelf ? { ...cardPad, background: "linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 28%, var(--surface-1)), var(--surface-1))" } : cardPad}
+    >
       <div className="flex items-start gap-4">
         <ArcanaImage n={core} width={88} rounded={12} />
         <div className="min-w-0 flex-1">

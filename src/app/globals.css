@@ -965,3 +965,56 @@ div:has(> [data-taro-pre]) > .uppercase {
     padding-bottom: 84px;
   }
 }
+
+/* ===== Кабинет: «Сегодня» — сцена, не карточка =====
+   Без рамки и фона-коробки, чтобы блок читался иначе, чем карточки людей
+   под ним. Свечение и линия снизу — псевдоэлементами-подложками, чтобы
+   разметка оставалась про содержимое. overflow: hidden держит свечение
+   внутри блока: на телефоне оно не должно вылезать за край экрана. */
+.today-scene {
+  padding: clamp(18px, 2.6vw, 32px) clamp(6px, 0.8vw, 12px) clamp(24px, 2.6vw, 32px);
+  overflow: hidden;
+}
+.today-glow {
+  position: absolute;
+  left: -60px;
+  top: -80px;
+  width: min(560px, 120vw);
+  height: 440px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--accent) 42%, transparent),
+    color-mix(in srgb, var(--accent) 10%, transparent) 55%,
+    transparent 75%
+  );
+  pointer-events: none;
+}
+/* Иллюстрация — как карта на столе: лёгкий наклон и тень. На телефоне
+   наклона нет: рядом край экрана, и повёрнутый угол ломал бы ровный ряд. */
+.today-card {
+  position: relative;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 0 6px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.today-card > div {
+  border-color: color-mix(in srgb, var(--text-accent) 45%, transparent);
+}
+@media (min-width: 768px) {
+  .today-card {
+    transform: rotate(-3deg);
+  }
+}
+.today-stat {
+  padding: 8px 14px;
+  border-left: 2px solid var(--text-accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
+}
+.today-rule {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--text-accent) 0, color-mix(in srgb, var(--text-accent) 35%, transparent) 40%, transparent 100%);
+}
