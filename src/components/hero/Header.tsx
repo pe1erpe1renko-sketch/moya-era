@@ -372,6 +372,13 @@ export function Header() {
               >
                 Наставник
               </Link>
+              <Link
+                href="/podderzhka"
+                onClick={() => setOpen(false)}
+                className="text-text-primary text-[20px]"
+              >
+                Поддержка
+              </Link>
               <button
                 type="button"
                 onClick={() => {
@@ -450,7 +457,7 @@ function AccountBlock({ email }: { email: string | null }) {
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-text-primary text-[15px]">
           {initial}
         </span>
-        <span className="text-text-secondary text-[15px]">Мой кабинет</span>
+        <span className="text-text-secondary text-[15px]">Профиль</span>
       </button>
 
       {menuOpen && (
@@ -480,6 +487,17 @@ function AccountBlock({ email }: { email: string | null }) {
             className="block w-full px-4 py-3 text-left text-[15px] text-text-primary hover:text-text-accent"
           >
             Наставник
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setMenuOpen(false);
+              router.push("/podderzhka");
+            }}
+            className="block w-full px-4 py-3 text-left text-[15px] text-text-primary hover:text-text-accent"
+          >
+            Поддержка
           </button>
           <button
             type="button"
