@@ -1018,3 +1018,44 @@ div:has(> [data-taro-pre]) > .uppercase {
   height: 1px;
   background: linear-gradient(90deg, var(--text-accent) 0, color-mix(in srgb, var(--text-accent) 35%, transparent) 40%, transparent 100%);
 }
+
+/* ===== Поддержка ===== */
+.support-id {
+  padding: clamp(18px, 2vw, 24px);
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 40%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface-1)), var(--surface-1));
+}
+/* Карточка контакта: подсветка при наведении плавная — рамка, свечение и
+   лёгкий подъём, чтобы страница была приятной, а не служебной. */
+.support-card {
+  display: block;
+  padding: clamp(18px, 2vw, 24px);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 220ms ease, transform 220ms ease, box-shadow 220ms ease, background 220ms ease;
+}
+.support-card:hover {
+  border-color: color-mix(in srgb, var(--text-accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-1));
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.support-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 45%, transparent);
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  transition: background 220ms ease;
+}
+.support-card:hover .support-card-icon {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}

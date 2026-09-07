@@ -45,6 +45,8 @@ export const METRIKA_ID = process.env.NEXT_PUBLIC_METRIKA_ID ?? "";
  */
 export const CONTACT_EMAIL = (process.env.NEXT_PUBLIC_CONTACT_EMAIL || "").trim();
 export const TELEGRAM_URL = (process.env.NEXT_PUBLIC_TELEGRAM_URL || "").trim();
+/** Чат поддержки в Max — так же, как телеграм: пусто, пока не задан. */
+export const MAX_URL = (process.env.NEXT_PUBLIC_MAX_URL || "").trim();
 
 /**
  * ТЕЛЕГРАМ-БОТ. Нет токена — бот выключен, и сайт работает как обычно:

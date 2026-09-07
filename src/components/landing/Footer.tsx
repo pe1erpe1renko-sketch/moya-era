@@ -7,6 +7,7 @@ const SERVICE = [
   { label: "Как это работает", hash: "/#how" },
   { label: "Тарифы", hash: "/tarify" },
   { label: "Вопросы", hash: "/#faq" },
+  { label: "Поддержка", to: "/podderzhka" as const },
 ];
 
 const DOCS = [
