@@ -5,7 +5,8 @@ import { CHART_SYSTEMS, chartPath, chartUrlDateToIso } from "@/lib/chartUrl";
 import { formatDateDots } from "@/lib/matrix";
 import { chartBody, natalDayVariation } from "@/lib/natal";
 import { answerNatalSlots, briefNatalSlotIds, resolveNatalChart } from "@/server/natalTexts";
-import { ChartCrossLinks } from "@/components/chart/ChartCrossLinks";
+import { NextSteps } from "@/components/next/NextSteps";
+import { chartShowcase } from "@/lib/nextSteps";
 import { NatalDateView } from "@/components/natal/NatalDateView";
 import { SITE_URL } from "@/lib/env";
 import { HintBubble } from "@/components/hint/HintBubble";
@@ -113,7 +114,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
               initialTexts={initialTexts}
               initialVariation={{ preliminary: !variation.stable, facts: variation.facts }}
             />
-            <ChartCrossLinks system="natal" iso={iso} />
+            <NextSteps showcase={chartShowcase("natal", iso)} />
             <HintBubble place="natal" iso={iso} />
           </div>
         </section>

@@ -6,7 +6,8 @@ import { formatDateDots } from "@/lib/matrix";
 import { arcanumInfo, briefSlot, moscowDay, nextMoscowMidnight } from "@/lib/tarot";
 import { answerTarotSlots, resolveDayCard } from "@/server/tarotTexts";
 import { DayCardView } from "@/components/tarot/DayCardView";
-import { TarotCrossLinks } from "@/components/tarot/TarotCrossLinks";
+import { NextSteps } from "@/components/next/NextSteps";
+import { tarotShowcase } from "@/lib/nextSteps";
 import { SITE_URL } from "@/lib/env";
 import { MONTHS } from "@/lib/arcana";
 import { HintBubble } from "@/components/hint/HintBubble";
@@ -122,7 +123,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         <section className="relative w-full" style={{ paddingTop: "clamp(40px, 5vh, 80px)", paddingBottom: "clamp(64px, 8vh, 120px)" }}>
           <div id="free" className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
             <DayCardView card={card} initialText={initialText} changesAt={changesAtLabel()} />
-            <TarotCrossLinks iso={iso} />
+            <NextSteps showcase={tarotShowcase(iso)} />
             <HintBubble place="tarot" iso={iso} />
           </div>
         </section>

@@ -5,7 +5,8 @@ import { chartPath, chartUrlDateToIso } from "@/lib/chartUrl";
 import { formatDateDots } from "@/lib/matrix";
 import { hdDayVariation } from "@/lib/humandesign";
 import { answerHdSlots, briefHdSlotIds, resolveHdChart } from "@/server/hdTexts";
-import { ChartCrossLinks } from "@/components/chart/ChartCrossLinks";
+import { NextSteps } from "@/components/next/NextSteps";
+import { chartShowcase } from "@/lib/nextSteps";
 import { HdDateView } from "@/components/humandesign/HdDateView";
 import { SITE_URL } from "@/lib/env";
 import { HintBubble } from "@/components/hint/HintBubble";
@@ -110,7 +111,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
               initialTexts={initialTexts}
               initialVariation={{ preliminary: !variation.stable, facts: variation.facts }}
             />
-            <ChartCrossLinks system="humandesign" iso={iso} />
+            <NextSteps showcase={chartShowcase("humandesign", iso)} />
             <HintBubble place="humandesign" iso={iso} />
           </div>
         </section>

@@ -8,7 +8,6 @@ import { MentorFab } from "@/components/chat/MentorFab";
 import type { Matrix, PairMatrix } from "@/lib/matrix/matrixEngine";
 import { POINT_CODES, buildToday } from "@/lib/matrix/matrixEngine";
 import type { SectionData } from "@/lib/matrix/contentPositions";
-import { CALC_TYPES } from "@/lib/matrix/contentPositions";
 import { arcanaLine, arcanaName, formatDateLong, formatDateDots, readingPath } from "@/lib/matrix";
 import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { MakeImageButton } from "@/components/image/MakeImageButton";
@@ -17,11 +16,12 @@ import { backend } from "@/lib/backend";
 import { Octagram } from "./Octagram";
 import { Spheres, plural, ArcanaCard } from "./Spheres";
 import { Paywall } from "./Paywall";
-import { ExploreNext } from "./ExploreNext";
 import { useReadingTexts, type SlotText } from "./useReadingTexts";
 import { useGoToReading } from "./CalcTheater";
 import type { ResearchCardProps } from "./ResearchCard";
 import { track } from "@/components/analytics/track";
+import { NextSteps } from "@/components/next/NextSteps";
+import { matrixShowcase, pairShowcase } from "@/lib/nextSteps";
 
 export type LockReason = "no_subscription" | "person_not_added" | "not_logged_in";
 
@@ -112,7 +112,14 @@ export function ReadingView(props: ReadingViewProps) {
 
   const research = useMemo(() => buildResearch(type.slug, myDate, go), [type.slug, myDate, go]);
 
-  const otherTypes = CALC_TYPES.filter((t) => t.slug !== type.slug && t.pair === isPair);
+  // Витрина «Дальше»: по одной дате — совместимость, другие разборы, карта
+  // дня и расклад; по двум — личные разборы каждого, другие парные, расклад
+  // об отношениях и наставник.
+  const showcase = useMemo(() => {
+    if (!isPair) return matrixShowcase(type.slug, myDate);
+    const slug = (["sovmestimost", "mama-rebenok", "biznes"] as const).find((x) => x === type.slug) ?? "sovmestimost";
+    return pairShowcase({ system: "matrix", slug, dates: [isoDates[0], isoDates[1]] });
+  }, [isPair, type.slug, myDate, isoDates]);
 
   return (
     <Root embedded={Boolean(props.embedded)}>
@@ -218,34 +225,22 @@ export function ReadingView(props: ReadingViewProps) {
         </div>
       </section>
 
-      {/* Дальше */}
-      <section className="mx-auto w-full max-w-[1200px] px-[5vw] pb-16 md:px-6">
-        {!isPair && <ExploreNext myDate={myDate} />}
-        <div className="mt-8">
-          <h3 className="text-[13px] uppercase tracking-[0.1em] text-text-secondary">Другие разборы по {isPair ? "этим датам" : "этой дате"}</h3>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {otherTypes.map((t) => (
-              <Link key={t.slug} href={readingPath(t.slug, isoDates)} className="rounded-full border border-border px-4 py-2 text-[14px] text-text-secondary transition-colors hover:border-text-accent/60 hover:text-text-primary">
-                {t.title}
+      {/* Дальше: витрина. Встроенный в страницу пары разбор её не рисует —
+          там витрина стоит внизу каждой вкладки, и собирает её та страница. */}
+      {!props.embedded && (
+        <section className="mx-auto w-full max-w-[1200px] px-[5vw] pb-16 md:px-6">
+          {!isAuthenticated && (
+            <p className="text-[14px] text-text-secondary">
+              Ссылка на эту страницу постоянная — её можно сохранить или переслать. Чтобы разбор жил в кабинете вместе с арканом дня,{" "}
+              <Link href="/register" className="text-text-accent underline-offset-4 hover:underline">
+                создайте аккаунт
               </Link>
-            ))}
-            {!isPair && (
-              <Link href={readingPath("prognoz", isoDates)} className="rounded-full border border-border px-4 py-2 text-[14px] text-text-secondary transition-colors hover:border-text-accent/60 hover:text-text-primary">
-                Прогноз
-              </Link>
-            )}
-          </div>
-        </div>
-        {!isAuthenticated && (
-          <p className="mt-8 text-[14px] text-text-secondary">
-            Ссылка на эту страницу постоянная — её можно сохранить или переслать. Чтобы разбор жил в кабинете вместе с арканом дня,{" "}
-            <Link href="/register" className="text-text-accent underline-offset-4 hover:underline">
-              создайте аккаунт
-            </Link>
-            .
-          </p>
-        )}
-      </section>
+              .
+            </p>
+          )}
+          <NextSteps showcase={showcase} />
+        </section>
+      )}
 
       {!props.embedded && <Footer />}
       {!props.embedded && <MentorFab />}

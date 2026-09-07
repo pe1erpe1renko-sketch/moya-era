@@ -5,7 +5,8 @@ import { chartPath, chartUrlDateToIso } from "@/lib/chartUrl";
 import { formatDateDots } from "@/lib/matrix";
 import { lifePath } from "@/lib/numerology";
 import { answerNumerologySlots, freeNumerologySlotIds, resolveNumerology } from "@/server/numerologyTexts";
-import { ChartCrossLinks } from "@/components/chart/ChartCrossLinks";
+import { NextSteps } from "@/components/next/NextSteps";
+import { chartShowcase } from "@/lib/nextSteps";
 import { NumerologyDateView } from "@/components/numerology/NumerologyDateView";
 import { SITE_URL } from "@/lib/env";
 import { HintBubble } from "@/components/hint/HintBubble";
@@ -95,7 +96,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         <section className="relative w-full" style={{ paddingTop: "clamp(40px, 5vh, 80px)", paddingBottom: "clamp(64px, 8vh, 120px)" }}>
           <div id="free" className="mx-auto w-full max-w-[1240px] px-[4vw] md:px-6">
             <NumerologyDateView chart={chart} initialTexts={initialTexts} />
-            <ChartCrossLinks system="numerology" iso={iso} />
+            <NextSteps showcase={chartShowcase("numerology", iso)} />
             <HintBubble place="numerology" iso={iso} />
           </div>
         </section>

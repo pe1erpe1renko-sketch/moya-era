@@ -29,12 +29,17 @@ export type DateFieldProps = {
   label?: string;
   submitLabel?: string;
   compact?: boolean;
+  /**
+   * Кнопка всегда под селектами, на любой ширине. Для узких карточек
+   * (витрина «Дальше»): в одну строку с кнопкой три селекта там не помещаются.
+   */
+  stacked?: boolean;
   onSubmit: (iso: string) => void;
   busy?: boolean;
 };
 
 /** Поле даты из трёх селектов — тот же паттерн, что в калькуляторах направлений. */
-export function DateField({ label, submitLabel = "Рассчитать", compact = false, onSubmit, busy = false }: DateFieldProps) {
+export function DateField({ label, submitLabel = "Рассчитать", compact = false, stacked = false, onSubmit, busy = false }: DateFieldProps) {
   const id = useId();
   const [d, setD] = useState<number | "">("");
   const [m, setM] = useState<number | "">("");
@@ -57,7 +62,15 @@ export function DateField({ label, submitLabel = "Рассчитать", compact
           {label}
         </label>
       )}
-      <div className={`grid gap-2 ${compact ? "grid-cols-[1fr_1.4fr_1.1fr_auto]" : "grid-cols-[1fr_1.5fr_1.2fr] sm:grid-cols-[1fr_1.5fr_1.2fr_auto]"}`}>
+      <div
+        className={`grid gap-2 ${
+          compact
+            ? "grid-cols-[1fr_1.4fr_1.1fr_auto]"
+            : stacked
+              ? "grid-cols-[1fr_1.5fr_1.2fr]"
+              : "grid-cols-[1fr_1.5fr_1.2fr] sm:grid-cols-[1fr_1.5fr_1.2fr_auto]"
+        }`}
+      >
         <div className="relative">
           <select id={`${id}-d`} value={d} onChange={(e) => setD(e.target.value ? Number(e.target.value) : "")} className={selectClass} aria-label="День">
             <option value="">День</option>
@@ -88,7 +101,9 @@ export function DateField({ label, submitLabel = "Рассчитать", compact
         <button
           type="submit"
           disabled={!ready || busy}
-          className={`qc-focus h-12 rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground transition-opacity disabled:opacity-40 ${compact ? "" : "col-span-3 sm:col-span-1"}`}
+          className={`qc-focus h-12 rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground transition-opacity disabled:opacity-40 ${
+            compact ? "" : stacked ? "col-span-3" : "col-span-3 sm:col-span-1"
+          }`}
         >
           {busy ? "…" : submitLabel}
         </button>

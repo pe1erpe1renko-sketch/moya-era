@@ -59,6 +59,13 @@ export default function SpreadMaker() {
     if (result) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [result]);
 
+  // Витрина на странице пары ведёт сразу к раскладу об отношениях:
+  // /taro/rasklad?vid=love. Параметр читается один раз, при открытии.
+  useEffect(() => {
+    const vid = new URLSearchParams(window.location.search).get("vid");
+    if (vid && SPREADS.some((s) => s.id === vid)) setKindId(vid as SpreadId);
+  }, []);
+
   useEffect(() => {
     let alive = true;
     fetch("/api/taro/spread", { cache: "no-store" })
