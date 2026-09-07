@@ -7,6 +7,7 @@ import { resolveHdChart } from "@/server/hdTexts";
 import { resolveNumerology } from "@/server/numerologyTexts";
 import { lifePath } from "@/lib/numerology";
 import { arcanumInfo, buildDayCard } from "@/lib/tarot";
+import { directions } from "@/lib/directions";
 
 export const runtime = "nodejs";
 const size = { width: 1200, height: 630 };
@@ -97,7 +98,7 @@ function taroImage(slug: string) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontSize: 30, letterSpacing: 4 }}>МОЯ ЭРА</div>
           <div style={{ fontSize: 26, color: "#9fbab9", fontFamily: "sans-serif" }}>
-            Карта дня · {formatDateDots(iso)}
+            {`Карта дня · ${formatDateDots(iso)}`}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
@@ -117,8 +118,13 @@ function taroImage(slug: string) {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
             <div style={{ fontSize: 56, lineHeight: 1.1 }}>{info.name}</div>
+            {/* Одной строкой, не несколькими выражениями: Satori считает
+                каждое выражение отдельным узлом и требует от родителя
+                display:flex — а без него роняет всю картинку. Именно так
+                превью карты дня отдавало 500, и Telegram показывал ссылку
+                без картинки. */}
             <div style={{ fontSize: 28, color: "#9fbab9", fontFamily: "sans-serif" }}>
-              {info.line}. Ваш аркан рождения — {card.birthArcanum}, {birth.name}
+              {`${info.line}. Ваш аркан рождения — ${card.birthArcanum}, ${birth.name}`}
             </div>
           </div>
         </div>
@@ -128,9 +134,67 @@ function taroImage(slug: string) {
   );
 }
 
+/**
+ * Превью страницы направления: /api/og?direction=matrix
+ *
+ * Иллюстрация направления и его название — вместо общей картинки «шесть
+ * систем», одинаковой у всех шести страниц. Картинка берётся уменьшенной
+ * копией из public/images/og (640 точек, JPEG): оригиналы по мегабайту и
+ * больше, а превью строится на каждый запрос, пока не осядет в кэше.
+ */
+const DIRECTION_LEAD: Record<string, string> = {
+  matrix: "22 аркана по дате рождения: характер, деньги, отношения, предназначение",
+  natal: "Планеты по знакам и домам в минуту рождения — с объяснением каждого положения",
+  humandesign: "Тип, стратегия и авторитет: как вы устроены и как принимать решения",
+  numerology: "Число судьбы, квадрат Пифагора и личный год — из одной даты",
+  tarot: "Карта дня по дате рождения, меняется каждый день. Расклад на свой вопрос",
+  synastry: "Аркан пары, синастрия и композит: три взгляда на двоих по двум датам",
+};
+
+async function directionImage(id: string, origin: string) {
+  const d = directions.find((x) => x.id === id);
+  if (!d) return null;
+  let art: ArrayBuffer | null = null;
+  try {
+    const res = await fetch(`${origin}/images/og/${id}.jpg`);
+    if (res.ok) art = await res.arrayBuffer();
+  } catch {
+    art = null;
+  }
+  return new ImageResponse(
+    (
+      <div style={{ ...frame, flexDirection: "row", alignItems: "center", gap: 56 }}>
+        {art && (
+          <img
+            alt=""
+            src={`data:image/jpeg;base64,${Buffer.from(art).toString("base64")}`}
+            width={420}
+            height={420}
+            style={{ width: 420, height: 420, borderRadius: 28, objectFit: "cover" }}
+          />
+        )}
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", flex: 1, height: "100%" }}>
+          <div style={{ fontSize: 30, letterSpacing: 4 }}>МОЯ ЭРА</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ fontSize: 68, lineHeight: 1.05 }}>{d.title}</div>
+            <div style={{ fontSize: 28, lineHeight: 1.35, color: "#9fbab9", fontFamily: "sans-serif" }}>{DIRECTION_LEAD[id] ?? d.desc}</div>
+          </div>
+          <div style={{ fontSize: 24, color: "#9fbab9", fontFamily: "sans-serif" }}>Бесплатно, без регистрации</div>
+        </div>
+      </div>
+    ),
+    { ...size, headers: { "Cache-Control": "public, max-age=86400, s-maxage=86400" } },
+  );
+}
+
 /** GET /api/og?type=matrica&dates=13-07-1998[,09-04-1992] — картинка для превью ссылки. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
+  const direction = url.searchParams.get("direction");
+  if (direction) {
+    const image = await directionImage(direction, url.origin);
+    if (image) return image;
+  }
   const chart = url.searchParams.get("chart");
   if (chart === "natal" || chart === "humandesign" || chart === "numerology") {
     const image = chartImage(chart, url.searchParams.get("date") ?? "");

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import HumanDesignPage from "./HumanDesignPage";
 
 export const metadata: Metadata = {
@@ -7,7 +6,7 @@ export const metadata: Metadata = {
   description: "Тип, стратегия и авторитет по дате, времени и месту рождения. Расчёт по реальным положениям планет.",
   alternates: { canonical: "/dizayn-cheloveka" },
   openGraph: {
-    images: [DEFAULT_OG_IMAGE],
+    images: [{ url: "/api/og?direction=humandesign", width: 1200, height: 630 }],
     title: "Дизайн человека: тип, стратегия и авторитет — Моя Эра",
     description: "Тип, стратегия и авторитет по дате, времени и месту рождения. Расчёт по реальным положениям планет.",
     type: "website",

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import MatricaSudbyPage from "./MatricaSudbyPage";
 
 export const metadata: Metadata = {
@@ -7,7 +6,7 @@ export const metadata: Metadata = {
   description: "Бесплатный расчёт матрицы судьбы онлайн. Центральный аркан и базовые числа по дате рождения, с объяснением, откуда взялось каждое число.",
   alternates: { canonical: "/matrica-sudby" },
   openGraph: {
-    images: [DEFAULT_OG_IMAGE],
+    images: [{ url: "/api/og?direction=matrix", width: 1200, height: 630 }],
     title: "Рассчитать матрицу судьбы по дате рождения — Моя Эра",
     description: "Бесплатный расчёт матрицы судьбы онлайн. Центральный аркан и базовые числа по дате рождения, с объяснением, откуда взялось каждое число.",
     type: "website",

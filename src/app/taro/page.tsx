@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import TaroPage from "./TaroPage";
 
 export const metadata: Metadata = {
@@ -7,7 +6,7 @@ export const metadata: Metadata = {
   description: "Бесплатный расклад Таро онлайн. Задай вопрос, вытяни карту и получи трактовку — без регистрации.",
   alternates: { canonical: "/taro" },
   openGraph: {
-    images: [DEFAULT_OG_IMAGE],
+    images: [{ url: "/api/og?direction=tarot", width: 1200, height: 630 }],
     title: "Расклад Таро онлайн: карта дня — Моя Эра",
     description: "Бесплатный расклад Таро онлайн. Задай вопрос, вытяни карту и получи трактовку — без регистрации.",
     type: "website",
