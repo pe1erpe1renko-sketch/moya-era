@@ -51,18 +51,41 @@ export function NumbersSchema({ chart, className }: { chart: NumerologyChart; cl
   );
 }
 
-/** Квадрат Пифагора: девять ячеек с плотностью каждой цифры. */
-export function PythagorasSquare({ chart, className }: { chart: NumerologyChart; className?: string }) {
+/**
+ * Квадрат Пифагора: девять ячеек с плотностью каждой цифры.
+ *
+ * ПУСТАЯ ЯЧЕЙКА ПОДПИСАНА СЛОВОМ, а не прочерком: прочерк читался как
+ * «не посчиталось», хотя пустота — такое же значение, как и цифры. Под
+ * квадратом об этом сказано прямо, а нажатие на любую ячейку, пустую
+ * или нет, открывает её разбор в списке ниже.
+ */
+export function PythagorasSquare({
+  chart,
+  className,
+  onSelect,
+}: {
+  chart: NumerologyChart;
+  className?: string;
+  /** нажатие на ячейку: цифра 1–9 */
+  onSelect?: (digit: number) => void;
+}) {
   const { counts } = chart.square;
   return (
     <div className={className}>
       <div className="grid grid-cols-3" style={{ gap: "clamp(8px, 1vw, 14px)" }}>
         {CELL_ORDER.map((n) => {
           const count = counts[n] ?? 0;
+          const label = squareLabels[n - 1];
+          const Cell = onSelect ? "button" : "div";
           return (
             <div key={n} className="flex flex-col items-center">
-              <div
-                className="flex w-full items-center justify-center rounded-[12px] border border-border bg-surface-1"
+              <Cell
+                type={onSelect ? "button" : undefined}
+                onClick={onSelect ? () => onSelect(n) : undefined}
+                aria-label={onSelect ? `${label}: ${count > 0 ? `${count} раз` : "пусто"} — открыть разбор` : undefined}
+                className={`flex w-full items-center justify-center rounded-[12px] border border-border bg-surface-1 ${
+                  onSelect ? "qc-focus transition-colors hover:border-text-accent/60" : ""
+                }`}
                 style={{ aspectRatio: "1 / 1", minHeight: 62 }}
               >
                 {count > 0 ? (
@@ -70,18 +93,21 @@ export function PythagorasSquare({ chart, className }: { chart: NumerologyChart;
                     {String(n).repeat(count)}
                   </span>
                 ) : (
-                  <span className="font-mono text-text-secondary" style={{ fontSize: "clamp(15px, 1.4vw, 22px)", opacity: 0.4 }}>
-                    —
+                  <span className="text-text-secondary" style={{ fontSize: "clamp(12px, 1vw, 14px)", opacity: 0.7 }}>
+                    пусто
                   </span>
                 )}
-              </div>
+              </Cell>
               <span className="mt-1.5 text-text-secondary" style={{ fontSize: 11 }}>
-                {squareLabels[n - 1]}
+                {label}
               </span>
             </div>
           );
         })}
       </div>
+      <p className="mt-3 text-text-secondary" style={{ fontSize: 13, lineHeight: 1.5 }}>
+        Пустая клетка — тоже значение: этой цифры в дате нет, и это качество не выражено. Что это значит — в разборе
+      </p>
     </div>
   );
 }

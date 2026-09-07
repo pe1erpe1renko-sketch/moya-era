@@ -93,6 +93,23 @@ export function NumerologyDateView({
     };
   });
 
+
+  /**
+   * Нажатие на ячейку квадрата — то же, что нажатие на её строку в
+   * списке вопросов: открыть, подгрузить текст, показать замок, если
+   * закрыто, и прокрутить к строке. Пустая ячейка — как любая другая.
+   */
+  const openCell = useCallback(
+    (digit: number) => {
+      const id = `num_cell_${digit}`;
+      setOpen(id);
+      load([id]);
+      const value = texts[id];
+      if (value && "locked" in value) setPaywall(true);
+      document.getElementById(`slot-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    },
+    [load, texts],
+  );
   return (
     <div className="w-full">
       <header>
@@ -116,7 +133,7 @@ export function NumerologyDateView({
           <div className="text-text-secondary" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             Квадрат Пифагора
           </div>
-          <PythagorasSquare chart={chart} className="mt-3" />
+          <PythagorasSquare chart={chart} className="mt-3" onSelect={openCell} />
         </div>
         <div>
           <div className="text-text-secondary" style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>
@@ -187,7 +204,7 @@ export function NumerologyDateView({
                   const locked = value && "locked" in value;
                   const isOpen = open === slot.id;
                   return (
-                    <div key={slot.id} className="rounded-[14px] border border-border bg-surface-1" style={{ padding: "0 18px" }}>
+                    <div key={slot.id} id={`slot-${slot.id}`} className="rounded-[14px] border border-border bg-surface-1" style={{ padding: "0 18px" }}>
                       <button
                         type="button"
                         onClick={() => {
