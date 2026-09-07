@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PlaceField } from "@/components/common/PlaceField";
-import { backend } from "@/lib/backend";
+import { backend, type Person } from "@/lib/backend";
+import { isoToChartUrlDate } from "@/lib/chartUrl";
+import Link from "next/link";
 import { birthPlaceFields } from "@/lib/geo/birthPlace";
 import { useAuth } from "@/lib/useAuth";
 import type { Place } from "@/lib/geo/placesIndex";
@@ -40,6 +42,31 @@ export function RefineBirth({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Чей это разбор: человек из кабинета с этой датой рождения. Сохранять
+  // надо в его карточку, а не владельцу — разбор партнёра, уточнённый на
+  // его странице, не должен переписывать данные самого владельца.
+  const [owner, setOwner] = useState<Person | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!open || !user?.id) return;
+    let alive = true;
+    backend.people
+      .list(user.id)
+      .then((r) => {
+        if (!alive) return;
+        const list = r.data ?? [];
+        const same = list.filter((p) => p.birth_date === birth.date);
+        // Из совпавших предпочитаем владельца: у него та же дата бывает
+        // чаще всего.
+        setOwner(same.find((p) => p.relation === "self") ?? same[0] ?? null);
+      })
+      .catch(() => {
+        if (alive) setOwner(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [open, user?.id, birth.date]);
 
   const timeIncomplete = (hour === "") !== (minute === "");
   const nothingNew =
@@ -59,25 +86,26 @@ export function RefineBirth({
   }
 
   async function saveToProfile() {
-    if (!user) return;
+    if (!user || !owner) return;
     setSaving(true);
     setSaveError(null);
-    const { data: profile, error } = await backend.profiles.getOwner(user.id);
-    if (error || !profile) {
-      setSaving(false);
-      setSaveError("Не удалось открыть профиль. Попробуйте ещё раз");
-      return;
-    }
     const patch = {
-      birth_time: hour !== "" && minute !== "" ? `${hour}:${minute}` : profile.birth_time,
+      birth_time: hour !== "" && minute !== "" ? `${hour}:${minute}` : owner.birth_time,
       ...birthPlaceFields(place, placeText),
     };
-    const { error: updateError } = await backend.profiles.update(profile.id, patch);
-    setSaving(false);
+    const { error: updateError } = await backend.people.update(owner.id, patch);
     if (updateError) {
+      setSaving(false);
       setSaveError("Не удалось сохранить. Попробуйте ещё раз");
       return;
     }
+    // Карточка владельца и его профиль — одни и те же данные в двух
+    // местах; правим оба, чтобы они не разошлись.
+    if (owner.relation === "self") {
+      const { data: profile } = await backend.profiles.getOwner(user.id);
+      if (profile) await backend.profiles.update(profile.id, patch);
+    }
+    setSaving(false);
     setSaved(true);
   }
 
@@ -167,7 +195,7 @@ export function RefineBirth({
           Уточнить
         </button>
 
-        {refined && isAuthenticated && !saved && (
+        {refined && isAuthenticated && !saved && owner && (
           <button
             type="button"
             onClick={saveToProfile}
@@ -175,23 +203,32 @@ export function RefineBirth({
             className="qc-focus inline-flex items-center rounded-[12px] border border-text-accent/50 px-5 text-[15px] text-text-primary transition-colors hover:bg-accent/10"
             style={{ height: 44 }}
           >
-            {saving ? "Сохраняю…" : "Сохранить в профиль"}
+            {saving ? "Сохраняю…" : owner.relation === "self" ? "Сохранить в мою карточку" : `Сохранить в карточку: ${owner.name}`}
           </button>
         )}
 
-        {saved && (
+        {saved && owner && (
           <span className="text-text-accent" style={{ fontSize: 14 }}>
-            Сохранено в профиль
+            {owner.relation === "self" ? "Сохранено в вашу карточку" : `Сохранено в карточку: ${owner.name}`}
           </span>
         )}
       </div>
+
+      {refined && isAuthenticated && !saved && owner === null && (
+        <p className="mt-3 text-[13px] leading-snug text-text-secondary">
+          В кабинете нет человека с этой датой рождения — сохранять некуда.{" "}
+          <Link href={`/cabinet?add=${isoToChartUrlDate(birth.date)}`} className="text-text-accent underline-offset-4 hover:underline">
+            Добавить человека с этой датой
+          </Link>
+        </p>
+      )}
 
       {saveError && <p className="mt-2 text-[13px] text-text-danger">{saveError}</p>}
 
       {refined && !saved && (
         <p className="mt-3 text-[13px] leading-snug text-text-secondary">
           Разбор пересчитан по новым данным
-          {isAuthenticated ? ". Сохраните их в профиль, чтобы не вводить снова" : ""}
+          {isAuthenticated && owner ? ". Сохраните их в карточку, чтобы не вводить снова" : ""}
         </p>
       )}
     </div>
