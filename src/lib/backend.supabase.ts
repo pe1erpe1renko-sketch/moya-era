@@ -148,6 +148,11 @@ export const supabaseBackend: Backend = {
       if (error) return 0;
       return Number(data ?? 0);
     },
+    async cancel() {
+      // Строки подписок клиент только читает; отмену делает сервер.
+      const res = await fetch("/api/billing/cancel", { method: "POST" });
+      return res.ok;
+    },
   },
 
   chat: {

@@ -45,6 +45,8 @@ export async function subscriptionsNearEnd(now: Date, daysAhead: number, limit =
     .select("id, user_id, plan_id, period, started_at, current_period_end, auto_renew, payment_method_id, renew_warned_for, plans(title, price_month, price_year, monthly_credits)")
     .in("status", ["active", "past_due"])
     .eq("auto_renew", true)
+    // Отмена уже снимает auto_renew; отметка — второй замок на той же двери.
+    .is("canceled_at", null)
     .lte("current_period_end", until)
     .gte("current_period_end", since)
     .order("current_period_end", { ascending: true })
@@ -245,16 +247,18 @@ export type AutoRenewState = {
   amount: number | null;
   /** последняя неудачная попытка, если была */
   lastError: string | null;
+  /** подписка отменена: действует до конца периода, продлений не будет */
+  canceled: boolean;
 };
 
 export async function autoRenewState(userId: string): Promise<Omit<AutoRenewState, "available">> {
-  const empty = { active: false, autoRenew: false, hasMethod: false, periodEnd: null, planTitle: null, amount: null, lastError: null };
+  const empty = { active: false, autoRenew: false, hasMethod: false, periodEnd: null, planTitle: null, amount: null, lastError: null, canceled: false };
   const sb = supabaseService();
   if (!sb) return empty;
 
   const { data } = await sb
     .from("subscriptions")
-    .select("id, period, current_period_end, auto_renew, payment_method_id, plans(title, price_month, price_year)")
+    .select("id, period, current_period_end, auto_renew, payment_method_id, canceled_at, plans(title, price_month, price_year)")
     .eq("user_id", userId)
     .in("status", ["trial", "active", "past_due"])
     .gt("current_period_end", new Date().toISOString())
@@ -284,6 +288,7 @@ export async function autoRenewState(userId: string): Promise<Omit<AutoRenewStat
     planTitle: plan ? String(plan.title) : null,
     amount: plan ? Number(year ? plan.price_year : plan.price_month) : null,
     lastError: (fail as { error: string | null } | null)?.error ?? null,
+    canceled: Boolean(row.canceled_at),
   };
 }
 

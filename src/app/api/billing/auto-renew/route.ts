@@ -27,7 +27,7 @@ export async function GET() {
 
   // В демо базы нет: показывать нечего, и врать «продлится» нельзя.
   if (access.demo) {
-    return NextResponse.json({ available: AUTO_RENEW_ENABLED, active: false, autoRenew: false, hasMethod: false, periodEnd: null, planTitle: null, amount: null, lastError: null, demo: true });
+    return NextResponse.json({ available: AUTO_RENEW_ENABLED, active: false, autoRenew: false, hasMethod: false, periodEnd: null, planTitle: null, amount: null, lastError: null, canceled: false, demo: true });
   }
 
   const state = await autoRenewState(access.userId);

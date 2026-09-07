@@ -211,7 +211,19 @@ export default function CabinetPage() {
 
         {/* Подписка и кредиты */}
         <div className="mt-10" id="plan">
-          <PlanBlock plan={plan} plans={plans} sub={sub} active={active} credits={credits} />
+          <PlanBlock
+            plan={plan}
+            plans={plans}
+            sub={sub}
+            active={active}
+            credits={credits}
+            onCancel={async () => {
+              if (!user) return false;
+              const ok = await backend.billing.cancel(user.id);
+              if (ok) await reload();
+              return ok;
+            }}
+          />
         </div>
 
         {/* Данные рождения — для натальной карты и дизайна человека */}
@@ -597,8 +609,37 @@ function PlanBadge({ plan, active, credits }: { plan: Plan | null; active: boole
   );
 }
 
-function PlanBlock({ plan, plans, sub, active, credits }: { plan: Plan | null; plans: Plan[]; sub: Subscription | null; active: boolean; credits: number }) {
+function PlanBlock({
+  plan,
+  plans,
+  sub,
+  active,
+  credits,
+  onCancel,
+}: {
+  plan: Plan | null;
+  plans: Plan[];
+  sub: Subscription | null;
+  active: boolean;
+  credits: number;
+  onCancel: () => Promise<boolean>;
+}) {
   const end = sub ? new Date(sub.current_period_end) : null;
+  const endLabel = end ? end.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }) : "";
+  const canceled = Boolean(sub?.canceled_at);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function cancel() {
+    setBusy(true);
+    setError(null);
+    const ok = await onCancel();
+    setBusy(false);
+    if (!ok) setError("Не удалось отменить. Попробуйте ещё раз");
+    else setConfirming(false);
+  }
+
   return (
     <div style={cardStyle} className="!p-5 md:!p-7">
       <div className="grid gap-6 md:grid-cols-2">
@@ -609,16 +650,66 @@ function PlanBlock({ plan, plans, sub, active, credits }: { plan: Plan | null; p
           </div>
           <p className="mt-2 text-[14px] text-text-secondary">
             {active && end
-              ? `Действует до ${end.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}. Отменить можно в любой день.`
+              ? canceled
+                ? `Отменена. Доступ сохраняется до ${endLabel}, дальше — бесплатный режим. Всё накопленное остаётся.`
+                : `Действует до ${endLabel}. Отменить можно в любой день.`
               : plans.length
                 ? `От ${formatRub(Math.min(...plans.map((p) => p.price_month)))} в месяц. Открывает все системы, все типы разбора и аркан дня.`
                 : ""}
           </p>
-          <Link href="/tarify" className="mt-4 inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">
-            {active ? "Сменить тариф" : "Выбрать тариф"}
-          </Link>
-          {/* Автопродление: что спишется, когда, и видная кнопка отказа */}
-          {active && <AutoRenewPanel />}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/tarify" className="inline-flex h-11 items-center rounded-[12px] bg-accent px-5 text-[15px] font-medium text-primary-foreground">
+              {active ? "Сменить тариф" : "Выбрать тариф"}
+            </Link>
+            {/* Кнопка отмены — видная, рядом со сменой тарифа, а не
+                спрятанная. Слова «отменить можно в любой день» без
+                кнопки — обещание, которое нечем выполнить. */}
+            {active && !canceled && !confirming && (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="qc-focus inline-flex h-11 items-center rounded-[12px] border border-border px-5 text-[15px] text-text-secondary transition-colors hover:border-text-accent/60 hover:text-text-primary"
+              >
+                Отменить подписку
+              </button>
+            )}
+          </div>
+
+          {confirming && (
+            <div className="mt-4 rounded-[14px] border border-border/60" style={{ padding: 16 }}>
+              <div className="text-text-primary" style={{ fontSize: 15, lineHeight: 1.6 }}>
+                Отменить подписку «{plan?.title}»?
+              </div>
+              <p className="mt-2 text-text-secondary" style={{ fontSize: 14, lineHeight: 1.6 }}>
+                Доступ сохранится до {endLabel} — всё, что оплачено, остаётся вашим до конца этого срока. Потом доступ
+                перейдёт в бесплатный режим: карта дня и бесплатные части разборов останутся, платные закроются.
+                Кредиты на счету, сделанные расклады и образы никуда не денутся. Списаний больше не будет.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={cancel}
+                  disabled={busy}
+                  className="qc-focus inline-flex h-11 items-center rounded-[12px] border border-text-danger/60 px-5 text-[15px] text-text-danger transition-colors hover:bg-text-danger/10 disabled:opacity-50"
+                >
+                  {busy ? "Отменяем…" : "Да, отменить"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(false)}
+                  disabled={busy}
+                  className="qc-focus inline-flex h-11 items-center rounded-[12px] border border-border px-5 text-[15px] text-text-secondary transition-colors hover:text-text-primary"
+                >
+                  Оставить
+                </button>
+              </div>
+              {error && <p className="mt-2 text-[14px] text-text-danger">{error}</p>}
+            </div>
+          )}
+
+          {/* Автопродление: что спишется, когда, и видная кнопка отказа —
+              отдельно от отмены, как и было */}
+          {active && !canceled && <AutoRenewPanel />}
         </div>
         <div>
           <div className="text-text-secondary" style={capStyle}>Кредиты наставника</div>

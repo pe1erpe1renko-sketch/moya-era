@@ -227,6 +227,17 @@ export const localBackend: Backend = {
       const all = read<CreditRow[]>(CREDITS_KEY, []);
       return all.filter((c) => c.user_id === userId).reduce((s, c) => s + c.delta, 0);
     },
+    async cancel(userId) {
+      const all = read<Subscription[]>(SUBS_KEY, []);
+      const now = new Date().toISOString();
+      // Статус не трогаем: «canceled» выключил бы доступ сразу, а он
+      // оплачен до конца периода. Отмена — это отметка и конец продлений.
+      write(
+        SUBS_KEY,
+        all.map((s) => (s.user_id === userId && !s.canceled_at ? { ...s, canceled_at: now } : s)),
+      );
+      return true;
+    },
   },
 
   chat: {

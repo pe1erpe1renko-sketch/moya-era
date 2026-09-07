@@ -30,6 +30,7 @@ type State = {
   planTitle: string | null;
   amount: number | null;
   lastError: string | null;
+  canceled?: boolean;
   demo?: boolean;
 };
 
@@ -67,7 +68,9 @@ export function AutoRenewPanel() {
     setState((await res.json()) as State);
   }
 
-  if (!state || !state.active) return null;
+  // Отменённая подписка продлеваться не будет — об этом говорит блок
+  // подписки, а выключатель здесь только путал бы.
+  if (!state || !state.active || state.canceled) return null;
 
   const end = state.periodEnd ? dateLabel(state.periodEnd) : null;
   const renewing = state.available && state.autoRenew && state.hasMethod;

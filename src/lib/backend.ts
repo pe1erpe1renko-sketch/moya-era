@@ -148,6 +148,12 @@ export interface Backend {
     creditPacks(): Promise<CreditPack[]>;
     subscription(userId: string): Promise<Subscription | null>;
     creditBalance(userId: string): Promise<number>;
+    /**
+     * Отменить подписку. Доступ остаётся до конца оплаченного периода,
+     * дальше бесплатный режим; списаний больше не будет. Ничего
+     * накопленного не отбирается.
+     */
+    cancel(userId: string): Promise<boolean>;
   };
   chat: {
     threads(userId: string): Promise<ChatThread[]>;
