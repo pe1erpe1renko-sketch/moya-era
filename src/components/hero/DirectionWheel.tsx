@@ -8,19 +8,43 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 const STEP = 60;
 const COUNT = directions.length;
 
-type Metrics = { centerX: number; centerY: number; r: number; mobile: boolean };
+type Metrics = { centerX: number; centerY: number; r: number; mobile: boolean; cardH: number | null };
+
+/** Зазор между карточкой и тем, что вокруг неё, на телефоне. */
+const CARD_GAP = 16;
+
+/**
+ * На телефоне высота активной карточки считается от свободного места:
+ * между низом шапки и верхом заголовка первого экрана. Раньше она была
+ * долей ширины экрана и на невысоких телефонах (360×640, 360×780)
+ * садилась поверх заголовка «Итог общий» — ссылка «Открыть» лежала на
+ * буквах. Заголовок стоит от низа экрана, шапка — от верха, а карточка
+ * между ними и должна целиком помещаться в этот промежуток с зазором.
+ */
+function mobileCardHeight(vw: number, vh: number): { cardH: number; apexY: number } {
+  const wanted = Math.min(0.56 * vw, 0.32 * vh) * 1.45;
+  const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 76;
+  const text = document.querySelector(".hero-text-block")?.getBoundingClientRect().top ?? vh * 0.55;
+  const room = text - CARD_GAP - (header + CARD_GAP);
+  const cardH = Math.max(120, Math.min(wanted, room));
+  // Карточка стоит вплотную под шапкой: так остаётся больше места, а
+  // ниже неё всё равно только заголовок.
+  return { cardH, apexY: header + CARD_GAP + cardH / 2 };
+}
 
 function computeMetrics(): Metrics {
   const vw = typeof window === "undefined" ? 1440 : window.innerWidth;
   const vh = typeof window === "undefined" ? 900 : window.innerHeight;
   const mobile = vw < 768;
   const r = mobile ? 0.85 * vw : 0.62 * vh;
-  const apexY = mobile ? 0.285 * vh : 0.44 * vh;
+  const fit = mobile ? mobileCardHeight(vw, vh) : null;
+  const apexY = fit ? fit.apexY : 0.44 * vh;
   return {
     r,
     centerX: (mobile ? 0.5 : 0.3) * vw,
     centerY: apexY + r,
     mobile,
+    cardH: fit ? fit.cardH : null,
   };
 }
 
@@ -52,6 +76,7 @@ export function DirectionWheel() {
     centerX: 0.3 * 1440,
     centerY: 0.44 * 900 + 0.62 * 900,
     mobile: false,
+    cardH: null,
   });
   const [offset, setOffset] = useState(0);
   const [duration, setDuration] = useState(650);
@@ -154,7 +179,9 @@ export function DirectionWheel() {
   })();
 
   const { centerX, centerY, r, mobile } = metrics;
-  const side = mobile ? "min(56vw, 32vh)" : "var(--hero-card)";
+  // На телефоне ширина выводится из высоты, а высота — из свободного
+  // места (см. mobileCardHeight); пропорция карточки 1 : 1,45.
+  const side = mobile ? (metrics.cardH ? `${Math.round(metrics.cardH / 1.45)}px` : "min(56vw, 32vh)") : "var(--hero-card)";
 
   return (
     <div
@@ -244,7 +271,7 @@ export function DirectionWheel() {
               width: side,
               // На телефоне карточка выше, чем шире: иначе заголовок и описание
               // ложатся на иллюстрацию (проверено на 390×844).
-              height: mobile ? `calc(${side} * 1.45)` : side,
+              height: mobile ? (metrics.cardH ? metrics.cardH : `calc(${side} * 1.45)`) : side,
             }}
           >
 

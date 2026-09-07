@@ -17,8 +17,11 @@ import { Footer } from "@/components/landing/Footer";
 export default function HomePage() {
   return (
     <main className="relative w-full bg-bg-page">
+      {/* hero-stage: на невысоких телефонах первому экрану даётся
+          минимальная высота — иначе карточке колеса не остаётся места
+          между шапкой и заголовком, и она ложится на буквы. */}
       <div
-        className="relative min-h-screen w-full overflow-hidden bg-bg-page"
+        className="hero-stage relative min-h-screen w-full overflow-hidden bg-bg-page"
         style={{ paddingTop: "clamp(76px, 6.5vh, 104px)" }}
       >
         <StarField />
