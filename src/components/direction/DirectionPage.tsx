@@ -12,6 +12,10 @@ import { OrbitStage } from "@/components/quick-calc/Orbits";
 import { ARC_H, arcTransitionStyle } from "@/components/common/ArcTransition";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { Direction } from "@/lib/directions";
+import type { Person } from "@/lib/backend";
+import { useAuth } from "@/lib/useAuth";
+import { loadPeople, personLabel } from "@/lib/people";
+import { PersonSwitch } from "./PersonSwitch";
 import { DirectionLines, type DirectionLine } from "./DirectionLines";
 import { DirectionSample } from "./DirectionSample";
 import { DirectionFaq, type FaqItem } from "./DirectionFaq";
@@ -23,6 +27,14 @@ export type CalculatorApi<R> = {
   stage: "form" | "loading" | "result";
   /** Запускает переход к результату: пауза 700 мс + прокрутка ко второму экрану. */
   submit: (result: R) => void;
+  /**
+   * Чей результат показан: человек из профиля вошедшего. Форма
+   * подставляет его дату, время, место и имя, чтобы ничего не вводить
+   * заново. Гостю — null.
+   */
+  person: Person | null;
+  /** все люди вошедшего, владелец первым — паре нужен и второй */
+  people: Person[];
 };
 
 export type ResultCtx<R> = {
@@ -69,6 +81,17 @@ export type DirectionPageProps<R> = {
   finalBlock?: ReactNode;
 
   calculator: (api: CalculatorApi<R>) => ReactNode;
+  /**
+   * ВОШЕДШЕМУ — РЕЗУЛЬТАТ СРАЗУ. Результат по человеку из профиля: страница
+   * показывает его без формы и ожидания, а при нескольких людях ставит
+   * рядом переключатель. null — по этому человеку посчитать нельзя
+   * (например, паре нужен второй).
+   */
+  fromPerson?: (person: Person, people: Person[]) => R | null;
+  /** Подпись переключателя: «Кого посмотрим» или «Второй человек». */
+  personLabel?: string;
+  /** Кого предлагать в переключателе (пара — всех, кроме владельца). */
+  personOptions?: (people: Person[]) => Person[];
   resultVisual: (ctx: ResultCtx<R>) => ReactNode;
   /** Что показывать в правой колонке до расчёта (по умолчанию — орбиты). */
   placeholderVisual?: ReactNode;
@@ -101,15 +124,23 @@ export function DirectionPage<R>({
   finalSubtitle,
   finalBlock,
   calculator,
+  fromPerson,
+  personLabel: switchLabel = "Кого посмотрим",
+  personOptions,
   resultVisual,
   placeholderVisual,
   resultContent,
   explainBlock,
 }: DirectionPageProps<R>) {
   const reduced = useReducedMotion();
+  const { user } = useAuth();
   const [stage, setStage] = useState<"form" | "loading" | "result">("form");
   const [result, setResult] = useState<R | null>(null);
   const [fast, setFast] = useState(false);
+  // Люди вошедшего (владелец первым) и тот, чей результат показан.
+  const [people, setPeople] = useState<Person[]>([]);
+  const [person, setPerson] = useState<Person | null>(null);
+  const [auto, setAuto] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const slowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const aboutRef = useRef<HTMLElement | null>(null);
@@ -122,7 +153,44 @@ export function DirectionPage<R>({
     [],
   );
 
+  // Вошедшему — сразу по его данным, без формы и ожидания. Страницу не
+  // прокручиваем: человек ничего не нажимал. Вместо этого под формой
+  // строка «Посчитано для …» с кнопкой к результату.
+  useEffect(() => {
+    if (!user?.id || !fromPerson) return;
+    let alive = true;
+    loadPeople(user.id).then((list) => {
+      if (!alive || list.length === 0) return;
+      const options = personOptions ? personOptions(list) : list;
+      const first = options[0];
+      const value = first ? fromPerson(first, list) : null;
+      setPeople(list);
+      if (!first || value === null) return;
+      setPerson(first);
+      setResult(value);
+      setStage("result");
+      setAuto(true);
+    });
+    return () => {
+      alive = false;
+    };
+    // fromPerson и personOptions — чистые функции уровня модуля.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const switchTo = (next: Person) => {
+    if (!fromPerson) return;
+    const value = fromPerson(next, people);
+    if (value === null) return;
+    if (timer.current) clearTimeout(timer.current);
+    setPerson(next);
+    setResult(value);
+    setStage("result");
+    setAuto(true);
+  };
+
   const submit = (value: R) => {
+    setAuto(false);
     setStage("loading");
     if (!reduced) setFast(true);
     if (timer.current) clearTimeout(timer.current);
@@ -193,7 +261,20 @@ export function DirectionPage<R>({
               {heroDescription}
             </p>
 
-            {calculator({ stage, submit })}
+            {/* key — чтобы форма пересобралась с данными другого человека */}
+            <div key={person?.id ?? "manual"}>{calculator({ stage, submit, person, people })}</div>
+            {auto && person && (
+              <p className="text-text-secondary" style={{ marginTop: 14, fontSize: 14, lineHeight: 1.5 }}>
+                Посчитано для {personLabel(person)}.{" "}
+                <button
+                  type="button"
+                  onClick={() => aboutRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })}
+                  className="qc-focus text-text-accent underline-offset-4 hover:underline"
+                >
+                  К результату
+                </button>
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -245,6 +326,15 @@ export function DirectionPage<R>({
               </div>
             ) : (
               <div style={{ animation: reduced ? "none" : "ms-detail-in 600ms ease-out both" }}>
+                {fromPerson && (
+                  <PersonSwitch
+                    id={`${id}-person`}
+                    label={switchLabel}
+                    people={personOptions ? personOptions(people) : people}
+                    value={person?.id ?? null}
+                    onChange={switchTo}
+                  />
+                )}
                 <div
                   className="uppercase text-text-secondary"
                   style={{ fontSize: 13, letterSpacing: "0.08em" }}

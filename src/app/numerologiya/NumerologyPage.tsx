@@ -22,6 +22,8 @@ import { buildNameQuery } from "@/lib/chartUrl";
 import { MONTHS } from "@/lib/arcana";
 const numerologyAsset = "/images/numerology.png";
 import { NUMEROLOGY_LINES } from "@/lib/directionLines";
+import type { Person } from "@/lib/backend";
+import { dateParts, personName } from "@/lib/people";
 
 
 type NumerologyResult = {
@@ -87,22 +89,32 @@ function formatDate(d: { day: number; month: number; year: number }) {
  * Дата обязательна, имя — нет. Имя нужно только числу судьбы: оно
  * считается по буквам, а не по цифрам, и без имени его просто не бывает.
  */
-function NumerologyCalculator({ stage, submit }: CalculatorApi<NumerologyResult>) {
-  const [name, setName] = useState("");
+/** Числа по дате и, если имя годится для счёта, число судьбы. */
+function numerologyOf(date: { day: number; month: number; year: number }, name: string | null): NumerologyResult {
+  return {
+    path: lifePathNumber(date.day, date.month, date.year),
+    square: pythagoras(date.day, date.month, date.year),
+    date,
+    name: name && isCountableName(name) ? name.trim() : null,
+  };
+}
+
+/** Вошедшему — по дате и имени человека из профиля, без ввода. */
+function numerologyFromPerson(person: Person): NumerologyResult | null {
+  const date = dateParts(person.birth_date);
+  return date ? numerologyOf(date, personName(person)) : null;
+}
+
+function NumerologyCalculator({ stage, submit, person }: CalculatorApi<NumerologyResult>) {
+  const [name, setName] = useState(person ? (personName(person) ?? "") : "");
 
   return (
     <>
       <DateCalculator
         idPrefix="num"
         stage={stage}
-        onSubmit={(date) =>
-          submit({
-            path: lifePathNumber(date.day, date.month, date.year),
-            square: pythagoras(date.day, date.month, date.year),
-            date,
-            name: isCountableName(name) ? name.trim() : null,
-          })
-        }
+        initial={person ? dateParts(person.birth_date) : null}
+        onSubmit={(date) => submit(numerologyOf(date, name))}
       />
 
       <div style={{ marginTop: 16 }}>
@@ -409,6 +421,7 @@ export default function NumerologyPage() {
       finalTitle="Посчитай свои числа"
       finalSubtitle="Число пути и квадрат Пифагора бесплатно"
       calculator={(api) => <NumerologyCalculator {...api} />}
+      fromPerson={numerologyFromPerson}
       resultVisual={({ result, fast, reduced }) => (
         <OrbitStage value={result.path} speedFactor={fast ? 4 : 1} still={reduced} />
       )}

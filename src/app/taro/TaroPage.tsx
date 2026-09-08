@@ -10,7 +10,12 @@ import { track } from "@/components/analytics/track";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useAuth } from "@/lib/useAuth";
 import { arcanaImage } from "@/lib/arcanaImage";
-import { isoToUrlDate } from "@/lib/matrix";
+import { arcanaName, isoToUrlDate } from "@/lib/matrix";
+import { dayCardArcanum, moscowDay } from "@/lib/tarot";
+import { loadPeople, personLabel } from "@/lib/people";
+import type { Person } from "@/lib/backend";
+import { ArcanaImage } from "@/components/arcana/ArcanaImage";
+import { PersonSwitch } from "@/components/direction/PersonSwitch";
 import { SPREADS, type DrawnCard, type SpreadId } from "@/lib/tarot";
 import { ASK_MAX, askPath, askReturnPath, bridgeText, cleanQuestion, parseAsk, rememberAsk, takeAsk } from "@/lib/tarot/ask";
 import { rememberReturn } from "@/lib/returnTo";
@@ -140,7 +145,7 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
   // Гость или нет — решает браузер, а не сервер: в демо-режиме сервер
   // не знает, кто вошёл (аккаунты живут в localStorage), а на живом
   // сайте оба источника совпадают.
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [state, setState] = useState<State | null>(null);
   const [kindId, setKindId] = useState<SpreadId>("three");
   const [question, setQuestion] = useState("");
@@ -155,6 +160,23 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
   // при открытии затёрло бы то, с чем человек уходил на вход.
   const restored = useRef(false);
   const placeholder = useTypedPlaceholder(question === "");
+
+  // Вошедшему карта дня показывается сразу по дате из профиля, с
+  // переключателем людей; гостю — поле с датой.
+  const [people, setPeople] = useState<Person[]>([]);
+  const [dayPerson, setDayPerson] = useState<Person | null>(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    let alive = true;
+    loadPeople(user.id).then((list) => {
+      if (!alive || list.length === 0) return;
+      setPeople(list);
+      setDayPerson(list[0]);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
 
   // Вопрос и вид — из адреса (наставник, витрина пары, главная) или из
   // черновика (ушёл на вход, вернулся). Из адресной строки вопрос
@@ -496,14 +518,26 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
               </p>
             </div>
             <div className="w-full">
-              <DateField
-                label="Дата рождения"
-                submitLabel="Показать карту дня"
-                onSubmit={(iso) => {
-                  track("calc_submit", { direction: "tarot" });
-                  go(`/taro/${isoToUrlDate(iso)}`);
-                }}
-              />
+              {dayPerson ? (
+                <DayCardForPerson
+                  person={dayPerson}
+                  people={people}
+                  onPick={setDayPerson}
+                  onOpen={(iso) => {
+                    track("calc_submit", { direction: "tarot" });
+                    go(`/taro/${isoToUrlDate(iso)}`);
+                  }}
+                />
+              ) : (
+                <DateField
+                  label="Дата рождения"
+                  submitLabel="Показать карту дня"
+                  onSubmit={(iso) => {
+                    track("calc_submit", { direction: "tarot" });
+                    go(`/taro/${isoToUrlDate(iso)}`);
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -549,6 +583,53 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
  * Текст расклада абзацами. Последний абзац по промпту — то, что можно
  * сделать: он выделен блоком «Что делать», чтобы его не пролистали.
  */
+/**
+ * Карта дня вошедшего: та же карта, что на /taro/<дата>, — та же дата
+ * рождения, те же московские сутки. Переключатель — при нескольких
+ * людях; «Другая дата» — поле для любой другой.
+ */
+function DayCardForPerson({
+  person,
+  people,
+  onPick,
+  onOpen,
+}: {
+  person: Person;
+  people: Person[];
+  onPick: (p: Person) => void;
+  onOpen: (iso: string) => void;
+}) {
+  const n = dayCardArcanum(person.birth_date, moscowDay());
+  const [other, setOther] = useState(false);
+  return (
+    <div>
+      <PersonSwitch id="taro-day-person" people={people} value={person.id} onChange={onPick} />
+      <div className="flex items-center gap-4">
+        <ArcanaImage n={n} width={72} rounded={10} />
+        <div className="min-w-0">
+          <div className="text-[12px] uppercase tracking-[0.08em] text-text-secondary">Карта на сегодня · {personLabel(person)}</div>
+          <div className="mt-1 font-display text-text-primary" style={{ fontSize: "clamp(22px, 2vw, 30px)", lineHeight: 1.15 }}>
+            {n} · {arcanaName(n)}
+          </div>
+        </div>
+      </div>
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
+        <button type="button" onClick={() => onOpen(person.birth_date)} className="qc-focus inline-flex h-12 items-center rounded-[12px] bg-accent px-6 text-[16px] font-medium text-primary-foreground transition-opacity hover:opacity-90">
+          Открыть карту дня
+        </button>
+        <button type="button" onClick={() => setOther((v) => !v)} aria-expanded={other} className="qc-focus text-[14px] text-text-accent underline-offset-4 hover:underline">
+          {other ? "Скрыть" : "Другая дата"}
+        </button>
+      </div>
+      {other && (
+        <div className="mt-4">
+          <DateField label="Дата рождения" submitLabel="Показать карту дня" onSubmit={onOpen} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Interpretation({ body }: { body: string }) {
   const paragraphs = body
     .split("\n")

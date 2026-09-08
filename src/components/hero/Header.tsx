@@ -14,41 +14,17 @@ const LINKS = [
   { label: "Тарифы", href: "/tarify" },
 ];
 
-/** Есть ли у авторизованного пользователя дата рождения в профиле. */
-function useHasBirthDate() {
-  const { user } = useAuth();
-  const [hasBirth, setHasBirth] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    if (!user?.id) {
-      setHasBirth(false);
-      return;
-    }
-    backend.profiles.getOwner(user.id).then(({ data }) => {
-      if (active) setHasBirth(Boolean(data?.birth_date));
-    });
-    return () => {
-      active = false;
-    };
-  }, [user?.id]);
-
-  return hasBirth;
-}
-
-/** Куда ведёт пункт меню направления с учётом состояния пользователя. */
+/**
+ * Пункт меню направления ведёт на его страницу — и гостю, и вошедшему.
+ * Отдельных страниц кабинета по направлениям больше нет: вошедший
+ * попадает на ту же страницу, а его данные подставляются сами.
+ */
 function useDirectionTarget() {
-  const { isAuthenticated } = useAuth();
-  const hasBirth = useHasBirthDate();
-
-  return (d: (typeof directions)[number]) => {
-    const toCabinet = isAuthenticated && (hasBirth || d.id === "humandesign");
-    return { href: toCabinet ? `/cabinet/${d.id}` : d.path } as const;
-  };
+  return (d: (typeof directions)[number]) => ({ href: d.path }) as const;
 }
 
 function isCurrent(pathname: string, d: (typeof directions)[number]) {
-  return pathname === d.path || pathname === `/cabinet/${d.id}`;
+  return pathname === d.path;
 }
 
 function DirectionsMenu() {

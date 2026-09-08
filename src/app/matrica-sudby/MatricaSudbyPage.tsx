@@ -13,6 +13,8 @@ import { toIsoDate } from "@/lib/pendingBirth";
 import { arcana, MONTHS, digitSum, reduceTo22, isValidDate } from "@/lib/arcana";
 const matrixAsset = "/images/matrix.png";
 import { MATRIX_LINES } from "@/lib/directionLines";
+import type { Person } from "@/lib/backend";
+import { dateParts } from "@/lib/people";
 
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -83,31 +85,42 @@ const FAQ = [
   },
 ];
 
-function MatrixCalculator({ stage, submit }: CalculatorApi<MatrixResult>) {
+/** Центральный аркан и четыре числа, из которых он собирается. */
+function matrixOf(date: { day: number; month: number; year: number }): MatrixResult {
+  const a = reduceTo22(date.day);
+  const b = date.month;
+  const c = reduceTo22(digitSum(date.year));
+  const d = reduceTo22(a + b + c);
+  const e = reduceTo22(a + b + c + d);
+  return { numbers: { a, b, c, d, e }, date };
+}
+
+/** Вошедшему — по дате человека из профиля, без ввода. */
+function matrixFromPerson(person: Person): MatrixResult | null {
+  const date = dateParts(person.birth_date);
+  return date ? matrixOf(date) : null;
+}
+
+function MatrixCalculator({ stage, submit, person }: CalculatorApi<MatrixResult>) {
   const currentYear = new Date().getFullYear();
   const years = useMemo(
     () => Array.from({ length: currentYear - 1930 + 1 }, (_, i) => currentYear - i),
     [currentYear],
   );
 
-  const [day, setDay] = useState("");
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState("");
+  // Форма открывается с датой человека из профиля — менять её не нужно,
+  // но можно: «Пересчитать» посчитает по любой другой.
+  const start = person ? dateParts(person.birth_date) : null;
+  const [day, setDay] = useState(start ? String(start.day) : "");
+  const [month, setMonth] = useState(start ? String(start.month) : "");
+  const [year, setYear] = useState(start ? String(start.year) : "");
 
   const complete = day !== "" && month !== "" && year !== "";
   const dateInvalid = complete && !isValidDate(Number(day), Number(month), Number(year));
 
   const handleSubmit = () => {
     if (!complete || dateInvalid) return;
-    const a = reduceTo22(Number(day));
-    const b = Number(month);
-    const c = reduceTo22(digitSum(Number(year)));
-    const d = reduceTo22(a + b + c);
-    const e = reduceTo22(a + b + c + d);
-    submit({
-      numbers: { a, b, c, d, e },
-      date: { day: Number(day), month: Number(month), year: Number(year) },
-    });
+    submit(matrixOf({ day: Number(day), month: Number(month), year: Number(year) }));
   };
 
   return (
@@ -272,6 +285,7 @@ export default function MatricaSudbyPage() {
       finalTitle="Посчитай свою матрицу"
       finalSubtitle="Центральный аркан бесплатно, прямо сейчас"
       calculator={(api) => <MatrixCalculator {...api} />}
+      fromPerson={matrixFromPerson}
       resultVisual={({ result, fast, reduced }) => (
         <OrbitStage value={result.numbers.e} speedFactor={fast ? 4 : 1} still={reduced} arcanum />
       )}

@@ -10,6 +10,7 @@ import {
 const hdAsset = "/images/humandesign2.png";
 import { HUMANDESIGN_LINES } from "@/lib/directionLines";
 import { BirthForm, type BirthValue } from "@/components/natal/BirthForm";
+import { birthFromPerson } from "@/lib/people";
 import { Bodygraph } from "@/components/humandesign/Bodygraph";
 import { moscowClock } from "@/lib/geo/dayScan";
 import {
@@ -295,8 +296,9 @@ function HdStructureBlock() {
 }
 
 /** Первый экран: настоящий расчёт по дате, времени и месту. */
-function HdCalculator({ stage, submit }: CalculatorApi<BirthValue>) {
-  return <BirthForm busy={stage === "loading"} submitLabel="Построить бодиграф" onSubmit={(v) => submit(v)} />;
+function HdCalculator({ stage, submit, person }: CalculatorApi<BirthValue>) {
+  // Вошедшему — дата, время и место из профиля уже в полях.
+  return <BirthForm busy={stage === "loading"} initial={person ? birthFromPerson(person) : undefined} submitLabel="Построить бодиграф" onSubmit={(v) => submit(v)} />;
 }
 
 /** Схема в правой колонке: до расчёта пустая, после — с определёнными центрами. */
@@ -478,6 +480,7 @@ export default function HumanDesignPage() {
       finalTitle="Построить свой бодиграф"
       finalSubtitle="Бесплатно: схема с определёнными центрами, тип и стратегия"
       calculator={(api) => <HdCalculator {...api} />}
+      fromPerson={birthFromPerson}
       placeholderVisual={<EmptyBodygraph />}
       resultVisual={(ctx) => <HdStage {...ctx} />}
       resultContent={(ctx) => <HdResultContent {...ctx} />}

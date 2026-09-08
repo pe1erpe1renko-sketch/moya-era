@@ -107,20 +107,22 @@ export function DateSelects({ idPrefix, value, onChange, gap = 12, stacked = fal
 export type DateCalculatorProps = {
   idPrefix: string;
   stage: "form" | "loading" | "result";
+  /** дата, с которой форма открывается — из профиля вошедшего */
+  initial?: { day: number; month: number; year: number } | null;
   onSubmit: (date: { day: number; month: number; year: number }) => void;
 };
 
 /** Три выпадающих списка с датой и кнопка расчёта — общий блок для страниц направлений. */
-export function DateCalculator({ idPrefix, stage, onSubmit }: DateCalculatorProps) {
+export function DateCalculator({ idPrefix, stage, initial = null, onSubmit }: DateCalculatorProps) {
   const currentYear = new Date().getFullYear();
   const years = useMemo(
     () => Array.from({ length: currentYear - 1930 + 1 }, (_, i) => currentYear - i),
     [currentYear],
   );
 
-  const [day, setDay] = useState("");
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState("");
+  const [day, setDay] = useState(initial ? String(initial.day) : "");
+  const [month, setMonth] = useState(initial ? String(initial.month) : "");
+  const [year, setYear] = useState(initial ? String(initial.year) : "");
 
   const complete = day !== "" && month !== "" && year !== "";
   const dateInvalid = complete && !isValidDate(Number(day), Number(month), Number(year));

@@ -13,6 +13,8 @@ import { arcana, centralArcanum, reduceTo22 } from "@/lib/arcana";
 import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 const synastryAsset = "/images/synastry2.png";
 import { SYNASTRY_LINES } from "@/lib/directionLines";
+import { buildPairQuery } from "@/lib/chartUrl";
+import type { Person } from "@/lib/backend";
 
 
 type SynastryResult = {
@@ -74,21 +76,43 @@ const FAQ = [
  * Аркан пары считается тут же и показывается сразу, а кнопка ведёт на
  * постоянный адрес, где живут все три взгляда.
  */
-function SynastryCalculator({ stage, submit }: CalculatorApi<SynastryResult>) {
+/** Аркан пары из двух дат: личные арканы, их сумма и свёртка. */
+function pairOf(iso: [string, string], query: string): SynastryResult {
+  const part = (d: string) => {
+    const [y, m, day] = d.split("-").map(Number);
+    return centralArcanum(day, m, y);
+  };
+  const a = part(iso[0]);
+  const b = part(iso[1]);
+  const sum = a + b;
+  return { iso, query, you: a, partner: b, sum, pair: reduceTo22(sum) };
+}
+
+/**
+ * Вошедшему — пара «владелец + выбранный человек» сразу. Переключатель
+ * предлагает всех, кроме владельца; с одним человеком в профиле пары
+ * нет, и страница ждёт второго из формы.
+ */
+function pairFromPerson(person: Person, people: Person[]): SynastryResult | null {
+  const me = people[0];
+  const other = me && person.id === me.id ? people[1] : person;
+  if (!me || !other || other.id === me.id) return null;
+  const query = buildPairQuery(
+    { time: me.birth_time ? me.birth_time.slice(0, 5) : null, placeId: me.birth_place_id },
+    { time: other.birth_time ? other.birth_time.slice(0, 5) : null, placeId: other.birth_place_id },
+  );
+  return pairOf([me.birth_date.slice(0, 10), other.birth_date.slice(0, 10)], query);
+}
+
+const othersOnly = (people: Person[]) => people.slice(1);
+
+function SynastryCalculator({ stage, submit, person, people }: CalculatorApi<SynastryResult>) {
   return (
     <div style={{ marginTop: 32 }}>
       <PairForm
+        initial={[people[0] ?? null, person ?? null]}
         submitLabel={stage === "loading" ? "Считаем" : stage === "result" ? "Пересчитать" : "Рассчитать"}
-        onSubmit={({ iso, query }) => {
-          const part = (d: string) => {
-            const [y, m, day] = d.split("-").map(Number);
-            return centralArcanum(day, m, y);
-          };
-          const a = part(iso[0]);
-          const b = part(iso[1]);
-          const sum = a + b;
-          submit({ iso, query, you: a, partner: b, sum, pair: reduceTo22(sum) });
-        }}
+        onSubmit={({ iso, query }) => submit(pairOf(iso, query))}
       />
     </div>
   );
@@ -293,6 +317,9 @@ export default function SovmestimostPage() {
       otherTitle="Эти пять считают тебя иначе"
       otherSubtitle="Совместимость смотрит на двоих. Остальные пять описывают тебя одного и складываются с ней в один профиль"
       calculator={(api) => <SynastryCalculator {...api} />}
+      fromPerson={pairFromPerson}
+      personLabel="Второй человек"
+      personOptions={othersOnly}
       resultVisual={({ result, fast, reduced }) => (
         <OrbitStage value={result.pair} speedFactor={fast ? 4 : 1} still={reduced} arcanum />
       )}

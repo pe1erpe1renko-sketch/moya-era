@@ -66,8 +66,6 @@ function buildCardStars(count: number, seed: number): CardStar[] {
 
 type Props = {
   currentId?: Direction["id"];
-  /** Ссылки ведут на страницы разборов в кабинете, а не на публичные страницы. */
-  cabinetLinks?: boolean;
   title?: string;
   subtitle?: string;
 };
@@ -82,23 +80,13 @@ type CardLinkRest = {
 };
 
 function CardLink({
-  cabinetLinks,
   item,
   children,
   ...rest
 }: {
-  cabinetLinks: boolean;
   item: Direction;
   children: ReactNode;
 } & CardLinkRest) {
-
-  if (cabinetLinks) {
-    return (
-      <Link href={`/cabinet/${item.id}`} {...rest}>
-        {children}
-      </Link>
-    );
-  }
   return (
     <Link href={item.path} {...rest}>
       {children}
@@ -106,15 +94,7 @@ function CardLink({
   );
 }
 
-function DirectionCard({
-  item,
-  reducedMotion,
-  cabinetLinks = false,
-}: {
-  item: Direction;
-  reducedMotion: boolean;
-  cabinetLinks?: boolean;
-}) {
+function DirectionCard({ item, reducedMotion }: { item: Direction; reducedMotion: boolean }) {
   const [active, setActive] = useState(false);
   const stars = useMemo(() => buildCardStars(14, seedFrom(item.id)), [item.id]);
 
@@ -146,7 +126,6 @@ function DirectionCard({
         </div>
       )}
       <CardLink
-        cabinetLinks={cabinetLinks}
         item={item}
         onMouseEnter={() => setActive(true)}
         onMouseLeave={() => setActive(false)}
@@ -188,7 +167,6 @@ function DirectionCard({
 
 export function OtherDirections({
   currentId,
-  cabinetLinks = false,
   title = "Эти пять считают тебя иначе",
   subtitle = "Матрица описывает устройство. Остальные пять смотрят с других сторон и складываются с ней в один профиль",
 }: Props = {}) {
@@ -221,7 +199,7 @@ export function OtherDirections({
 
         <div className="other-dirs-track mt-11 flex gap-5 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible md:pb-0 lg:grid-cols-5">
           {items.map((d) => (
-            <DirectionCard key={d.id} item={d} reducedMotion={reduced} cabinetLinks={cabinetLinks} />
+            <DirectionCard key={d.id} item={d} reducedMotion={reduced} />
           ))}
         </div>
       </div>

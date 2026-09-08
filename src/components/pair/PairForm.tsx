@@ -29,6 +29,8 @@ const selectClass =
   "qc-focus h-12 w-full appearance-none rounded-[12px] border border-border bg-surface-1 px-3 text-[16px] text-text-primary transition-colors focus:border-text-accent";
 
 type Side = {
+  /** кто из своих людей подставлен, если выбран из списка */
+  personId: string | null;
   date: DateParts;
   hour: string;
   minute: string;
@@ -36,7 +38,39 @@ type Side = {
   placeText: string;
 };
 
-const emptySide = (): Side => ({ date: EMPTY, hour: "", minute: "", place: null, placeText: "" });
+const emptySide = (): Side => ({ personId: null, date: EMPTY, hour: "", minute: "", place: null, placeText: "" });
+
+/** Данные человека из профиля в полях формы. */
+function sideFromPerson(person: Person): Side {
+  const [y, m, d] = person.birth_date.slice(0, 10).split("-");
+  const [hh, mm] = (person.birth_time ?? "").split(":");
+  return {
+    personId: person.id,
+    date: { day: String(Number(d)), month: String(Number(m)), year: y },
+    hour: hh ?? "",
+    minute: mm ?? "",
+    place:
+      person.birth_place_id && person.birth_lat !== null && person.birth_lon !== null && person.birth_tz
+        ? ({
+            id: person.birth_place_id,
+            name: person.birth_place ?? "",
+            nameEn: "",
+            country: "",
+            countryName: "",
+            region: null,
+            lat: person.birth_lat,
+            lon: person.birth_lon,
+            tz: person.birth_tz,
+            population: 0,
+            label: person.birth_place ?? "",
+          } satisfies Place)
+        : null,
+    placeText: person.birth_place ?? "",
+  };
+}
+
+/** Время или место известны — раскрыть поля, чтобы было видно, что подставилось. */
+const hasExtra = (side: Side) => side.hour !== "" || side.place !== null;
 
 const filled = (d: DateParts) =>
   d.day !== "" && d.month !== "" && d.year !== "" && isValidDate(Number(d.day), Number(d.month), Number(d.year));
@@ -50,20 +84,26 @@ export type PairFormValue = {
 
 export function PairForm({
   submitLabel = "Показать разбор пары",
+  initial,
   onSubmit,
 }: {
   submitLabel?: string;
+  /** Кем заполнить форму сразу: владелец профиля и выбранный второй. */
+  initial?: [Person | null, Person | null];
   /** Если задан, форма не уводит на страницу пары, а отдаёт собранное. */
   onSubmit?: (value: PairFormValue) => void;
 }) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [people, setPeople] = useState<Person[]>([]);
-  const [sides, setSides] = useState<[Side, Side]>([emptySide(), emptySide()]);
+  const [sides, setSides] = useState<[Side, Side]>(() => [
+    initial?.[0] ? sideFromPerson(initial[0]) : emptySide(),
+    initial?.[1] ? sideFromPerson(initial[1]) : emptySide(),
+  ]);
   const [busy, setBusy] = useState(false);
   // Время и место раскрыты у каждого отдельно; выбранный из своих людей
   // с временем — раскрывается сам, чтобы было видно, что подставилось.
-  const [extra, setExtra] = useState<[boolean, boolean]>([false, false]);
+  const [extra, setExtra] = useState<[boolean, boolean]>(() => [hasExtra(sides[0]), hasExtra(sides[1])]);
 
   useEffect(() => {
     // Список нужен только вошедшему; после выхода его не показывает
@@ -93,31 +133,9 @@ export function PairForm({
     if (!id) return update(who, emptySide());
     const person = people.find((p) => p.id === id);
     if (!person) return;
-    const [y, m, d] = person.birth_date.split("-");
-    const [hh, mm] = (person.birth_time ?? "").split(":");
-    if (hh || person.birth_place) setExtra((prev) => (who === 0 ? [true, prev[1]] : [prev[0], true]));
-    update(who, {
-      date: { day: String(Number(d)), month: String(Number(m)), year: y },
-      hour: hh ?? "",
-      minute: mm ?? "",
-      place:
-        person.birth_place_id && person.birth_lat !== null && person.birth_lon !== null && person.birth_tz
-          ? ({
-              id: person.birth_place_id,
-              name: person.birth_place ?? "",
-              nameEn: "",
-              country: "",
-              countryName: "",
-              region: null,
-              lat: person.birth_lat,
-              lon: person.birth_lon,
-              tz: person.birth_tz,
-              population: 0,
-              label: person.birth_place ?? "",
-            } satisfies Place)
-          : null,
-      placeText: person.birth_place ?? "",
-    });
+    const side = sideFromPerson(person);
+    if (hasExtra(side)) setExtra((prev) => (who === 0 ? [true, prev[1]] : [prev[0], true]));
+    update(who, side);
   }
 
   const ready = filled(sides[0].date) && filled(sides[1].date);
@@ -164,7 +182,7 @@ export function PairForm({
                   <select
                     className="qc-focus rounded-[10px] border border-border bg-bg-page px-2 py-1 text-[13px] text-text-secondary"
                     aria-label={who === 0 ? "Выбрать первого из своих людей" : "Выбрать второго из своих людей"}
-                    defaultValue=""
+                    value={side.personId ?? ""}
                     onChange={(e) => pickPerson(who, e.target.value)}
                   >
                     <option value="">Из своих людей</option>
@@ -179,7 +197,7 @@ export function PairForm({
 
               <div className="mt-4">
                 <span className="mb-1.5 block text-[13px] text-text-secondary">Дата рождения</span>
-                <DateSelects idPrefix={`pair-${who}`} value={side.date} onChange={(d) => update(who, { date: d })} gap={10} stacked />
+                <DateSelects idPrefix={`pair-${who}`} value={side.date} onChange={(d) => update(who, { date: d, personId: null })} gap={10} stacked />
               </div>
 
               <button

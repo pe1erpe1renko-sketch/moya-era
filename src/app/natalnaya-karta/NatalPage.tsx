@@ -11,6 +11,7 @@ const natalAsset = "/images/natal.png";
 import { buildNatalChart } from "@/lib/natal";
 import { NATAL_LINES } from "@/lib/directionLines";
 import { BirthForm, type BirthValue } from "@/components/natal/BirthForm";
+import { birthFromPerson } from "@/lib/people";
 import {
   NatalHeadline,
   NatalReading,
@@ -73,8 +74,9 @@ const SAMPLE_BIRTH = {
   placeName: "Москва",
 };
 
-function NatalCalculator({ stage, submit }: CalculatorApi<BirthValue>) {
-  return <BirthForm busy={stage === "loading"} submitLabel="Построить карту" onSubmit={(v) => submit(v)} />;
+function NatalCalculator({ stage, submit, person }: CalculatorApi<BirthValue>) {
+  // Вошедшему — дата, время и место из профиля уже в полях.
+  return <BirthForm busy={stage === "loading"} initial={person ? birthFromPerson(person) : undefined} submitLabel="Построить карту" onSubmit={(v) => submit(v)} />;
 }
 
 function chartOf(birth: BirthValue) {
@@ -264,6 +266,7 @@ export default function NatalPage() {
       finalTitle="Построить свою карту"
       finalSubtitle="Бесплатно: круг карты, положения планет и аспекты"
       calculator={(api) => <NatalCalculator {...api} />}
+      fromPerson={birthFromPerson}
       resultVisual={(ctx) => <NatalStage {...ctx} />}
       resultContent={(ctx) => <NatalResultContent {...ctx} />}
       explainBlock={(ctx) => <NatalExplain ctx={ctx} />}
