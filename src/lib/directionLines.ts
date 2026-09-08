@@ -1,4 +1,3 @@
-import type { Direction } from "./directions";
 
 export type DirectionLineItem = {
   n: string;
@@ -180,12 +179,3 @@ export const SYNASTRY_LINES: DirectionLineItem[] = [
     text: "Как соотносятся ваши натальные карты и дизайны. Там, где матрица молчит, обычно говорят они",
   },
 ];
-
-export const directionLines: Record<Direction["id"], DirectionLineItem[]> = {
-  matrix: MATRIX_LINES,
-  natal: NATAL_LINES,
-  humandesign: HUMANDESIGN_LINES,
-  numerology: NUMEROLOGY_LINES,
-  tarot: TAROT_LINES,
-  synastry: SYNASTRY_LINES,
-};

@@ -11,7 +11,7 @@ import { supabaseService } from "@/server/supabase";
 import { complete, LLM_ENABLED, MODEL_TEXTS } from "@/server/llm";
 
 /**
- * КОНТЕНТНЫЙ СЛОЙ — боевая версия contentLayer.js.
+ * КОНТЕНТНЫЙ СЛОЙ. Прежний макетный contentLayer.js из первой версии удалён.
  *
  * Порядок тот же: кэш в базе → эталонный текст → генерация → заглушка.
  * Отличия от макета: хранилище — таблица matrix_texts в Supabase (пишет
