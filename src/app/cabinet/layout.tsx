@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
-import { takeReturn } from "@/lib/returnTo";
+import { currentPath, leaveForAuth, takeReturn } from "@/lib/returnTo";
 
 /**
  * Защищённая зона: без сессии уводим на /login. Аналог _authenticated из TanStack.
@@ -19,7 +19,9 @@ export default function CabinetLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) {
-      router.replace("/login");
+      // С адресом возврата: /cabinet?add=26-07-1990 после входа откроется
+      // с той же датой, а не пустым кабинетом.
+      leaveForAuth(router, "login", currentPath(), "replace");
       return;
     }
     const back = takeReturn();

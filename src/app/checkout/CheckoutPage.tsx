@@ -12,7 +12,7 @@ import { formatRub, monthlyEquivalent, yearDiscountPercent } from "@/lib/plansDe
 import { DEMO_MODE } from "@/lib/env";
 import { localDemo } from "@/lib/backend.local";
 import { track } from "@/components/analytics/track";
-import { leaveForAuth } from "@/lib/returnTo";
+import { leaveForAuth, takeAfterPay } from "@/lib/returnTo";
 
 /**
  * ОФОРМЛЕНИЕ. Сумма считается на сервере из базы — здесь только показ.
@@ -53,7 +53,8 @@ export default function CheckoutPage() {
       if (DEMO_MODE) {
         if (plan) localDemo.activate(user.id, plan.id, period);
         if (pack) localDemo.addCredits(user.id, pack.credits, "pack_purchase");
-        router.push("/cabinet");
+        // Обратно туда, где стоял замок или кончились кредиты.
+        router.push(takeAfterPay() ?? "/cabinet");
         return;
       }
       const res = await fetch("/api/checkout", {
@@ -145,7 +146,7 @@ export default function CheckoutPage() {
           {error && <p className="mt-4 rounded-[10px] bg-surface-1 p-3 text-[14px] text-text-danger">{error}</p>}
 
           <button type="button" onClick={pay} disabled={busy || !agree} className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-[12px] bg-accent text-[16px] font-medium text-primary-foreground disabled:opacity-40">
-            {busy ? "…" : DEMO_MODE ? "Включить (демо)" : `Оплатить ${formatRub(total)}`}
+            {busy ? (DEMO_MODE ? "Включаем…" : "Открываем оплату…") : DEMO_MODE ? "Включить (демо)" : `Оплатить ${formatRub(total)}`}
           </button>
           <p className="mt-3 text-[12px] text-text-secondary/80">Способ оплаты выберете на защищённой странице ЮKassa: карта, СБП, SberPay.</p>
           <Link href="/tarify" className="mt-4 inline-block text-[14px] text-text-accent underline-offset-4 hover:underline">← Другие тарифы</Link>

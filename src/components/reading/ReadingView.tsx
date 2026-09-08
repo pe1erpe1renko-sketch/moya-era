@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { MentorFab } from "@/components/chat/MentorFab";
@@ -23,7 +23,7 @@ import type { ResearchCardProps } from "./ResearchCard";
 import { track } from "@/components/analytics/track";
 import { NextSteps } from "@/components/next/NextSteps";
 import { matrixShowcase, pairShowcase } from "@/lib/nextSteps";
-import { leaveForAuth } from "@/lib/returnTo";
+import { authHref, leaveForAuth } from "@/lib/returnTo";
 import { usePlans } from "@/lib/usePlans";
 import { fromPriceLine } from "@/lib/lock";
 
@@ -53,6 +53,7 @@ export type ReadingViewProps = {
 export function ReadingView(props: ReadingViewProps) {
   const { type, urlDates, isoDates, matrix, initialTexts, totalCount } = props;
   const router = useRouter();
+  const pathname = usePathname();
   const { texts, busy, load, reset } = useReadingTexts(type.slug, urlDates, initialTexts);
   const [paywall, setPaywall] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
@@ -277,12 +278,12 @@ export function ReadingView(props: ReadingViewProps) {
             <p className="text-[14px] text-text-secondary">
               Ссылка на эту страницу постоянная — её можно сохранить или переслать. Чтобы разбор жил в кабинете вместе с арканом дня,{" "}
               <Link
-                href="/register"
+                href={authHref("register", pathname)}
                 onClick={(e) => {
                   e.preventDefault();
                   leaveForAuth(router, "register");
                 }}
-                className="text-text-accent underline-offset-4 hover:underline"
+                className="tap text-text-accent underline-offset-4 hover:underline"
               >
                 создайте аккаунт
               </Link>

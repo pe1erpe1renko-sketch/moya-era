@@ -7,6 +7,8 @@ import { nextPath } from "@/lib/nextPath";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { backend } from "@/lib/backend";
+import { ensureOwnerProfile } from "@/lib/profile";
+import { readPendingBirth, setProfileSaveError } from "@/lib/pendingBirth";
 
 const fieldCls =
   "w-full bg-surface-1 border text-text-primary placeholder:text-text-secondary px-4 outline-none focus-visible:border-text-accent";
@@ -24,22 +26,30 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setBusy(true);
-    const { error: signInError } = await backend.auth.signIn({
+    const { data, error: signInError } = await backend.auth.signIn({
       email: email.trim(),
       password,
     });
-    setBusy(false);
 
     if (signInError) {
       const msg = (signInError.message || "").toLowerCase();
       if (msg.includes("credentials") || msg.includes("invalid") || msg.includes("confirm")) {
         setError("Неверная почта или пароль");
       } else {
-        setError("Что-то пошло не так. Попробуй ещё раз");
+        setError("Что-то пошло не так. Попробуйте ещё раз");
       }
+      setBusy(false);
       return;
     }
 
+    // Дата, введённая до регистрации, доезжает до профиля и через вход:
+    // подтверждение почты идёт мимо формы регистрации.
+    const pending = readPendingBirth();
+    if (pending && data?.user?.id) {
+      const ok = await ensureOwnerProfile(data.user.id, pending);
+      if (!ok) setProfileSaveError();
+    }
+    setBusy(false);
     router.push(nextPath());
   }
 

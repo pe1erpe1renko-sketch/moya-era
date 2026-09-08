@@ -5,6 +5,8 @@ import { PlaceField } from "@/components/common/PlaceField";
 import { backend, type Person } from "@/lib/backend";
 import { isoToChartUrlDate } from "@/lib/chartUrl";
 import Link from "next/link";
+import { currentPath } from "@/lib/returnTo";
+import { savePendingBirth } from "@/lib/pendingBirth";
 import { birthPlaceFields } from "@/lib/geo/birthPlace";
 import { useAuth } from "@/lib/useAuth";
 import type { Place } from "@/lib/geo/placesIndex";
@@ -217,7 +219,21 @@ export function RefineBirth({
       {refined && isAuthenticated && !saved && owner === null && (
         <p className="mt-3 text-[13px] leading-snug text-text-secondary">
           В кабинете нет человека с этой датой рождения — сохранять некуда.{" "}
-          <Link href={`/cabinet?add=${isoToChartUrlDate(birth.date)}`} className="text-text-accent underline-offset-4 hover:underline">
+          <Link
+            href={`/cabinet?add=${isoToChartUrlDate(birth.date)}&next=${encodeURIComponent(currentPath())}`}
+            onClick={() =>
+              savePendingBirth({
+                date: birth.date,
+                time: birth.time ?? undefined,
+                place: birth.place?.label ?? birth.placeText ?? undefined,
+                placeId: birth.place?.id,
+                lat: birth.place?.lat,
+                lon: birth.place?.lon,
+                tz: birth.place?.tz,
+              })
+            }
+            className="text-text-accent underline-offset-4 hover:underline"
+          >
             Добавить человека с этой датой
           </Link>
         </p>

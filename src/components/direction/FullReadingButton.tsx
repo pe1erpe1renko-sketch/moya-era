@@ -14,6 +14,7 @@ import { readingPath } from "@/lib/matrix";
 import { chartPath, chartUrlDateToIso, isoToChartUrlDate, type ChartSystem } from "@/lib/chartUrl";
 import { useGoToReading } from "@/components/reading/CalcTheater";
 import { track } from "@/components/analytics/track";
+import { currentPath, leaveForAuth } from "@/lib/returnTo";
 
 export type FullReadingButtonProps = {
   /** Дата (и время/место), собранные на этой странице. */
@@ -96,7 +97,7 @@ export function FullReadingButton({
     }
 
     if (!isAuthenticated || !user) {
-      router.push("/register");
+      leaveForAuth(router, "register", currentPath());
       return;
     }
 

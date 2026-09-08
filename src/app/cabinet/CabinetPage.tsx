@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { isReturnWorthy } from "@/lib/returnTo";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { formatBirthDate, takeProfileSaveError } from "@/lib/pendingBirth";
@@ -94,6 +95,11 @@ export default function CabinetPage() {
   const active = isSubscriptionActive(sub);
   const left = peopleLeft({ plan, subscription: sub, people });
   const addDate = search.get("add") ? urlDateToIso(search.get("add") as string) : null;
+  // Откуда пришли добавлять человека (разбор с уточнённым временем):
+  // после сохранения — обратно туда, разбор уже открыт.
+  const nextRaw = search.get("next");
+  const addNext = isReturnWorthy(nextRaw) ? nextRaw : null;
+  const router = useRouter();
 
   /**
    * Владелец без даты: сохраняем в профиль, а карточку «Я» из него создаст
@@ -224,6 +230,7 @@ export default function CabinetPage() {
                 if (res.error) return res.error.message;
                 track("person_add", { relation: row.relation });
                 await reload();
+                if (addNext) router.replace(addNext);
                 return null;
               }}
               onRemove={async (id) => {

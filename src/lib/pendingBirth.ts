@@ -2,6 +2,13 @@ import { MONTHS } from "@/lib/arcana";
 
 const KEY = "pendingBirth";
 
+/**
+ * Сутки, как у адреса возврата: человек может подтверждать почту из
+ * письма в новой вкладке, и sessionStorage той вкладки будет пуст.
+ * Поэтому — localStorage, с тем же сроком.
+ */
+const TTL_MS = 24 * 60 * 60 * 1000;
+
 export type PendingBirth = {
   /** ISO-дата, YYYY-MM-DD */
   date: string;
@@ -25,7 +32,7 @@ export function toIsoDate(day: number, month: number, year: number): string {
 export function savePendingBirth(value: PendingBirth): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(KEY, JSON.stringify(value));
+    window.localStorage.setItem(KEY, JSON.stringify({ ...value, at: Date.now() }));
   } catch {
     /* приватный режим — просто не сохраняем */
   }
@@ -34,11 +41,14 @@ export function savePendingBirth(value: PendingBirth): void {
 export function readPendingBirth(): PendingBirth | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.sessionStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as PendingBirth;
+    const parsed = JSON.parse(raw) as PendingBirth & { at?: number };
     if (!parsed || typeof parsed.date !== "string") return null;
-    return parsed;
+    if (typeof parsed.at === "number" && Date.now() - parsed.at > TTL_MS) return null;
+    const { at: _at, ...value } = parsed;
+    void _at;
+    return value;
   } catch {
     return null;
   }
@@ -47,7 +57,7 @@ export function readPendingBirth(): PendingBirth | null {
 export function clearPendingBirth(): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.removeItem(KEY);
+    window.localStorage.removeItem(KEY);
   } catch {
     /* ignore */
   }
@@ -63,7 +73,7 @@ export function formatBirthDate(iso: string): string {
 
 /** Строка-подсказка для формы регистрации. */
 export function formatPendingBirth(value: PendingBirth): string {
-  const parts = [`Твоя дата ${formatBirthDate(value.date)}`];
+  const parts = [`Ваша дата ${formatBirthDate(value.date)}`];
   if (value.time) parts.push(`время ${value.time}`);
   if (value.place) parts.push(value.place);
   return `${parts.join(", ")} сохранится в профиле`;

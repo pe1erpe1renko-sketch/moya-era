@@ -19,7 +19,7 @@ import { ArcanaImage } from "@/components/arcana/ArcanaImage";
 import { PersonSwitch } from "@/components/direction/PersonSwitch";
 import { SPREADS, type DrawnCard, type SpreadId } from "@/lib/tarot";
 import { ASK_MAX, askPath, askReturnPath, bridgeText, cleanQuestion, parseAsk, rememberAsk, takeAsk } from "@/lib/tarot/ask";
-import { rememberReturn } from "@/lib/returnTo";
+import { rememberAfterPay, rememberReturn } from "@/lib/returnTo";
 import { justReturned } from "@/lib/nextPath";
 import type { NextShowcase } from "@/lib/nextSteps";
 
@@ -271,7 +271,9 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
         return;
       }
       if (res.status === 401) remember();
-      setError(messageFor(res.status, String(data.error ?? ""), Number(data.price ?? 0)));
+      // Кончились кредиты — после докупки вернуть сюда же, с вопросом.
+      if (data.error === "no_credits") rememberAfterPay(askPath({ vid: kindId }));
+      setError(messageFor(res.status, String(data.error ?? ""), Number(data.price ?? 0), kindId));
     } catch {
       setError({ text: "Не удалось связаться с сервером. Попробуйте ещё раз" });
     } finally {
@@ -328,7 +330,7 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
                 <div className="text-[14px] text-text-secondary">
                   {credits === null ? "демо · без списаний" : `у вас ${credits} ${creditWord(credits)}`}
                   {credits !== null && (
-                    <Link href="/tarify#credits" className="ml-2 text-text-accent underline-offset-4 hover:underline">
+                    <Link href="/tarify#credits" onClick={() => rememberAfterPay(askPath({ vid: kindId }))} className="tap ml-2 text-text-accent underline-offset-4 hover:underline">
                       докупить
                     </Link>
                   )}
@@ -383,7 +385,7 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
               <p role="alert" className="mt-5 text-center text-[14px] text-text-danger">
                 {error.text}
                 {error.href && (
-                  <Link href={error.href} className="ml-2 text-text-accent underline-offset-4 hover:underline">
+                  <Link href={error.href} className="tap ml-2 text-text-accent underline-offset-4 hover:underline">
                     {error.link}
                   </Link>
                 )}
@@ -532,7 +534,7 @@ export default function TaroPage({ showcase }: { showcase: NextShowcase }) {
               ) : (
                 <DateField
                   label="Дата рождения"
-                  submitLabel="Показать карту дня"
+                  submitLabel="Открыть карту дня"
                   onSubmit={(iso) => {
                     track("calc_submit", { direction: "tarot" });
                     go(`/taro/${isoToUrlDate(iso)}`);
@@ -618,13 +620,13 @@ function DayCardForPerson({
         <button type="button" onClick={() => onOpen(person.birth_date)} className="qc-focus inline-flex h-12 items-center rounded-[12px] bg-accent px-6 text-[16px] font-medium text-primary-foreground transition-opacity hover:opacity-90">
           Открыть карту дня
         </button>
-        <button type="button" onClick={() => setOther((v) => !v)} aria-expanded={other} className="qc-focus text-[14px] text-text-accent underline-offset-4 hover:underline">
+        <button type="button" onClick={() => setOther((v) => !v)} aria-expanded={other} className="qc-focus tap text-[14px] text-text-accent underline-offset-4 hover:underline">
           {other ? "Скрыть" : "Другая дата"}
         </button>
       </div>
       {other && (
         <div className="mt-4">
-          <DateField label="Дата рождения" submitLabel="Показать карту дня" onSubmit={onOpen} />
+          <DateField label="Дата рождения" submitLabel="Открыть карту дня" onSubmit={onOpen} />
         </div>
       )}
     </div>
@@ -718,8 +720,8 @@ function useTypedPlaceholder(active: boolean): string {
 }
 
 /** Что показать вместо кода ошибки. Каждый случай — с выходом, а не тупиком. */
-function messageFor(status: number, error: string, price: number): { text: string; href?: string; link?: string } {
-  if (status === 401) return { text: "Войдите, чтобы сделать расклад", href: "/login?next=%2Ftaro", link: "Войти" };
+function messageFor(status: number, error: string, price: number, vid: SpreadId): { text: string; href?: string; link?: string } {
+  if (status === 401) return { text: "Войдите, чтобы сделать расклад", href: askReturnPath(vid, "login"), link: "Войти" };
   if (error === "no_credits") {
     return {
       text: `Не хватает кредитов: нужно ${price} ${creditWord(price)}`,

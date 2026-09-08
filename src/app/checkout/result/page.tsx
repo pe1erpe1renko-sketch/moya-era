@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { AfterPayLinks } from "./AfterPayLinks";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { CONTACT_EMAIL, TELEGRAM_URL } from "@/lib/env";
@@ -37,7 +37,7 @@ export default function Page() {
           ) : null}
           .
         </p>
-        <Link href="/cabinet" className="mt-8 inline-flex h-12 items-center rounded-[12px] bg-accent px-6 text-[16px] font-medium text-primary-foreground">В кабинет</Link>
+        <AfterPayLinks />
       </div>
       <Footer />
     </main>

@@ -12,7 +12,7 @@ import { biggerPlansLine } from "@/lib/lock";
 import { arcanaName, calculateMatrix, readingPath } from "@/lib/matrix";
 import { buildChartQuery, buildNameQuery, buildPairQuery, chartPath, isoToChartUrlDate } from "@/lib/chartUrl";
 import { isFutureDate, isValidDate } from "@/lib/arcana";
-import { formatBirthDate, toIsoDate } from "@/lib/pendingBirth";
+import { formatBirthDate, readPendingBirth, toIsoDate } from "@/lib/pendingBirth";
 import { birthPlaceFields, hasResolvedPlace, placeFromFields } from "@/lib/geo/birthPlace";
 import type { Place } from "@/lib/geo/placesIndex";
 import { capStyle, displayName, isPlaceholderName, parseDate } from "./cabinetParts";
@@ -326,7 +326,7 @@ function PersonCard({
             )}
           </div>
           {isSelf && isPlaceholderName(person.name) && !editing && (
-            <button type="button" onClick={onEdit} className="qc-focus mt-2 py-1 text-[14px] text-text-accent underline-offset-4 hover:underline">
+            <button type="button" onClick={onEdit} className="qc-focus mt-2 py-2 text-[14px] text-text-accent underline-offset-4 hover:underline">
               Ввести имя
             </button>
           )}
@@ -465,6 +465,22 @@ function AddCard({
   if (prefill) {
     const d = parseDate(prefill);
     if (d) initial.date = { day: String(d.day), month: String(d.month), year: String(d.year) };
+    // Пришли из разбора с уточнённым временем и местом — они лежат в
+    // pendingBirth; подставляем, чтобы не набирать заново.
+    const pending = readPendingBirth();
+    if (pending && pending.date === prefill) {
+      const [hh, mm] = (pending.time ?? "").split(":");
+      initial.hour = hh ?? "";
+      initial.minute = mm ?? "";
+      initial.place = placeFromFields({
+        birth_place: pending.place ?? null,
+        birth_place_id: pending.placeId ?? null,
+        birth_lat: pending.lat ?? null,
+        birth_lon: pending.lon ?? null,
+        birth_tz: pending.tz ?? null,
+      });
+      initial.placeText = pending.place ?? "";
+    }
   }
 
   if (!open) {

@@ -2,10 +2,10 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { savePendingBirth } from "@/lib/pendingBirth";
-import { leaveForAuth } from "@/lib/returnTo";
+import { authHref, currentPath, leaveForAuth, rememberAfterPay } from "@/lib/returnTo";
 import { usePlans } from "@/lib/usePlans";
 import { fromPriceLine, hereLine, lockItems, type LockCounts, type LockReason, type LockSystem } from "@/lib/lock";
 import { ArcanaImage } from "@/components/arcana/ArcanaImage";
@@ -51,11 +51,14 @@ export function LockBody({ system, counts, date, compact = false, titleId }: Loc
   const { plans } = usePlans();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const items = lockItems(system, plans, counts);
   const price = fromPriceLine(plans);
 
   const openAll = () => {
     track("lock_open_all", { system });
+    // После оплаты — обратно сюда, а не в кабинет.
+    rememberAfterPay(currentPath());
     // После регистрации по дороге к оплате дата попадёт в профиль — и
     // разбор откроется сразу, без повторного ввода.
     if (!isAuthenticated && date) savePendingBirth({ date, direction: system });
@@ -89,7 +92,7 @@ export function LockBody({ system, counts, date, compact = false, titleId }: Loc
         <p className="lock-login text-text-secondary">
           Уже есть подписка?{" "}
           <Link
-            href="/login"
+            href={authHref("login", pathname)}
             onClick={(e) => {
               e.preventDefault();
               leaveForAuth(router, "login");

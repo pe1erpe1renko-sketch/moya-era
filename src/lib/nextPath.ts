@@ -1,4 +1,5 @@
 import { isSafePath, takeReturn } from "./returnTo";
+import { publicUrl } from "./chartUrl";
 
 /**
  * Куда вести после входа или регистрации.
@@ -7,6 +8,10 @@ import { isSafePath, takeReturn } from "./returnTo";
  * запомненный в хранилище (`lib/returnTo` — на случай, если параметр
  * потерялся по дороге), потом кабинет. Только относительные адреса.
  *
+ * В параметре адрес лежит без личных параметров (имя, вопрос), в
+ * хранилище — полный. Если это один и тот же адрес, берётся полный:
+ * человек вернётся на страницу нумерологии с именем, а не без него.
+ *
  * Запись в хранилище снимается в любом случае: либо она использована,
  * либо её перебил параметр — оставлять её на потом нельзя, иначе через
  * час она уведёт человека в незаконченное дело, о котором он забыл.
@@ -14,7 +19,10 @@ import { isSafePath, takeReturn } from "./returnTo";
 export function resolveNext(search: string, stored: string | null, fallback: string): string {
   try {
     const next = new URLSearchParams(search).get("next");
-    if (next && isSafePath(next)) return next;
+    if (next && isSafePath(next)) {
+      if (stored && isSafePath(stored) && publicUrl(stored) === next) return stored;
+      return next;
+    }
   } catch {
     /* негодная строка запроса — идём дальше */
   }

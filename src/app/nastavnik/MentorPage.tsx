@@ -11,7 +11,8 @@ import { backend, RELATION_LABELS, type ChatThread, type Person } from "@/lib/ba
 import { DEMO_MODE } from "@/lib/env";
 import { MENTOR_HINTS } from "@/lib/matrix/prompts";
 import { track } from "@/components/analytics/track";
-import { askPath } from "@/lib/tarot/ask";
+import { rememberAsk } from "@/lib/tarot/ask";
+import { rememberAfterPay } from "@/lib/returnTo";
 import { leaveForAuth } from "@/lib/returnTo";
 
 type Msg = { id: string; role: "user" | "assistant"; content: string; pending?: boolean };
@@ -67,7 +68,8 @@ export default function MentorPage() {
     if (!msg || busy) return;
     setError(null);
     setBusy(true);
-    setInput("");
+    // Поле очищается только когда ответ пошёл: если кредиты кончились,
+    // вопрос остаётся в поле, а не пропадает.
     const userMsg: Msg = { id: `u${Date.now()}`, role: "user", content: msg };
     const botMsg: Msg = { id: `a${Date.now()}`, role: "assistant", content: "", pending: true };
     setMessages((m) => [...m, userMsg, botMsg]);
@@ -80,12 +82,14 @@ export default function MentorPage() {
         body: JSON.stringify({ threadId, personId, message: msg }),
       });
       if (res.status === 402) {
-        setMessages((m) => m.filter((x) => x.id !== botMsg.id));
-        setError("Кредиты закончились. Докупить можно на странице тарифов.");
+        setMessages((m) => m.filter((x) => x.id !== botMsg.id && x.id !== userMsg.id));
+        setError("Кредиты закончились. Докупите на странице тарифов — вопрос останется в поле.");
         setCredits(0);
+        rememberAfterPay("/nastavnik");
         return;
       }
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      setInput("");
       const tid = res.headers.get("X-Thread-Id");
       if (tid && tid !== threadId) setThreadId(tid);
       // В демо заголовка нет вовсе — остаток не меняется.
@@ -134,7 +138,7 @@ export default function MentorPage() {
           </div>
           <div className="text-[14px] text-text-secondary">
             {credits === null ? "" : DEMO_MODE ? "демо · без списаний" : `${credits} ${creditWord(credits)}`}{" "}
-            <Link href="/tarify#credits" className="ml-2 text-text-accent underline-offset-4 hover:underline">докупить</Link>
+            <Link href="/tarify#credits" onClick={() => rememberAfterPay("/nastavnik")} className="tap ml-2 text-text-accent underline-offset-4 hover:underline">докупить</Link>
           </div>
         </div>
 
@@ -152,7 +156,7 @@ export default function MentorPage() {
                   <option key={p.id} value={p.id}>{p.name} · {RELATION_LABELS[p.relation]}</option>
                 ))}
               </select>
-              <button type="button" onClick={() => { setThreadId(null); setMessages([]); }} className="mt-3 text-[14px] text-text-accent underline-offset-4 hover:underline">
+              <button type="button" onClick={() => { setThreadId(null); setMessages([]); }} className="tap-block mt-3 text-[14px] text-text-accent underline-offset-4 hover:underline">
                 Новый разговор
               </button>
             </div>
@@ -203,7 +207,7 @@ export default function MentorPage() {
                     </div>
                     {asked && (
                       <p className="mt-1.5 pl-1 text-[13px] text-text-secondary">
-                        <Link href={askPath({ q: asked })} className="text-text-accent underline-offset-4 hover:underline">
+                        <Link href="/taro" onClick={() => rememberAsk({ q: asked })} className="text-text-accent underline-offset-4 hover:underline">
                           На этот вопрос можно сделать расклад →
                         </Link>
                       </p>

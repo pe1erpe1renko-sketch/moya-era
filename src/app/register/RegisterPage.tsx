@@ -28,6 +28,7 @@ export default function RegisterPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmSent, setConfirmSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<PendingBirth | null>(null);
 
@@ -45,7 +46,7 @@ export default function RegisterPage() {
 
     let invalid = false;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setEmailError("Проверь адрес почты");
+      setEmailError("Проверьте адрес почты");
       invalid = true;
     }
     if (password.length < 8) {
@@ -64,17 +65,17 @@ export default function RegisterPage() {
     if (error) {
       const msg = (error.message || "").toLowerCase();
       if (msg === "confirm_email") {
-        setFormError("Мы отправили письмо — подтвердите почту и войдите");
+        setConfirmSent(true);
         return;
       }
       if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
         setEmailError("Такая почта уже зарегистрирована");
       } else if (msg.includes("email") && msg.includes("invalid")) {
-        setEmailError("Проверь адрес почты");
+        setEmailError("Проверьте адрес почты");
       } else if (msg.includes("password")) {
         setPasswordError("Пароль должен быть не короче 8 символов");
       } else {
-        setFormError("Что-то пошло не так. Попробуй ещё раз");
+        setFormError("Что-то пошло не так. Попробуйте ещё раз");
       }
       return;
     }
@@ -191,6 +192,15 @@ export default function RegisterPage() {
               {formError}
             </p>
           )}
+          {confirmSent && (
+            <p className="mt-3 text-[14px] leading-[1.55] text-text-primary" role="status">
+              Мы отправили письмо — подтвердите почту по ссылке в нём. После этого{" "}
+              <Link href="/login" onClick={(e) => { e.preventDefault(); router.push(`/login${window.location.search}`); }} className="text-text-accent underline-offset-4 hover:underline">
+                войдите
+              </Link>
+              , и мы вернём вас туда, откуда вы пришли.
+            </p>
+          )}
         </form>
 
         <div className="mt-[18px] text-center">
@@ -201,13 +211,13 @@ export default function RegisterPage() {
               e.preventDefault();
               router.push(`/login${window.location.search}`);
             }}
-            className="text-text-accent text-[15px] hover:underline"
+            className="tap text-text-accent text-[15px] hover:underline"
           >
             Уже есть профиль? Войти
           </Link>
         </div>
 
-        <Link href="/" className="mt-8 inline-block text-text-accent hover:underline">
+        <Link href="/" className="tap-block mt-8 inline-block text-text-accent hover:underline">
           ← На главную
         </Link>
       </div>

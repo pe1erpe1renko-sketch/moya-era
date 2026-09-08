@@ -51,7 +51,11 @@ export const supabaseBackend: Backend = {
       return s ? ok(s) : fail("no session");
     },
     async signUp({ email, password }) {
-      const { data, error } = await supabaseBrowser().auth.signUp({ email, password });
+      // Ссылка из письма ведёт в кабинет — там сработает адрес возврата
+      // (`lib/returnTo`), и человек попадёт туда, откуда уходил. Адрес
+      // должен быть разрешён в настройках Supabase (Redirect URLs).
+      const emailRedirectTo = typeof window === "undefined" ? undefined : `${window.location.origin}/cabinet`;
+      const { data, error } = await supabaseBrowser().auth.signUp({ email, password, options: { emailRedirectTo } });
       if (error) return fail(error.message);
       // Если в проекте включено подтверждение почты, сессии ещё нет —
       // интерфейс покажет «проверьте почту».
