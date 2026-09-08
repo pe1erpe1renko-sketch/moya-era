@@ -142,7 +142,7 @@ function SynastryResultContent({ result }: ResultCtx<SynastryResult>) {
         {you && (
           <span className="flex items-center gap-2 text-text-secondary" style={{ fontSize: "clamp(14px, 1.05vw, 17px)" }}>
             <ArcanaImage n={you.n} width={40} rounded={7} />
-            Ты — {you.n} · {you.name}
+            Вы — {you.n} · {you.name}
           </span>
         )}
         {partner && (
@@ -265,7 +265,7 @@ function PairChain({ ctx }: { ctx: ResultCtx<SynastryResult> | null }) {
           className="flex flex-col items-center md:flex-row md:items-center"
           style={{ marginTop: 40, gap: "clamp(18px, 2.4vw, 40px)" }}
         >
-          <Node value={you} label="ты" size={88} />
+          <Node value={you} label="вы" size={88} />
           <Sign>+</Sign>
           <Node value={partner} label="партнёр" size={88} />
           <Sign>=</Sign>
@@ -314,8 +314,8 @@ export default function SovmestimostPage() {
       faq={FAQ}
       finalTitle="Посчитайте свою пару"
       finalSubtitle="Схема пары и главное о связи — бесплатно, по всем трём взглядам"
-      otherTitle="Эти пять считают тебя иначе"
-      otherSubtitle="Совместимость смотрит на двоих. Остальные пять описывают тебя одного и складываются с ней в один профиль"
+      otherTitle="Эти пять считают вас иначе"
+      otherSubtitle="Совместимость смотрит на двоих. Остальные пять описывают одного человека и складываются с ней в один профиль"
       calculator={(api) => <SynastryCalculator {...api} />}
       fromPerson={pairFromPerson}
       personLabel="Второй человек"

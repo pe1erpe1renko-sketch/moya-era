@@ -167,7 +167,7 @@ function DirectionCard({ item, reducedMotion }: { item: Direction; reducedMotion
 
 export function OtherDirections({
   currentId,
-  title = "Эти пять считают тебя иначе",
+  title = "Эти пять считают вас иначе",
   subtitle = "Матрица описывает устройство. Остальные пять смотрят с других сторон и складываются с ней в один профиль",
 }: Props = {}) {
   const reduced = useReducedMotion();

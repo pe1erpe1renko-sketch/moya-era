@@ -61,7 +61,7 @@ export default function HomePage() {
       <Faq />
       <QuickCalc
         id="start"
-        title="Начни с даты"
+        title="Начните с даты"
         subtitle="Один аркан бесплатно, прямо сейчас"
         spheres={counts.spheres}
         questions={counts.questions}

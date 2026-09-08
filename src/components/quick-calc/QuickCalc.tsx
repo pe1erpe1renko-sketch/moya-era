@@ -79,7 +79,7 @@ type QuickCalcProps = {
 
 export function QuickCalc({
   id = "quick-calc",
-  title = "Посмотри свой центральный аркан",
+  title = "Посмотрите свой центральный аркан",
   subtitle = "Одно число, вокруг которого собирается вся матрица. Считается из даты рождения, без регистрации",
   spheres = 12,
   questions = 92,

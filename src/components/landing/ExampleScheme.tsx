@@ -201,7 +201,7 @@ export function ExampleScheme({
       title={title ?? "Каждое число можно проверить"}
       subtitle={
         subtitle ??
-        "Матрица — это арифметика. Мы показываем, откуда взялось каждое число в твоём разборе"
+        "Матрица — это арифметика. Мы показываем, откуда взялось каждое число в вашем разборе"
       }
     >
       <div className="scheme-layout mx-auto mt-12 flex max-w-[1240px] flex-col gap-10 md:mt-16">
@@ -211,7 +211,7 @@ export function ExampleScheme({
             className="text-text-secondary"
             style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase" }}
           >
-            {own ? "Твоя дата рождения" : "Пример даты рождения"}
+            {own ? "Ваша дата рождения" : "Пример даты рождения"}
           </p>
           <div
             className="flex items-baseline gap-2"

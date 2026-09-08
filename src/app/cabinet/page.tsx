@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     images: [DEFAULT_OG_IMAGE],
     title: "Мой кабинет — Моя Эра",
-    description: "Твой профиль, карта дня и расчёты по шести системам.",
+    description: "Ваш профиль, карта дня и расчёты по шести системам.",
     type: "website",
   },
 };

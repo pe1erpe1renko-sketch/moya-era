@@ -187,7 +187,7 @@ export default function CabinetPage() {
         </div>
 
         {saveError && (
-          <p className="mt-6 rounded-[10px] bg-surface-1 p-[14px] text-[14px] text-text-danger">Не удалось сохранить дату рождения. Заполни её в профиле</p>
+          <p className="mt-6 rounded-[10px] bg-surface-1 p-[14px] text-[14px] text-text-danger">Не удалось сохранить дату рождения. Заполните её в профиле</p>
         )}
         {DEMO_MODE && <p className="mt-4 text-[13px] text-text-danger">Демо-режим: база не подключена, данные живут в этом браузере.</p>}
 

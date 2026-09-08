@@ -100,7 +100,7 @@ export function InviteBlock({ code, userId }: { code: string | null; userId: str
         className="text-text-secondary"
         style={{ fontSize: "clamp(14px, 1.1vw, 17px)", marginTop: 10, maxWidth: 620 }}
       >
-        Друг регистрируется по твоей ссылке — вы оба получаете семь дней полного доступа.
+        Друг регистрируется по вашей ссылке — вы оба получаете семь дней полного доступа.
         Считается после того, как он заполнит дату рождения
       </p>
 

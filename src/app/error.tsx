@@ -12,7 +12,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
     <div className="flex min-h-screen items-center justify-center bg-bg-page px-4">
       <div className="max-w-md text-center">
         <h1 className="font-display text-3xl text-text-primary">Страница не загрузилась</h1>
-        <p className="mt-2 text-sm text-text-secondary">Что-то пошло не так. Попробуй обновить или вернуться на главную.</p>
+        <p className="mt-2 text-sm text-text-secondary">Что-то пошло не так. Попробуйте обновить или вернуться на главную.</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={reset}

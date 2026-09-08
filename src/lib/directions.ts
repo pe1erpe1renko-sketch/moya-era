@@ -21,10 +21,10 @@ export type Direction = {
 
 /** Single source of truth for the wheel. */
 export const directions: Direction[] = [
-  { id: "matrix", title: "Матрица судьбы", desc: "Твой рисунок в 22 арканах", image: matrixImg, path: "/matrica-sudby" },
-  { id: "natal", title: "Натальная карта", desc: "Небо в минуту твоего рождения", image: natalImg, path: "/natalnaya-karta" },
-  { id: "humandesign", title: "Дизайн человека", desc: "Как ты устроен на самом деле", image: humandesignImg, path: "/dizayn-cheloveka" },
-  { id: "numerology", title: "Нумерология", desc: "Числа, из которых ты собран", image: numerologyImg, path: "/numerologiya" },
+  { id: "matrix", title: "Матрица судьбы", desc: "Ваш рисунок в 22 арканах", image: matrixImg, path: "/matrica-sudby" },
+  { id: "natal", title: "Натальная карта", desc: "Небо в минуту вашего рождения", image: natalImg, path: "/natalnaya-karta" },
+  { id: "humandesign", title: "Дизайн человека", desc: "Как вы устроены на самом деле", image: humandesignImg, path: "/dizayn-cheloveka" },
+  { id: "numerology", title: "Нумерология", desc: "Числа, из которых вы собраны", image: numerologyImg, path: "/numerologiya" },
   { id: "tarot", title: "Таро", desc: "Вопрос, заданный вовремя", image: tarotImg, path: "/taro" },
   { id: "synastry", title: "Совместимость", desc: "Вы двое как одна система", image: synastryImg, path: "/sovmestimost" },
 ];
