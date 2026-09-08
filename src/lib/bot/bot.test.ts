@@ -418,7 +418,7 @@ describe("что бот говорит", () => {
   it("под сводкой обещаны три кнопки", () => {
     assert.equal(BUTTONS.reading, "Открыть разбор");
     assert.equal(BUTTONS.mentor, "Спросить наставника");
-    assert.equal(BUTTONS.image, "Сделать образ дня");
+    assert.equal(BUTTONS.image, "Открыть карту дня");
   });
 
   it("приглашение на сайт — не чаще раза в десять сообщений", () => {

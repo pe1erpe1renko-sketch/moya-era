@@ -81,7 +81,7 @@ export function DayCardView({
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="text-text-accent underline-offset-4 hover:underline"
+              className="tap text-text-accent underline-offset-4 hover:underline"
             >
               Показать сегодняшнюю
             </button>
@@ -213,7 +213,7 @@ export function DayCardView({
           </p>
           <p className="mt-2 text-text-secondary" style={{ fontSize: 14, lineHeight: 1.6 }}>
             Подписка открывает её разбор на фоне вашей карты рождения — и всё остальное на сайте.{" "}
-            <button type="button" onClick={() => setPaywall(true)} className="text-text-accent underline-offset-4 hover:underline">
+            <button type="button" onClick={() => setPaywall(true)} className="tap text-text-accent underline-offset-4 hover:underline">
               Что входит
             </button>
           </p>

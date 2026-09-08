@@ -59,7 +59,7 @@ export default function SupportPage() {
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
                 <span className="font-mono text-text-primary" data-copy-text={clientId ?? ""} style={{ fontSize: "clamp(22px, 2.2vw, 30px)", letterSpacing: "0.04em" }}>
-                  {clientId ?? "…"}
+                  {clientId ?? "загружаем"}
                 </span>
                 {clientId && <CopyButton text={clientId} className="rounded-full border border-border px-3 py-1.5 hover:border-text-accent/60" />}
               </div>
@@ -74,7 +74,7 @@ export default function SupportPage() {
               </div>
               <p className="mt-2 text-text-primary" style={{ fontSize: 16, lineHeight: 1.6 }}>
                 У каждого аккаунта есть ID — с ним поддержка находит вас сразу.{" "}
-                <Link href="/login?next=%2Fpodderzhka" className="text-text-accent underline-offset-4 hover:underline">
+                <Link href="/login?next=%2Fpodderzhka" className="tap text-text-accent underline-offset-4 hover:underline">
                   Войдите
                 </Link>
                 , и он появится здесь
@@ -84,11 +84,18 @@ export default function SupportPage() {
         </section>
 
         {/* Три способа связи */}
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {channels.map((c) => (
-            <ChannelCard key={c.id} channel={c} />
-          ))}
-        </div>
+        {channels.length ? (
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {channels.map((c) => (
+              <ChannelCard key={c.id} channel={c} />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-6 text-[15px] leading-[1.6] text-text-secondary">
+            Адреса поддержки появятся здесь, как только будут настроены. Пока сохраните номер обращения выше — по нему мы
+            найдём ваш аккаунт.
+          </p>
+        )}
 
         <p className="mt-6 text-text-secondary" style={{ fontSize: 13, lineHeight: 1.6 }}>
           Разборы не заменяют врача, юриста и психолога — но если что-то на сайте работает не так, как обещано, напишите, и мы
@@ -102,8 +109,6 @@ export default function SupportPage() {
 }
 
 function ChannelCard({ channel }: { channel: SupportChannel }) {
-  const note = channel.real ? null : "Адрес уточняется — заглушка до настройки";
-
   const inner = (
     <>
       <span className="support-card-icon" aria-hidden="true">
@@ -115,11 +120,6 @@ function ChannelCard({ channel }: { channel: SupportChannel }) {
       <span className="mt-1.5 block truncate text-text-secondary" style={{ fontSize: 14 }} data-copy-text={channel.id === "email" ? channel.value : undefined}>
         {channel.shown}
       </span>
-      {note && (
-        <span className="mt-2 block text-text-secondary/70" style={{ fontSize: 12 }}>
-          {note}
-        </span>
-      )}
     </>
   );
 

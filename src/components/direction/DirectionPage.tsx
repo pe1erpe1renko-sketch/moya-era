@@ -269,7 +269,7 @@ export function DirectionPage<R>({
                 <button
                   type="button"
                   onClick={() => aboutRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })}
-                  className="qc-focus text-text-accent underline-offset-4 hover:underline"
+                  className="qc-focus tap text-text-accent underline-offset-4 hover:underline"
                 >
                   К результату
                 </button>

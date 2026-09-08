@@ -12,10 +12,13 @@ export function useReadingTexts(typeSlug: string, urlDates: string[], initial: R
   const [texts, setTexts] = useState<Record<string, SlotText>>(initial);
   const [busy, setBusy] = useState<Set<string>>(new Set());
   const pending = useRef<Set<string>>(new Set());
+  // Вопросы, на которые сервер не ответил: второй раз не спрашиваем,
+  // иначе карточка с недостающим текстом запрашивала бы его в цикле.
+  const missing = useRef<Set<string>>(new Set());
 
   const load = useCallback(
     async (slotIds: string[]) => {
-      const need = slotIds.filter((id) => !texts[id] && !pending.current.has(id));
+      const need = slotIds.filter((id) => !texts[id] && !pending.current.has(id) && !missing.current.has(id));
       if (need.length === 0) return;
       need.forEach((id) => pending.current.add(id));
       setBusy((b) => new Set([...b, ...need]));
@@ -29,6 +32,10 @@ export function useReadingTexts(typeSlug: string, urlDates: string[], initial: R
         const data = (await res.json()) as {
           answers: Array<{ slotId: string; locked: boolean; text?: string; source?: string }>;
         };
+        const answered = new Set(data.answers.map((a) => a.slotId));
+        need.forEach((id) => {
+          if (!answered.has(id)) missing.current.add(id);
+        });
         setTexts((prev) => {
           const next = { ...prev };
           for (const a of data.answers) {

@@ -43,7 +43,7 @@ export function DocPage({ title, body, draftNotice = false }: Props) {
           </p>
         )}
 
-        <Link href="/" className="mt-12 inline-block text-text-accent hover:underline">
+        <Link href="/" className="tap-block mt-12 inline-block text-text-accent hover:underline">
           ← На главную
         </Link>
       </div>

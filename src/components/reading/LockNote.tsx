@@ -9,7 +9,7 @@ export function LockNote({ onOpen }: { onOpen: () => void }) {
   return (
     <p className="text-text-secondary" style={{ fontSize: 15, lineHeight: 1.6 }}>
       Открывает подписка — одна на все шесть систем.{" "}
-      <button type="button" onClick={onOpen} className="text-text-accent underline-offset-4 hover:underline">
+      <button type="button" onClick={onOpen} className="tap text-text-accent underline-offset-4 hover:underline">
         Что входит
       </button>
     </p>

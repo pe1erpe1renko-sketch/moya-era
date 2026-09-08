@@ -178,7 +178,7 @@ export function WhatsNext() {
         <a
           href="#pricing"
           onClick={scrollToPricing}
-          className="inline-flex items-center gap-2 font-sans text-text-accent transition-opacity hover:opacity-80"
+          className="tap-block inline-flex items-center gap-2 font-sans text-text-accent transition-opacity hover:opacity-80"
           style={{
             fontSize: "clamp(15px, 1.1vw, 18px)",
             marginTop: 40,

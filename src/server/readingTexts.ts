@@ -85,6 +85,35 @@ function contextFor(resolved: ResolvedReading, slotId: string, unlocked: boolean
     };
   }
 
+  // «Аркан дня» есть в разделах только у полной матрицы, а карточка
+  // «Сегодня» стоит на всех личных разборах — деньги, детская, карма и
+  // прочих. Отвечаем по слоту полной матрицы: без этого карточка не
+  // получала ответа и запрашивала текст без конца, десятки раз в секунду.
+  if (reading.kind === "single" && slotId === "day_energy") {
+    const full = calcTypeByAnySlug("matrica");
+    const daily = full
+      ? buildReadingSections(full.sections, matrix, { unlocked })
+          .flatMap((s) => s.slots)
+          .find((s) => s.id === "day_energy")
+      : undefined;
+    if (daily) {
+      const t = reading.matrix.today;
+      return {
+        locked: false,
+        ctx: {
+          key: daily.key,
+          slotLabel: daily.label,
+          arcana: t.dayArcana,
+          sectionTitle: "Сегодня",
+          kind: "daily",
+          periodArcana: t.arcana,
+          weekday: weekdayName(t.date),
+          date: t.date,
+        },
+      };
+    }
+  }
+
   const sections = buildReadingSections(type.sections, matrix, { unlocked });
   for (const section of sections) {
     const slot = section.slots.find((s) => s.id === slotId);

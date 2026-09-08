@@ -65,7 +65,7 @@ export const BUTTONS = {
   subscribe: "Включить сводку",
   reading: "Открыть разбор",
   mentor: "Спросить наставника",
-  image: "Сделать образ дня",
+  image: "Открыть карту дня",
   fullReading: "Посчитать свой полный разбор",
 } as const;
 

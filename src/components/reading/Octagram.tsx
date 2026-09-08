@@ -214,7 +214,7 @@ export function Octagram({ matrix, showTimeline = true, age = null, onSelect, hi
             const ringColor = isActive ? "var(--text-accent)" : zoneOn && p.zone ? ZONE_COLOR[p.zone] : "var(--border)";
             return (
               <g key={p.id} className="cursor-pointer" onClick={() => select(p)} role="button" aria-label={`${p.label}: аркан ${v}`} tabIndex={0} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && select(p)}>
-                <circle cx={p.x} cy={p.y} r={size + 4} fill="transparent" />
+                <circle cx={p.x} cy={p.y} r={size + 10} fill="transparent" />
                 <circle cx={p.x} cy={p.y} r={size} fill={isActive ? "var(--accent)" : "var(--bg-page)"} stroke={ringColor} strokeWidth={isActive ? 2 : 1.2} />
                 <text x={p.x} y={p.y + 0.5} textAnchor="middle" dominantBaseline="middle" fontSize={p.kind === "outer" || p.kind === "center" ? 13 : 9.5} fontWeight={p.kind === "center" ? 600 : 500} fill="var(--text-primary)" style={{ fontFamily: "var(--font-sans)" }}>
                   {v}

@@ -381,7 +381,7 @@ export function QuickCalc({
                 <button
                   type="button"
                   onClick={reset}
-                  className="mt-6 bg-transparent text-[15px] text-text-accent underline-offset-4 hover:underline"
+                  className="tap-block mt-6 bg-transparent text-[15px] text-text-accent underline-offset-4 hover:underline"
                 >
                   Другая дата
                 </button>

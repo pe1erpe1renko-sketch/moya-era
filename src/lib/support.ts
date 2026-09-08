@@ -6,17 +6,10 @@ import { CONTACT_EMAIL, MAX_URL, TELEGRAM_URL } from "@/lib/env";
  * Настоящие адреса приходят из переменных окружения:
  *   NEXT_PUBLIC_TELEGRAM_URL, NEXT_PUBLIC_MAX_URL, NEXT_PUBLIC_CONTACT_EMAIL.
  *
- * ЗАГЛУШКИ НИЖЕ — ВРЕМЕННЫЕ. Они стоят, чтобы страница поддержки не была
- * пустой до настройки, и помечены на самой странице словами «адрес
- * уточняется». Программисты заменяют их не в коде, а переменными в
- * Vercel — см. docs/PEREDACHA-PROGRAMMISTAM.md. В подвале сайта заглушки
- * не показываются: там контакты появляются только настоящие.
+ * Пока адрес не настроен, канал не показывается вовсе: выдуманный адрес
+ * хуже отсутствующего — то же правило, что в подвале сайта. Программисты
+ * задают адреса переменными в Vercel — см. docs/PEREDACHA-PROGRAMMISTAM.md.
  */
-const PLACEHOLDER = {
-  telegram: "https://t.me/moya_era_support",
-  max: "https://max.ru/moya_era_support",
-  email: "support@moya-era.example",
-} as const;
 
 export type SupportChannel = {
   id: "telegram" | "max" | "email";
@@ -25,32 +18,13 @@ export type SupportChannel = {
   value: string;
   /** что показать под названием */
   shown: string;
-  /** адрес из настроек, а не заглушка */
-  real: boolean;
 };
 
+/** Только настроенные каналы. Пусто — контактов пока нет. */
 export function supportChannels(): SupportChannel[] {
-  return [
-    {
-      id: "telegram",
-      title: "Написать в Telegram",
-      value: TELEGRAM_URL || PLACEHOLDER.telegram,
-      shown: (TELEGRAM_URL || PLACEHOLDER.telegram).replace(/^https?:\/\//, ""),
-      real: Boolean(TELEGRAM_URL),
-    },
-    {
-      id: "max",
-      title: "Написать в Max",
-      value: MAX_URL || PLACEHOLDER.max,
-      shown: (MAX_URL || PLACEHOLDER.max).replace(/^https?:\/\//, ""),
-      real: Boolean(MAX_URL),
-    },
-    {
-      id: "email",
-      title: "Почта",
-      value: CONTACT_EMAIL || PLACEHOLDER.email,
-      shown: CONTACT_EMAIL || PLACEHOLDER.email,
-      real: Boolean(CONTACT_EMAIL),
-    },
-  ];
+  const out: SupportChannel[] = [];
+  if (TELEGRAM_URL) out.push({ id: "telegram", title: "Написать в Telegram", value: TELEGRAM_URL, shown: TELEGRAM_URL.replace(/^https?:\/\//, "") });
+  if (MAX_URL) out.push({ id: "max", title: "Написать в Max", value: MAX_URL, shown: MAX_URL.replace(/^https?:\/\//, "") });
+  if (CONTACT_EMAIL) out.push({ id: "email", title: "Почта", value: CONTACT_EMAIL, shown: CONTACT_EMAIL });
+  return out;
 }

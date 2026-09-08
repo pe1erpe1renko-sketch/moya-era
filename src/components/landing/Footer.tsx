@@ -20,7 +20,7 @@ const DOCS = [
 const colTitle =
   "text-text-secondary text-[13px] uppercase tracking-[0.08em]";
 const linkCls =
-  "text-text-secondary hover:text-text-accent text-[14px] transition-colors";
+  "tap text-text-secondary hover:text-text-accent text-[14px] transition-colors";
 
 export function Footer() {
   return (
@@ -50,12 +50,12 @@ export function Footer() {
             {(TELEGRAM_URL || CONTACT_EMAIL) && (
               <div className="mt-6 flex flex-col gap-[10px]">
                 {TELEGRAM_URL && (
-                  <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-text-accent text-[14px] underline-offset-4 hover:underline">
+                  <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="tap text-text-accent text-[14px] underline-offset-4 hover:underline">
                     Telegram
                   </a>
                 )}
                 {CONTACT_EMAIL && (
-                  <a href={`mailto:${CONTACT_EMAIL}`} className="text-text-accent text-[14px] underline-offset-4 hover:underline">
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="tap text-text-accent text-[14px] underline-offset-4 hover:underline">
                     {CONTACT_EMAIL}
                   </a>
                 )}

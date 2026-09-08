@@ -71,7 +71,7 @@ export function renameArcana(text: string): string {
 
 /** Промпты написаны для другого бренда — подменяем имя сервиса на лету, файлы не трогаем. */
 export function brand(system: string): string {
-  const named = system.replaceAll("«Матрика»", "«Моя Эра»").replaceAll("Матрика", "Моя Эра");
+  const named = system.replaceAll("«Матрика»", "«Моя Эра»").replaceAll("Матрика", "Моя Эра").replaceAll("образам-талисманам", "образам");
   return renameArcana(named) + (named.includes("Перерождение") ? "" : HEAVY_RULE);
 }
 

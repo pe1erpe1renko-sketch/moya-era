@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Section } from "./Section";
 import { arcanaImage } from "@/lib/arcanaImage";
-import { ASK_MAX, askPath } from "@/lib/tarot/ask";
+import { ASK_MAX, rememberAsk } from "@/lib/tarot/ask";
 
 /**
  * «СПРОСИТЕ КАРТЫ» — блок на главной.
@@ -36,7 +36,9 @@ export function AskCards() {
         className="mx-auto mt-12 w-full max-w-[880px]"
         onSubmit={(e) => {
           e.preventDefault();
-          router.push(askPath({ q }));
+          // Вопрос — личный текст: едет в черновик, а не в адрес страницы.
+          rememberAsk({ q });
+          router.push("/taro");
         }}
       >
         <div className="rounded-[20px] border border-border bg-surface-1 p-[22px] md:p-8">
