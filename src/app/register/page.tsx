@@ -4,11 +4,11 @@ import RegisterPage from "./RegisterPage";
 
 export const metadata: Metadata = {
   title: "Создать профиль — Моя Эра",
-  description: "Регистрация в Моя Эра: профиль хранит расчёты по шести системам, дневник и профили близких.",
+  description: "Регистрация в Моя Эра: профиль хранит расчёты по шести системам, людей рядом и расклады.",
   openGraph: {
     images: [DEFAULT_OG_IMAGE],
     title: "Создать профиль — Моя Эра",
-    description: "Профиль хранит твои расчёты, дневник и профили близких.",
+    description: "Профиль хранит ваши расчёты, людей рядом и расклады.",
     type: "website",
   },
 };

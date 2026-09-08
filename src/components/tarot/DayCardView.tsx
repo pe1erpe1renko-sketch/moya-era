@@ -209,11 +209,10 @@ export function DayCardView({
 
         <div className="mt-8 rounded-[16px] border border-border bg-surface-1" style={{ padding: "16px 18px" }}>
           <p className="text-text-primary" style={{ fontSize: 15, lineHeight: 1.6 }}>
-            Завтра карта сменится, и сегодняшняя пропадёт со страницы
+            Завтра карта сменится, и сегодняшняя пропадёт со страницы: карта дня живёт одни сутки
           </p>
           <p className="mt-2 text-text-secondary" style={{ fontSize: 14, lineHeight: 1.6 }}>
-            Подписка сохраняет историю за все дни — по ней видно, какие арканы возвращаются к вам чаще других — и
-            открывает всё остальное на сайте.{" "}
+            Подписка открывает её разбор на фоне вашей карты рождения — и всё остальное на сайте.{" "}
             <button type="button" onClick={() => setPaywall(true)} className="text-text-accent underline-offset-4 hover:underline">
               Что входит
             </button>

@@ -118,7 +118,7 @@ export function hereLine(system: LockSystem, counts?: LockCounts): string | null
     case "numerology":
       return "Весь этот разбор: каждое число подробно и девять ячеек квадрата";
     case "daycard":
-      return "Карта дня на фоне вашей карты рождения — и история за все дни";
+      return "Карта дня на фоне вашей карты рождения — три вопроса по двум арканам";
     case "pair":
       return "Все три взгляда на пару целиком: матрица, синастрия, композит";
     case "image":
@@ -170,7 +170,7 @@ export function lockItems(system: LockSystem, plans: Plan[], counts?: LockCounts
   if (system === "people") items.unshift({ id: "people", art: ART.people, text: people, here: true });
   else items.push({ id: "people", art: ART.people, text: people });
 
-  if (system !== "daycard") items.push({ id: "daycard", art: ART.daycard, text: "Карта дня каждый день — и история за все дни" });
+  if (system !== "daycard") items.push({ id: "daycard", art: ART.daycard, text: "Карта дня каждый день — с разбором на фоне вашей карты рождения" });
   if (system !== "bot") items.push({ id: "bot", art: ART.bot, text: "Сводка в Telegram по вашим людям" });
 
   const credits = creditsSpan(plans);
@@ -189,7 +189,7 @@ export function lockItems(system: LockSystem, plans: Plan[], counts?: LockCounts
 export const PLAN_COMMON: string[] = [
   "Все шесть систем: матрица судьбы, натальная карта, дизайн человека, нумерология, таро, совместимость",
   "Все типы разбора и каждый вопрос в каждом — без замков",
-  "Карта дня каждый день и история за все дни",
+  "Карта дня каждый день — с разбором на фоне карты рождения",
   "Сводка в Telegram по вашим людям",
   "Архив: разборы, расклады и образы остаются в кабинете",
 ];

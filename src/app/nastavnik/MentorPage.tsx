@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/hero/Header";
 import { Footer } from "@/components/landing/Footer";
 import { useAuth } from "@/lib/useAuth";
+import { creditWord } from "@/lib/plansDefault";
 import { backend, RELATION_LABELS, type ChatThread, type Person } from "@/lib/backend";
 import { DEMO_MODE } from "@/lib/env";
 import { MENTOR_HINTS } from "@/lib/matrix/prompts";
@@ -132,7 +133,7 @@ export default function MentorPage() {
             <p className="mt-2 max-w-[640px] text-[15px] text-text-secondary">Видит ваши числа и отвечает на вопрос, а не на аркан. Не врач, не психолог и не юрист — и скажет об этом прямо.</p>
           </div>
           <div className="text-[14px] text-text-secondary">
-            {credits === null ? "" : DEMO_MODE ? "демо · без списаний" : `${credits} кредитов`}{" "}
+            {credits === null ? "" : DEMO_MODE ? "демо · без списаний" : `${credits} ${creditWord(credits)}`}{" "}
             <Link href="/tarify#credits" className="ml-2 text-text-accent underline-offset-4 hover:underline">докупить</Link>
           </div>
         </div>

@@ -63,7 +63,7 @@ export default function LoginPage() {
           Вход
         </h1>
         <p className="mt-[10px] text-[15px] text-text-secondary">
-          Профиль хранит твои расчёты и дневник
+          Профиль хранит ваши расчёты, людей рядом и расклады
         </p>
 
         <form onSubmit={onSubmit} noValidate>

@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       email: access.email,
       kind: "pack",
       amount: pack.price,
-      description: `Моя Эра · ${pack.credits} кредитов наставника`,
+      description: `Моя Эра · ${pack.credits} кредитов (наставник и расклады)`,
       metadata: { pack_id: pack.id },
     });
     return result.ok ? NextResponse.json({ redirectUrl: result.redirectUrl }) : NextResponse.json({ error: result.error }, { status: 502 });

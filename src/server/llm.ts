@@ -51,9 +51,32 @@ export type CompleteInput = {
 
 export type CompleteOutput = { text: string; model: string; inputTokens: number; outputTokens: number };
 
+/**
+ * Тяжёлые арканы на сайте зовутся Перерождение, Искушение и Обновление
+ * (см. `lib/arcana.ts`), а закрытые промпты матрицы всё ещё перечисляют
+ * их старыми именами. Подменяем на лету в системном промпте и в
+ * сообщениях — там стоят опоры вида «13 · Смерть», по которым модель
+ * называет аркан.
+ */
+const HEAVY_ARCANA: Array<[RegExp, string]> = [
+  [/\bСмерть\b/g, "Перерождение"],
+  [/\bДьявол\b/g, "Искушение"],
+  [/\bБашня\b/g, "Обновление"],
+];
+const HEAVY_RULE = "\n\nНазвания арканов 13, 15 и 16 — только «Перерождение», «Искушение» и «Обновление». Слова «Смерть», «Дьявол» и «Башня» как названия арканов не использовать.";
+
+export function renameArcana(text: string): string {
+  return HEAVY_ARCANA.reduce((acc, [re, to]) => acc.replace(re, to), text);
+}
+
 /** Промпты написаны для другого бренда — подменяем имя сервиса на лету, файлы не трогаем. */
 export function brand(system: string): string {
-  return system.replaceAll("«Матрика»", "«Моя Эра»").replaceAll("Матрика", "Моя Эра");
+  const named = system.replaceAll("«Матрика»", "«Моя Эра»").replaceAll("Матрика", "Моя Эра");
+  return renameArcana(named) + (named.includes("Перерождение") ? "" : HEAVY_RULE);
+}
+
+function renameMessages(messages: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+  return messages.map((m) => (typeof m.content === "string" ? { ...m, content: renameArcana(m.content) } : m));
 }
 
 export async function complete({ model, system, messages, maxTokens, temperature = 0.8 }: CompleteInput): Promise<CompleteOutput> {
@@ -63,7 +86,7 @@ export async function complete({ model, system, messages, maxTokens, temperature
     max_tokens: maxTokens,
     temperature,
     system: brand(system),
-    messages,
+    messages: renameMessages(messages),
   });
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
@@ -90,7 +113,7 @@ export async function* stream({ model, system, messages, maxTokens, temperature 
     max_tokens: maxTokens,
     temperature,
     system: brand(system),
-    messages,
+    messages: renameMessages(messages),
   });
   let full = "";
   for await (const event of s) {

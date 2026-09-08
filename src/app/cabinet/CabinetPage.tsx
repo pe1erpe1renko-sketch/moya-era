@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/useAuth";
 import { DEMO_MODE } from "@/lib/env";
 import { peopleLeft, isSubscriptionActive } from "@/lib/access";
 import { fromPriceLine } from "@/lib/lock";
+import { creditWord } from "@/lib/plansDefault";
 import { BotPanel } from "@/components/bot/BotPanel";
 import { SpreadsPanel } from "@/components/tarot/SpreadsPanel";
 import { AutoRenewPanel } from "@/components/billing/AutoRenewPanel";
@@ -444,7 +445,7 @@ function PlanBadge({ plan, active, credits }: { plan: Plan | null; active: boole
       <span className={`rounded-full border px-3 py-1 ${active ? "border-text-accent/60 text-text-primary" : "border-border text-text-secondary"}`}>
         {active && plan ? plan.title : "Без подписки"}
       </span>
-      <span className="rounded-full border border-border px-3 py-1 text-text-secondary">{credits} кредитов</span>
+      <span className="rounded-full border border-border px-3 py-1 text-text-secondary">{credits} {creditWord(credits)}</span>
     </div>
   );
 }

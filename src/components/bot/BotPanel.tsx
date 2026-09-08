@@ -59,9 +59,11 @@ export function BotPanel({ people }: { people: Array<{ id: string; name: string 
     });
     setBusy(null);
     if (res.status === 402) {
-      const d = (await res.json()) as { limit: number };
+      const d = (await res.json()) as { limit: number; reason?: "no_plan" | "full" };
       setError(
-        `По вашему тарифу к боту подключается ${d.limit} ${plural(d.limit)}. Отзовите одну привязку или смените тариф`,
+        d.reason === "no_plan"
+          ? "Бот подключается по подписке — она же открывает всё остальное"
+          : `По вашему тарифу к боту подключается ${d.limit} ${plural(d.limit)}. Отзовите одну привязку или смените тариф`,
       );
       return;
     }

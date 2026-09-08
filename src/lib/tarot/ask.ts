@@ -19,6 +19,7 @@
 
 import { SPREADS, type SpreadId } from "./spreads";
 import { authHref, type ReturnStore } from "@/lib/returnTo";
+import { WELCOME_CREDITS } from "@/lib/plansDefault";
 
 /** Длина вопроса — та же, что принимает сервер расклада. */
 export const ASK_MAX = 500;
@@ -31,12 +32,8 @@ export const ASK_MAX = 500;
 export const ASK_STORAGE_KEY = "era_taro_ask";
 export const ASK_TTL_MS = 24 * 60 * 60 * 1000;
 
-/**
- * Приветственные кредиты новому аккаунту. Начисляет база триггером
- * (`grant_welcome_credits` в первой миграции); тест сверяет это число с
- * миграцией, чтобы обещание на странице не разошлось с начислением.
- */
-export const WELCOME_CREDITS = 5;
+/** Приветственные кредиты — одна константа на сайт, см. `plansDefault`. */
+export { WELCOME_CREDITS };
 
 export type Ask = { vid: SpreadId | null; q: string };
 

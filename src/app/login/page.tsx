@@ -4,11 +4,11 @@ import LoginPage from "./LoginPage";
 
 export const metadata: Metadata = {
   title: "Вход — Моя Эра",
-  description: "Вход в профиль Моя Эра: расчёты, дневник и профили близких в одном месте.",
+  description: "Вход в профиль Моя Эра: расчёты, люди рядом и расклады в одном месте.",
   openGraph: {
     images: [DEFAULT_OG_IMAGE],
     title: "Вход — Моя Эра",
-    description: "Профиль хранит твои расчёты и дневник наблюдений.",
+    description: "Профиль хранит ваши расчёты, людей рядом и расклады.",
     type: "website",
   },
 };
